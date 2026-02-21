@@ -68,8 +68,8 @@ export default function CreateCard() {
         createdAt: new Date().toISOString()
       });
 
-      // 3. Generate Public URL for the QR Code
-      const publicUrl = `${window.location.origin}/id/${docRef.id}`;
+      // 3. Generate Public URL for the QR Code (UPDATED WITH HASH ROUTING)
+      const publicUrl = `${window.location.origin}/#/id/${docRef.id}`;
       setGeneratedUrl(publicUrl);
 
     } catch (err) {
@@ -108,7 +108,7 @@ export default function CreateCard() {
               </select>
             </div>
 
-            {/* Hero Image Upload - NO LONGER REQUIRED */}
+            {/* Hero Image Upload - Optional */}
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700">Hero Image (Optional - can add later)</label>
               <input 
