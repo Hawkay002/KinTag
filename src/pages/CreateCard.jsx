@@ -21,12 +21,12 @@ export default function CreateCard() {
     age: '',
     heightWeight: '',
     bloodGroup: '',
-    typeSpecific: '', // Ethnicity for kid, Breed for pet
+    typeSpecific: '', 
     parent1Name: '',
     parent1Phone: '',
     parent2Name: '',
     parent2Phone: '',
-    primaryEmergencyContact: 'parent1', // Lets them choose which parent is the main CTA
+    primaryEmergencyContact: 'parent1', 
     address: ''
   });
 
@@ -39,32 +39,32 @@ export default function CreateCard() {
     e.preventDefault();
     setError('');
     
-    // Security check: Ensure user is actually logged in before trying to save
     if (!auth.currentUser) {
       setError("You must be logged in to create a card.");
-      return;
-    }
-
-    if (!imageFile) {
-      setError("Please upload a hero image for the profile.");
       return;
     }
 
     setLoading(true);
 
     try {
-      // 1. Upload Image to Firebase Storage
-      // Using a unique filename to prevent overwrites
-      const imageRef = ref(storage, `profiles/${auth.currentUser.uid}_${Date.now()}_${imageFile.name}`);
-      await uploadBytes(imageRef, imageFile);
-      const imageUrl = await getDownloadURL(imageRef);
+      let imageUrl = '';
+
+      // 1. Conditionally Upload Image (if provided)
+      if (imageFile) {
+        const imageRef = ref(storage, `profiles/${auth.currentUser.uid}_${Date.now()}_${imageFile.name}`);
+        await uploadBytes(imageRef, imageFile);
+        imageUrl = await getDownloadURL(imageRef);
+      } else {
+        // Fallback placeholder image if they decide to add a real one later
+        imageUrl = 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
+      }
 
       // 2. Save Data to Firestore Database
       const docRef = await addDoc(collection(db, "profiles"), {
         ...formData,
         type,
-        imageUrl,
-        userId: auth.currentUser.uid, // Secures the document to this specific parent
+        imageUrl, // Will be either the real image URL or the placeholder
+        userId: auth.currentUser.uid,
         createdAt: new Date().toISOString()
       });
 
@@ -101,22 +101,21 @@ export default function CreateCard() {
               <select 
                 value={type} 
                 onChange={(e) => setType(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue focus:border-transparent outline-none transition-all"
+                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue outline-none"
               >
                 <option value="kid">Kid</option>
                 <option value="pet">Pet</option>
               </select>
             </div>
 
-            {/* Hero Image Upload */}
+            {/* Hero Image Upload - NO LONGER REQUIRED */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Hero Image (Clear photo of face)</label>
+              <label className="block text-sm font-semibold text-gray-700">Hero Image (Optional - can add later)</label>
               <input 
                 type="file" 
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files[0])} 
-                required 
-                className="w-full p-2 border border-gray-300 rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-safetyBlue file:text-white hover:file:bg-blue-600 transition-all" 
+                className="w-full p-2 border border-gray-300 rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-safetyBlue file:text-white hover:file:bg-blue-600 transition-all cursor-pointer" 
               />
             </div>
 
@@ -180,7 +179,6 @@ export default function CreateCard() {
                 <option value="parent1">Parent/Owner 1</option>
                 <option value="parent2">Parent/Owner 2</option>
               </select>
-              <p className="text-xs text-gray-500">This number will be used for the primary "Call" button on the digital card.</p>
             </div>
 
             <div className="space-y-2">
@@ -193,7 +191,6 @@ export default function CreateCard() {
                 rows="3"
                 className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none resize-none" 
               />
-              <p className="text-xs text-gray-500">This address will be used to generate the Google Maps routing link.</p>
             </div>
 
             <button 
@@ -201,7 +198,7 @@ export default function CreateCard() {
               disabled={loading}
               className={`w-full text-white p-4 rounded-xl font-bold text-lg transition-all ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-safetyBlue hover:bg-blue-600 shadow-md hover:shadow-lg'}`}
             >
-              {loading ? 'Uploading & Saving...' : 'Save & Generate QR'}
+              {loading ? 'Saving Profile...' : 'Save & Generate QR'}
             </button>
           </form>
         ) : (
