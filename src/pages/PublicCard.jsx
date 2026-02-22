@@ -8,7 +8,7 @@ export default function PublicCard() {
   const { profileId } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [isImageEnlarged, setIsImageEnlarged] = useState(false); // NEW: State for image modal
+  const [isImageEnlarged, setIsImageEnlarged] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,8 +27,8 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-100 font-bold text-gray-500">Retrieving secure data...</div>;
-  if (!profile) return <div className="min-h-screen flex items-center justify-center bg-gray-100 font-bold text-red-500">Profile not found.</div>;
+  if (loading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-zinc-500">Retrieving secure identity...</div>;
+  if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
 
   let displayContacts = profile.contacts || [
     { id: '1', name: profile.parent1Name, phone: profile.parent1Phone, tag: 'Mother' },
@@ -42,73 +42,76 @@ export default function PublicCard() {
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col max-w-md mx-auto shadow-2xl relative">
+    <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
-      {/* Hero Image with Enlarge Button */}
+      {/* Hero Image */}
       <div className="relative h-[45vh] w-full shrink-0">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
+        <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
         
-        {/* Enlarge Button */}
         <button 
           onClick={() => setIsImageEnlarged(true)} 
-          className="absolute top-4 right-4 bg-black/40 backdrop-blur-md text-white p-2 rounded-full hover:bg-black/60 transition z-20"
+          className="absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full hover:bg-black/50 transition z-20"
           title="View Full Image"
         >
-          <Maximize2 size={20} />
+          <Maximize2 size={18} />
         </button>
       </div>
       
-      <div className="flex-1 bg-white -mt-10 rounded-t-3xl p-6 z-10 space-y-6 relative pb-48">
-        <div className="text-center border-b border-gray-100 pb-6">
-          <h1 className="text-4xl font-extrabold text-gray-900 mb-1">{profile.name}</h1>
-          <p className="text-lg text-safetyBlue font-bold capitalize">
+      {/* Main Content Card */}
+      <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative pb-48 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+        
+        <div className="text-center border-b border-zinc-100 pb-6">
+          <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
+          <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
             {profile.age} • {profile.typeSpecific}
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gray-50 p-4 rounded-2xl flex flex-col items-center text-center">
-            {profile.type === 'kid' ? <User className="text-blue-400 mb-2" size={24} /> : <PawPrint className="text-blue-400 mb-2" size={24}/>}
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Gender</span>
-            <span className="font-bold text-gray-900">{profile.gender}</span>
+        {/* Premium Vitals Grid - Monochromatic */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
+            {profile.type === 'kid' ? <User className="text-zinc-700 mb-2.5" size={22} /> : <PawPrint className="text-zinc-700 mb-2.5" size={22}/>}
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Gender</span>
+            <span className="font-extrabold text-brandDark">{profile.gender}</span>
           </div>
-          <div className="bg-red-50 p-4 rounded-2xl flex flex-col items-center text-center">
-            <Droplet className="text-red-400 mb-2" size={24} />
-            <span className="text-xs text-red-400 font-semibold uppercase tracking-wider mb-1">Blood Group</span>
-            <span className="font-bold text-red-700">{profile.bloodGroup}</span>
+          <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
+            <Droplet className="text-zinc-700 mb-2.5" size={22} />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Blood Group</span>
+            <span className="font-extrabold text-brandDark">{profile.bloodGroup}</span>
           </div>
-          <div className="bg-gray-50 p-4 rounded-2xl flex flex-col items-center text-center">
-            <Ruler className="text-gray-400 mb-2" size={24} />
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Height</span>
-            <span className="font-bold text-gray-900">{profile.height}</span>
+          <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
+            <Ruler className="text-zinc-700 mb-2.5" size={22} />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Height</span>
+            <span className="font-extrabold text-brandDark">{profile.height}</span>
           </div>
-          <div className="bg-gray-50 p-4 rounded-2xl flex flex-col items-center text-center">
-            <Scale className="text-gray-400 mb-2" size={24} />
-            <span className="text-xs text-gray-500 font-semibold uppercase tracking-wider mb-1">Weight</span>
-            <span className="font-bold text-gray-900">{profile.weight}</span>
+          <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
+            <Scale className="text-zinc-700 mb-2.5" size={22} />
+            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Weight</span>
+            <span className="font-extrabold text-brandDark">{profile.weight}</span>
           </div>
         </div>
 
-        <div className="bg-blue-50/50 p-5 rounded-2xl">
-          <div className="flex items-center space-x-2 mb-4 text-safetyBlue">
-            <Users size={20} />
-            <h3 className="font-bold">Contact Persons</h3>
+        {/* Contacts Section */}
+        <div className="bg-zinc-50 p-5 rounded-3xl border border-zinc-200/60">
+          <div className="flex items-center space-x-2 mb-4 text-brandDark">
+            <Users size={18} />
+            <h3 className="font-extrabold tracking-tight">Authorized Guardians</h3>
           </div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {displayContacts.map((contact) => (
-              <div key={contact.id} className="flex justify-between items-center bg-white p-3 rounded-xl shadow-sm border border-blue-50">
+              <div key={contact.id} className="flex justify-between items-center bg-white p-3.5 rounded-2xl shadow-sm border border-zinc-100">
                 <div>
-                  <div className="flex items-center space-x-2">
-                    <p className="text-gray-900 font-bold text-sm">{contact.name}</p>
-                    <span className="px-2 py-0.5 bg-blue-100 text-safetyBlue text-[10px] font-bold uppercase rounded-md">
+                  <div className="flex items-center space-x-2.5">
+                    <p className="text-brandDark font-bold text-sm tracking-tight">{contact.name}</p>
+                    <span className="px-2 py-0.5 bg-brandMuted border border-zinc-200 text-zinc-600 text-[9px] font-extrabold uppercase tracking-widest rounded-md">
                       {contact.tag === 'Other' ? contact.customTag : contact.tag}
                     </span>
                   </div>
-                  <p className="text-gray-500 text-xs font-medium mt-0.5">{contact.phone}</p>
+                  <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">{contact.phone}</p>
                 </div>
-                <a href={`tel:${contact.phone}`} className="bg-green-100 text-green-700 p-2.5 rounded-full hover:bg-green-200 transition">
-                  <Phone size={18} fill="currentColor" />
+                <a href={`tel:${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
+                  <Phone size={16} fill="currentColor" />
                 </a>
               </div>
             ))}
@@ -116,36 +119,40 @@ export default function PublicCard() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto space-y-2 pb-6 shadow-[0_-8px_16px_rgba(0,0,0,0.05)] z-50">
-        <a href={`tel:${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-safetyBlue text-white py-3 px-4 rounded-xl font-bold text-base shadow-md hover:bg-blue-600 transition-colors">
+      {/* Premium Glassmorphism Sticky Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
+        
+        <a href={`tel:${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
           <Phone size={20} />
-          <span className="truncate">Call Emergency Contact ({primaryContact.name})</span>
+          <span className="truncate">Call {primaryContact.name} (Emergency)</span>
         </a>
+
         <div className="flex gap-2">
-          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-1.5 bg-gray-900 text-white py-2.5 px-3 rounded-xl font-bold shadow-sm hover:bg-gray-800">
+          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-1.5 bg-zinc-100 text-brandDark py-3 px-3 rounded-2xl font-extrabold shadow-sm border border-zinc-200 hover:bg-zinc-200 transition-colors">
             <MapPin size={16} className="shrink-0" />
-            <span className="text-xs truncate">Navigate to Parents House</span>
+            <span className="text-xs truncate tracking-tight">Navigate Home</span>
           </a>
-          <a href={`tel:${helplineNumber}`} className="w-20 shrink-0 flex flex-col items-center justify-center bg-red-100 text-red-700 py-1.5 px-2 rounded-xl font-bold hover:bg-red-200">
+
+          <a href={`tel:${helplineNumber}`} className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/10 text-brandGold py-1.5 px-2 rounded-2xl font-bold border border-brandGold/20 hover:bg-brandGold/20 transition-colors">
             <AlertTriangle size={16} className="mb-0.5" />
-            <span className="text-[9px] text-center leading-tight">{helplineText}</span>
+            <span className="text-[9px] text-center leading-tight tracking-wider uppercase">{helplineText}</span>
           </a>
         </div>
       </div>
 
-      {/* NEW: Full Screen Image Modal */}
+      {/* Full Screen Image Modal */}
       {isImageEnlarged && (
-        <div className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
           <button 
             onClick={() => setIsImageEnlarged(false)} 
-            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition"
+            className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition"
           >
-            <X size={28} />
+            <X size={24} />
           </button>
           <img 
             src={profile.imageUrl} 
             alt={profile.name} 
-            className="max-w-full max-h-[90vh] object-contain rounded-lg shadow-2xl" 
+            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" 
           />
         </div>
       )}
