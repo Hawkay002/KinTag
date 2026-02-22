@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { db, auth } from '../firebase'; 
 import { collection, addDoc } from 'firebase/firestore';
-import { QRCodeSVG } from 'qrcode.react';
+import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
+import { Download } from 'lucide-react';
 
 export default function CreateCard() {
   const navigate = useNavigate();
@@ -78,6 +79,17 @@ export default function CreateCard() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // --- NEW: Download QR Function ---
+  const downloadQR = () => {
+    const canvas = document.getElementById("qr-canvas-create");
+    if (!canvas) return;
+    const pngUrl = canvas.toDataURL("image/png");
+    const downloadLink = document.createElement("a");
+    downloadLink.href = pngUrl;
+    downloadLink.download = `${formData.name}_SafeID_QR.png`;
+    downloadLink.click();
   };
 
   return (
@@ -170,12 +182,28 @@ export default function CreateCard() {
             </button>
           </form>
         ) : (
-          <div className="text-center space-y-8 py-8">
+          <div className="text-center space-y-6 py-8">
             <h2 className="text-2xl font-bold text-gray-900">Profile Secured!</h2>
-            <div className="flex justify-center"><QRCodeSVG value={generatedUrl} size={220} level="H" includeMargin={true} /></div>
-            <div className="space-y-4 pt-4">
-              <a href={generatedUrl} target="_blank" rel="noreferrer" className="block w-full bg-safetyBlue text-white p-4 rounded-xl font-bold shadow-md">View Live Card</a>
-              <button onClick={() => navigate('/')} className="block w-full bg-gray-100 text-gray-700 p-4 rounded-xl font-bold">Return to Dashboard</button>
+            
+            <div className="flex justify-center">
+              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 inline-block">
+                <QRCodeCanvas id="qr-canvas-create" value={generatedUrl} size={220} level="H" includeMargin={true} />
+              </div>
+            </div>
+
+            <div className="space-y-3 pt-4 max-w-sm mx-auto">
+              <button onClick={downloadQR} className="w-full flex items-center justify-center space-x-2 bg-green-500 text-white p-4 rounded-xl font-bold shadow-md hover:bg-green-600 transition-all">
+                <Download size={20} />
+                <span>Download QR Code</span>
+              </button>
+              
+              <a href={generatedUrl} target="_blank" rel="noreferrer" className="block w-full bg-safetyBlue text-white p-4 rounded-xl font-bold shadow-md">
+                View Live Card
+              </a>
+              
+              <button onClick={() => navigate('/')} className="block w-full bg-gray-100 text-gray-700 p-4 rounded-xl font-bold hover:bg-gray-200">
+                Return to Dashboard
+              </button>
             </div>
           </div>
         )}
