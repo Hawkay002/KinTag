@@ -133,7 +133,6 @@ export default function CreateCard() {
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-10 relative">
         
-        {/* TOP CANCEL/CLOSE BUTTON */}
         {!generatedUrl && (
           <button 
             type="button" 
@@ -239,7 +238,6 @@ export default function CreateCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* LOCATION BLOCK MOVED ABOVE GUARDIANS */}
             <h3 className="text-xl font-extrabold text-brandDark tracking-tight mb-2">Location Information</h3>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
@@ -260,7 +258,6 @@ export default function CreateCard() {
 
             <hr className="border-zinc-200" />
             
-            {/* GUARDIANS BLOCK */}
             <div className="flex justify-between items-center">
               <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Authorized Guardians</h3>
               <button type="button" onClick={addContact} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors">
@@ -313,7 +310,7 @@ export default function CreateCard() {
 
             <div className="flex gap-4 pt-4">
               <button type="button" onClick={() => navigate('/')} className="w-1/3 bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-colors text-center">Cancel</button>
-              <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
+              <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
                 {loading ? 'Securing Identity...' : 'Save & Generate ID'}
               </button>
             </div>
@@ -325,7 +322,21 @@ export default function CreateCard() {
             
             <div className="flex justify-center">
               <div className="bg-white p-6 rounded-3xl shadow-premium border border-zinc-100 inline-block">
-                <QRCodeCanvas id="qr-canvas-create" value={generatedUrl} size={220} level="H" includeMargin={true} fgColor="#18181b" />
+                {/* NEW: QR Code with Center Logo */}
+                <QRCodeCanvas 
+                  id="qr-canvas-create" 
+                  value={generatedUrl} 
+                  size={220} 
+                  level="H" 
+                  includeMargin={true} 
+                  fgColor="#18181b"
+                  imageSettings={{
+                    src: "/kintag-logo.png",
+                    height: 45,
+                    width: 45,
+                    excavate: true,
+                  }}
+                />
               </div>
             </div>
 
