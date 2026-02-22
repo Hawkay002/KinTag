@@ -55,6 +55,13 @@ export default function PublicCard() {
       <div className="relative h-[45vh] w-full shrink-0">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+        
+        {/* NEW: Brand Logo Overlay Top Left */}
+        <div className="absolute top-5 left-5 z-20 flex items-center space-x-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-sm">
+          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm" />
+          <span className="text-white font-bold text-sm tracking-tight drop-shadow-sm">KinTag</span>
+        </div>
+
         <button onClick={() => setIsImageEnlarged(true)} className="absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full hover:bg-black/50 transition z-20" title="View Full Image">
           <Maximize2 size={18} />
         </button>
@@ -102,7 +109,6 @@ export default function PublicCard() {
           </div>
         </div>
 
-        {/* LOCATION DETAILS MOVED ABOVE GUARDIANS */}
         {(profile.policeStation || profile.pincode) && (
           <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/50">
             <div className="flex items-center space-x-2 mb-3 text-brandDark">
