@@ -3,24 +3,28 @@ import { db, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Plus, X } from 'lucide-react';
+import { Download, Plus, X, MapPin, Loader2 } from 'lucide-react';
 
 export default function CreateCard() {
   const navigate = useNavigate();
   const [type, setType] = useState('kid');
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [isFetchingLoc, setIsFetchingLoc] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [error, setError] = useState('');
 
   const [contacts, setContacts] = useState([
-    { id: Date.now().toString(), name: '', phone: '', tag: 'Mother', customTag: '' }
+    { id: Date.now().toString(), name: '', phone: '', tag: 'Father', customTag: '' }
   ]);
   const [primaryContactId, setPrimaryContactId] = useState(contacts[0].id);
 
-  // NEW: Added nationality to initial state
   const [formData, setFormData] = useState({
-    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', nationality: '', address: ''
+    name: '', age: 5, gender: 'Male', 
+    heightUnit: 'ft', heightMain: '', heightSub: '', 
+    weightUnit: 'kg', weightMain: '', 
+    bloodGroup: 'A+', typeSpecific: '', nationality: '', 
+    allergies: 'None Known', policeStation: '', pincode: '', address: ''
   });
 
   const handleInputChange = (e) => {
@@ -41,6 +45,37 @@ export default function CreateCard() {
     const updatedContacts = contacts.filter(c => c.id !== id);
     setContacts(updatedContacts);
     if (primaryContactId === id) setPrimaryContactId(updatedContacts[0].id);
+  };
+
+  const fetchLocation = () => {
+    if (!navigator.geolocation) {
+      setError("Geolocation is not supported by your browser");
+      return;
+    }
+    setIsFetchingLoc(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          // Free reverse geocoding API from OpenStreetMap
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          setFormData(prev => ({ 
+            ...prev, 
+            address: data.display_name,
+            pincode: data.address?.postcode || prev.pincode
+          }));
+        } catch (err) {
+          setError("Failed to fetch address details automatically.");
+        } finally {
+          setIsFetchingLoc(false);
+        }
+      },
+      () => {
+        setError("Location access denied. Please type address manually.");
+        setIsFetchingLoc(false);
+      }
+    );
   };
 
   const uploadToCloudinary = async (file) => {
@@ -130,16 +165,69 @@ export default function CreateCard() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div><label className={labelStyles}>Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Age</label><input type="text" name="age" value={formData.age} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Height</label><input type="text" name="height" placeholder="e.g., 4'2" value={formData.height} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Weight</label><input type="text" name="weight" placeholder="e.g., 60 lbs" value={formData.weight} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Blood Group</label><input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className={inputStyles} /></div>
               
-              {/* NEW: Conditional Ethnicity/Breed and Nationality */}
+              {/* NEW: Age Slider */}
+              <div>
+                <div className="flex justify-between items-center mb-1.5">
+                  <label className="text-sm font-bold text-brandDark">Age</label>
+                  <span className="text-brandGold font-extrabold">{formData.age} {formData.age == 1 ? 'Year' : 'Years'}</span>
+                </div>
+                <input type="range" name="age" min="1" max="50" value={formData.age} onChange={handleInputChange} className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-brandDark mt-3" />
+              </div>
+
+              {/* NEW: Dynamic Height */}
+              <div>
+                <label className={labelStyles}>Height</label>
+                <div className="flex space-x-2">
+                  {formData.heightUnit === 'ft' ? (
+                    <>
+                      <input type="number" name="heightMain" placeholder="Ft" value={formData.heightMain} onChange={handleInputChange} required className={inputStyles} />
+                      <input type="number" name="heightSub" placeholder="In" value={formData.heightSub} onChange={handleInputChange} required className={inputStyles} />
+                    </>
+                  ) : (
+                    <input type="number" name="heightMain" placeholder="Cm" value={formData.heightMain} onChange={handleInputChange} required className={inputStyles} />
+                  )}
+                  <select name="heightUnit" value={formData.heightUnit} onChange={handleInputChange} className="p-3 bg-brandMuted rounded-xl outline-none focus:ring-2 focus:ring-brandDark/20 font-bold border-transparent">
+                    <option value="ft">Ft/In</option>
+                    <option value="cm">Cm</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* NEW: Dynamic Weight */}
+              <div>
+                <label className={labelStyles}>Weight</label>
+                <div className="flex space-x-2">
+                  <input type="number" name="weightMain" placeholder={formData.weightUnit === 'kg' ? 'Kgs' : 'Lbs'} value={formData.weightMain} onChange={handleInputChange} required className={inputStyles} />
+                  <select name="weightUnit" value={formData.weightUnit} onChange={handleInputChange} className="p-3 bg-brandMuted rounded-xl outline-none focus:ring-2 focus:ring-brandDark/20 font-bold border-transparent">
+                    <option value="kg">Kgs</option>
+                    <option value="lbs">Lbs</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* NEW: Comprehensive Blood Group */}
+              <div>
+                <label className={labelStyles}>Blood Group</label>
+                <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className={inputStyles}>
+                  <option value="A+">A+</option><option value="A-">A-</option>
+                  <option value="B+">B+</option><option value="B-">B-</option>
+                  <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                  <option value="O+">O+</option><option value="O-">O-</option>
+                  <option value="Unknown">Unknown</option>
+                </select>
+              </div>
+              
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
               {type === 'kid' && (
                 <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} required className={inputStyles} /></div>
               )}
+            </div>
+
+            {/* NEW: Medical / Allergies Section */}
+            <div>
+              <label className={labelStyles}>Known Allergies / Medical Conditions</label>
+              <input type="text" name="allergies" placeholder="e.g., Peanuts, Penicillin (Leave 'None Known' if none)" value={formData.allergies} onChange={handleInputChange} required className={inputStyles} />
             </div>
 
             <hr className="border-zinc-200" />
@@ -162,9 +250,20 @@ export default function CreateCard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
                     <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
+                    
+                    {/* NEW: Updated Guardian List */}
                     <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-3 border border-zinc-200 rounded-xl bg-white outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium">
-                      <option value="Mother">Mother</option><option value="Father">Father</option><option value="Uncle">Uncle</option>
-                      <option value="Aunt">Aunt</option><option value="Brother">Brother</option><option value="Sister">Sister</option><option value="Other">Other (Custom)</option>
+                      <option value="Father">Father</option>
+                      <option value="Mother">Mother</option>
+                      <option value="Brother">Brother</option>
+                      <option value="Sister">Sister</option>
+                      <option value="Uncle">Uncle</option>
+                      <option value="Aunt">Aunt</option>
+                      <option value="Grandma - Father's Side">Grandma - Father's Side</option>
+                      <option value="Grandma - Mother's Side">Grandma - Mother's Side</option>
+                      <option value="Grandpa - Father's Side">Grandpa - Father's Side</option>
+                      <option value="Grandpa - Mother's Side">Grandpa - Mother's Side</option>
+                      <option value="Other">Other (Custom)</option>
                     </select>
                     {contact.tag === 'Other' && (
                       <input type="text" placeholder="Specify Tag" value={contact.customTag} onChange={(e) => handleContactChange(contact.id, 'customTag', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
@@ -185,14 +284,32 @@ export default function CreateCard() {
               </select>
             </div>
 
-            <div>
-              <label className={labelStyles}>Safe Address / Meeting Point</label>
-              <textarea name="address" value={formData.address} onChange={handleInputChange} required rows="3" className={`${inputStyles} resize-none`} />
+            <hr className="border-zinc-200" />
+
+            {/* NEW: Enhanced Location Section */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label className={labelStyles}>Local Police Station</label><input type="text" name="policeStation" placeholder="Nearest station name" value={formData.policeStation} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
             </div>
 
-            <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
-              {loading ? 'Securing Identity...' : 'Save & Generate ID'}
-            </button>
+            <div>
+              <div className="flex justify-between items-end mb-1.5">
+                <label className="block text-sm font-bold text-brandDark">Safe Address / Meeting Point</label>
+                <button type="button" onClick={fetchLocation} disabled={isFetchingLoc} className="text-xs bg-amber-50 text-brandGold font-bold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1.5 border border-amber-100 shadow-sm">
+                  {isFetchingLoc ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14}/>} 
+                  {isFetchingLoc ? 'Locating...' : 'Auto-Fill Location'}
+                </button>
+              </div>
+              <textarea name="address" placeholder="Tap 'Auto-Fill' or type manually..." value={formData.address} onChange={handleInputChange} required rows="3" className={`${inputStyles} resize-none`} />
+            </div>
+
+            {/* NEW: Cancel Button Added to Actions */}
+            <div className="flex gap-4 pt-4">
+              <button type="button" onClick={() => navigate('/')} className="w-1/3 bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-colors text-center">Cancel</button>
+              <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
+                {loading ? 'Securing Identity...' : 'Save & Generate ID'}
+              </button>
+            </div>
           </form>
         ) : (
           <div className="text-center space-y-6 py-8">
