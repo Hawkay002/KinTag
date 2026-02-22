@@ -18,8 +18,9 @@ export default function EditCard() {
   const [contacts, setContacts] = useState([]);
   const [primaryContactId, setPrimaryContactId] = useState('');
 
+  // NEW: Added nationality backward compatibility support
   const [formData, setFormData] = useState({
-    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', address: ''
+    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', nationality: '', address: ''
   });
 
   useEffect(() => {
@@ -34,7 +35,7 @@ export default function EditCard() {
           setFormData({
             name: data.name || '', age: data.age || '', gender: data.gender || 'Male',
             height: data.height || '', weight: data.weight || '', bloodGroup: data.bloodGroup || '', 
-            typeSpecific: data.typeSpecific || '', address: data.address || ''
+            typeSpecific: data.typeSpecific || '', nationality: data.nationality || '', address: data.address || ''
           });
 
           if (data.contacts && data.contacts.length > 0) {
@@ -172,7 +173,12 @@ export default function EditCard() {
               <div><label className={labelStyles}>Height</label><input type="text" name="height" value={formData.height} onChange={handleInputChange} required className={inputStyles} /></div>
               <div><label className={labelStyles}>Weight</label><input type="text" name="weight" value={formData.weight} onChange={handleInputChange} required className={inputStyles} /></div>
               <div><label className={labelStyles}>Blood Group</label><input type="text" name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} required className={inputStyles} /></div>
+              
+              {/* NEW: Conditional Ethnicity/Breed and Nationality */}
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
+              {type === 'kid' && (
+                <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} required className={inputStyles} /></div>
+              )}
             </div>
 
             <hr className="border-zinc-200" />
