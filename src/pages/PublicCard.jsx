@@ -45,7 +45,7 @@ export default function PublicCard() {
     ? profile.parent2Name 
     : profile.parent1Name;
 
-  // 2. Google Maps Universal Navigation Link (Opens maps app with route from current location)
+  // 2. Google Maps Universal Navigation Link
   const encodedAddress = encodeURIComponent(profile.address);
   const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
 
@@ -57,13 +57,13 @@ export default function PublicCard() {
     <div className="min-h-screen bg-gray-100 flex flex-col max-w-md mx-auto shadow-2xl relative">
       
       {/* Big Hero Image */}
-      <div className="relative h-[45vh] w-full">
+      <div className="relative h-[45vh] w-full shrink-0">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
       </div>
       
-      {/* Content Container */}
-      <div className="flex-1 bg-white -mt-10 rounded-t-3xl p-6 z-10 space-y-6 relative pb-24">
+      {/* Content Container - CHANGED pb-24 to pb-48 to add scroll clearance for sticky buttons */}
+      <div className="flex-1 bg-white -mt-10 rounded-t-3xl p-6 z-10 space-y-6 relative pb-48">
         
         {/* Header */}
         <div className="text-center border-b border-gray-100 pb-6">
@@ -105,32 +105,32 @@ export default function PublicCard() {
             )}
           </div>
         </div>
+      </div>
 
-        {/* Action Buttons (Sticky at bottom on mobile) */}
-        <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto space-y-3 pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-          
-          {/* Primary Action: Call Main Contact */}
-          <a href={`tel:${primaryPhone}`} className="w-full flex items-center justify-center space-x-3 bg-safetyBlue text-white p-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-blue-600 transition-colors">
-            <Phone size={24} />
-            <span>Call {primaryName}</span>
+      {/* Action Buttons (Sticky at bottom on mobile) */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto space-y-3 pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
+        
+        {/* Primary Action: Call Main Contact */}
+        <a href={`tel:${primaryPhone}`} className="w-full flex items-center justify-center space-x-3 bg-safetyBlue text-white p-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-blue-600 transition-colors">
+          <Phone size={24} />
+          <span>Call {primaryName}</span>
+        </a>
+
+        <div className="flex gap-3">
+          {/* Secondary Action: Route to Safety */}
+          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-2 bg-gray-900 text-white p-4 rounded-2xl font-bold shadow-md hover:bg-gray-800">
+            <MapPin size={20} />
+            <span>Navigate</span>
           </a>
 
-          <div className="flex gap-3">
-            {/* Secondary Action: Route to Safety */}
-            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-2 bg-gray-900 text-white p-4 rounded-2xl font-bold shadow-md hover:bg-gray-800">
-              <MapPin size={20} />
-              <span>Navigate</span>
-            </a>
-
-            {/* Tertiary Action: National Helpline */}
-            <a href={`tel:${helplineNumber}`} className="flex-1 flex flex-col items-center justify-center bg-red-100 text-red-700 p-2 rounded-2xl font-bold hover:bg-red-200">
-              <AlertTriangle size={18} className="mb-1" />
-              <span className="text-xs text-center leading-tight">{helplineText}</span>
-            </a>
-          </div>
+          {/* Tertiary Action: National Helpline */}
+          <a href={`tel:${helplineNumber}`} className="flex-1 flex flex-col items-center justify-center bg-red-100 text-red-700 p-2 rounded-2xl font-bold hover:bg-red-200">
+            <AlertTriangle size={18} className="mb-1" />
+            <span className="text-xs text-center leading-tight">{helplineText}</span>
+          </a>
         </div>
-        
       </div>
+        
     </div>
   );
 }
