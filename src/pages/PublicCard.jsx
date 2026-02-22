@@ -104,24 +104,26 @@ export default function PublicCard() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto space-y-3 pb-8 shadow-[0_-10px_20px_rgba(0,0,0,0.05)] z-50">
-        <a href={`tel:${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-3 bg-safetyBlue text-white p-4 rounded-2xl font-bold text-lg shadow-lg hover:bg-blue-600 transition-colors">
-          <Phone size={24} />
-          <span>Call Emergency Contact ({primaryContact.name})</span>
+      {/* Smaller Sticky Bottom Actions */}
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/90 backdrop-blur-md border-t border-gray-200 max-w-md mx-auto space-y-2 pb-6 shadow-[0_-8px_16px_rgba(0,0,0,0.05)] z-50">
+        
+        <a href={`tel:${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-safetyBlue text-white py-3 px-4 rounded-xl font-bold text-base shadow-md hover:bg-blue-600 transition-colors">
+          <Phone size={20} />
+          <span className="truncate">Call Emergency Contact ({primaryContact.name})</span>
         </a>
 
-        <div className="flex gap-3">
-          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-2 bg-gray-900 text-white p-4 rounded-2xl font-bold shadow-md hover:bg-gray-800">
-            <MapPin size={20} />
-            <span className="text-sm">Navigate to Parents House</span>
+        <div className="flex gap-2">
+          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-1.5 bg-gray-900 text-white py-2.5 px-3 rounded-xl font-bold shadow-sm hover:bg-gray-800">
+            <MapPin size={16} className="shrink-0" />
+            <span className="text-xs truncate">Navigate to Parents House</span>
           </a>
 
-          <a href={`tel:${helplineNumber}`} className="w-24 flex flex-col items-center justify-center bg-red-100 text-red-700 p-2 rounded-2xl font-bold hover:bg-red-200">
-            <AlertTriangle size={18} className="mb-1" />
-            <span className="text-[10px] text-center leading-tight">{helplineText}</span>
+          <a href={`tel:${helplineNumber}`} className="w-20 shrink-0 flex flex-col items-center justify-center bg-red-100 text-red-700 py-1.5 px-2 rounded-xl font-bold hover:bg-red-200">
+            <AlertTriangle size={16} className="mb-0.5" />
+            <span className="text-[9px] text-center leading-tight">{helplineText}</span>
           </a>
         </div>
       </div>
     </div>
   );
-      }
+}
