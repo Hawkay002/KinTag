@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity } from 'lucide-react';
 
 export default function PublicCard() {
   const { profileId } = useParams();
@@ -41,6 +41,15 @@ export default function PublicCard() {
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
+  // Format new structured fields or fallback to legacy simple strings
+  const displayHeight = profile.heightUnit === 'ft' 
+    ? `${profile.heightMain}'${profile.heightSub}"` 
+    : (profile.heightMain ? `${profile.heightMain} cm` : profile.height);
+    
+  const displayWeight = profile.weightMain 
+    ? `${profile.weightMain} ${profile.weightUnit}` 
+    : profile.weight;
+
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
@@ -56,12 +65,21 @@ export default function PublicCard() {
         
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
-          
-          {/* NEW: Displays Nationality conditionally inside the header string */}
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
-            {profile.age} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
+            {profile.age} Yrs • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
           </p>
         </div>
+
+        {/* NEW: Medical / Allergies Block */}
+        {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
+           <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start space-x-3">
+             <Activity className="text-red-500 shrink-0 mt-0.5" size={20} />
+             <div>
+               <h3 className="text-red-700 font-extrabold text-xs uppercase tracking-widest mb-1">Medical Alert / Allergies</h3>
+               <p className="text-red-900 font-bold text-sm">{profile.allergies}</p>
+             </div>
+           </div>
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
@@ -77,12 +95,12 @@ export default function PublicCard() {
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
             <Ruler className="text-zinc-700 mb-2.5" size={22} />
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Height</span>
-            <span className="font-extrabold text-brandDark">{profile.height}</span>
+            <span className="font-extrabold text-brandDark">{displayHeight}</span>
           </div>
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
             <Scale className="text-zinc-700 mb-2.5" size={22} />
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Weight</span>
-            <span className="font-extrabold text-brandDark">{profile.weight}</span>
+            <span className="font-extrabold text-brandDark">{displayWeight}</span>
           </div>
         </div>
 
@@ -110,6 +128,20 @@ export default function PublicCard() {
             ))}
           </div>
         </div>
+
+        {/* NEW: Police & Pincode Local Info Block */}
+        {(profile.policeStation || profile.pincode) && (
+          <div className="px-2 text-sm text-zinc-500 font-medium">
+            <div className="flex justify-between border-b border-zinc-100 pb-2 mb-2">
+              <span>Local Police Station</span>
+              <span className="text-brandDark font-bold">{profile.policeStation || 'N/A'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Area Pincode</span>
+              <span className="text-brandDark font-bold">{profile.pincode || 'N/A'}</span>
+            </div>
+          </div>
+        )}
 
         <div className="mt-10 bg-brandDark text-white p-6 rounded-3xl text-center shadow-floating relative overflow-hidden border border-zinc-800">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brandGold/40 via-brandGold to-brandGold/40"></div>
