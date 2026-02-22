@@ -18,8 +18,9 @@ export default function CreateCard() {
   ]);
   const [primaryContactId, setPrimaryContactId] = useState(contacts[0].id);
 
+  // NEW: Added nationality to initial state
   const [formData, setFormData] = useState({
-    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', address: ''
+    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', nationality: '', address: ''
   });
 
   const handleInputChange = (e) => {
@@ -87,7 +88,7 @@ export default function CreateCard() {
     const pngUrl = canvas.toDataURL("image/png");
     const downloadLink = document.createElement("a");
     downloadLink.href = pngUrl;
-    downloadLink.download = `${formData.name}_SafeID_QR.png`;
+    downloadLink.download = `${formData.name}_KinTag_QR.png`;
     downloadLink.click();
   };
 
@@ -133,7 +134,12 @@ export default function CreateCard() {
               <div><label className={labelStyles}>Height</label><input type="text" name="height" placeholder="e.g., 4'2" value={formData.height} onChange={handleInputChange} required className={inputStyles} /></div>
               <div><label className={labelStyles}>Weight</label><input type="text" name="weight" placeholder="e.g., 60 lbs" value={formData.weight} onChange={handleInputChange} required className={inputStyles} /></div>
               <div><label className={labelStyles}>Blood Group</label><input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className={inputStyles} /></div>
+              
+              {/* NEW: Conditional Ethnicity/Breed and Nationality */}
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
+              {type === 'kid' && (
+                <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} required className={inputStyles} /></div>
+              )}
             </div>
 
             <hr className="border-zinc-200" />
