@@ -10,7 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const [resetMessage, setResetMessage] = useState(''); // NEW: Success message for reset
+  const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -50,7 +50,6 @@ export default function Login() {
     }
   };
 
-  // NEW: Password Reset Function
   const handleResetPassword = async () => {
     setError('');
     setResetMessage('');
@@ -70,7 +69,11 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
+          {/* NEW: Logo and Heading Container */}
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl shadow-sm" />
+            <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
+          </div>
           <p className="text-zinc-500 mt-2 font-medium">{isLogin ? 'Welcome back. Access your portal.' : 'Create an account to secure your family.'}</p>
         </div>
 
@@ -98,7 +101,6 @@ export default function Login() {
             </button>
           </div>
 
-          {/* NEW: Forgot Password Link */}
           {isLogin && (
             <div className="flex justify-end mt-1">
               <button type="button" onClick={handleResetPassword} className="text-xs font-bold text-zinc-500 hover:text-brandDark transition-colors">
