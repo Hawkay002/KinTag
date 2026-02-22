@@ -3,7 +3,16 @@ import { db, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Plus, X, MapPin, Loader2 } from 'lucide-react';
+import { Download, Plus, X, MapPin, Loader2, Check } from 'lucide-react';
+
+const QR_STYLES = {
+  obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200' },
+  bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200' },
+  ocean: { name: 'Ocean Blue', fg: '#0284c7', bg: '#f0f9ff', border: 'border-sky-200' },
+  minty: { name: 'Minty Green', fg: '#0d9488', bg: '#f0fdfa', border: 'border-teal-200' },
+  lavender: { name: 'Lavender Violet', fg: '#7c3aed', bg: '#f5f3ff', border: 'border-violet-200' },
+  sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200' },
+};
 
 export default function CreateCard() {
   const navigate = useNavigate();
@@ -24,7 +33,8 @@ export default function CreateCard() {
     heightUnit: 'ft', heightMain: '', heightSub: '', 
     weightUnit: 'kg', weightMain: '', 
     bloodGroup: 'A+', typeSpecific: '', nationality: '', 
-    allergies: 'None Known', policeStation: '', pincode: '', address: ''
+    allergies: 'None Known', policeStation: '', pincode: '', address: '',
+    qrStyle: 'obsidian' // NEW: Default QR Style
   });
 
   const handleInputChange = (e) => {
@@ -128,18 +138,15 @@ export default function CreateCard() {
 
   const inputStyles = "w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all font-medium";
   const labelStyles = "block text-sm font-bold text-brandDark mb-1.5";
+  
+  const activeStyle = QR_STYLES[formData.qrStyle];
 
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-10 relative">
         
         {!generatedUrl && (
-          <button 
-            type="button" 
-            onClick={() => navigate('/')} 
-            className="absolute top-6 right-6 p-2 bg-brandMuted text-zinc-400 hover:text-brandDark hover:bg-zinc-200 rounded-full transition-colors" 
-            title="Cancel & Go Back"
-          >
+          <button type="button" onClick={() => navigate('/')} className="absolute top-6 right-6 p-2 bg-brandMuted text-zinc-400 hover:text-brandDark hover:bg-zinc-200 rounded-full transition-colors" title="Cancel & Go Back">
             <X size={20} />
           </button>
         )}
@@ -308,9 +315,33 @@ export default function CreateCard() {
               </select>
             </div>
 
+            <hr className="border-zinc-200" />
+
+            {/* NEW: QR Code Visual Presets Selector */}
+            <div className="bg-brandMuted p-5 rounded-2xl border border-zinc-200/60">
+              <label className="block text-sm font-bold text-brandDark mb-3">QR Code Visual Style</label>
+              <div className="flex flex-wrap gap-3">
+                {Object.entries(QR_STYLES).map(([key, style]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setFormData(prev => ({ ...prev, qrStyle: key }))}
+                    className={`w-12 h-12 rounded-xl border-2 flex items-center justify-center transition-all ${formData.qrStyle === key ? 'border-brandDark scale-110 shadow-md' : 'border-transparent hover:scale-105 shadow-sm'}`}
+                    style={{ backgroundColor: style.bg }}
+                    title={style.name}
+                  >
+                    <div className="w-5 h-5 rounded flex items-center justify-center" style={{ backgroundColor: style.fg }}>
+                      {formData.qrStyle === key && <Check size={12} strokeWidth={4} className="text-white" />}
+                    </div>
+                  </button>
+                ))}
+              </div>
+              <p className="text-xs text-zinc-500 mt-3 font-medium">Select a cute theme for your physical printed tag.</p>
+            </div>
+
             <div className="flex gap-4 pt-4">
               <button type="button" onClick={() => navigate('/')} className="w-1/3 bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-colors text-center">Cancel</button>
-              <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
+              <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
                 {loading ? 'Securing Identity...' : 'Save & Generate ID'}
               </button>
             </div>
@@ -321,15 +352,15 @@ export default function CreateCard() {
             <p className="text-zinc-500 font-medium">Your new digital contact card is live.</p>
             
             <div className="flex justify-center">
-              <div className="bg-white p-6 rounded-3xl shadow-premium border border-zinc-100 inline-block">
-                {/* NEW: QR Code with Center Logo */}
+              <div className={`bg-white p-6 rounded-3xl shadow-premium border ${activeStyle.border} inline-block`}>
                 <QRCodeCanvas 
                   id="qr-canvas-create" 
                   value={generatedUrl} 
                   size={220} 
                   level="H" 
                   includeMargin={true} 
-                  fgColor="#18181b"
+                  fgColor={activeStyle.fg} // NEW: Uses selected foreground color
+                  bgColor={activeStyle.bg} // NEW: Uses selected background color
                   imageSettings={{
                     src: "/kintag-logo.png",
                     height: 45,
