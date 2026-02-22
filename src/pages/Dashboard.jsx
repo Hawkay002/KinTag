@@ -88,9 +88,13 @@ export default function Dashboard() {
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
-          <div>
-            <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
-            <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">{currentUser?.email}</p>
+          <div className="flex items-center space-x-3">
+            {/* NEW: Logo in Dashboard Header */}
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
+            <div>
+              <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
+              <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">{currentUser?.email}</p>
+            </div>
           </div>
           <div className="flex space-x-3">
             <button onClick={handleLogout} className="flex items-center space-x-2 text-zinc-500 hover:text-brandDark bg-brandMuted hover:bg-zinc-200 px-4 py-2.5 rounded-xl transition-all font-bold text-sm">
@@ -180,7 +184,21 @@ export default function Dashboard() {
             <p className="text-zinc-500 mb-6 text-sm font-medium">Scan to view {qrModalProfile.name}'s card.</p>
             <div className="flex justify-center mb-8">
               <div className="bg-white p-5 rounded-3xl shadow-premium border border-zinc-100 inline-block">
-                <QRCodeCanvas id="qr-canvas-modal" value={`${window.location.origin}/#/id/${qrModalProfile.id}`} size={200} level="H" includeMargin={true} fgColor="#18181b" />
+                {/* NEW: QR Code with Center Logo */}
+                <QRCodeCanvas 
+                  id="qr-canvas-modal" 
+                  value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
+                  size={220} 
+                  level="H" 
+                  includeMargin={true} 
+                  fgColor="#18181b"
+                  imageSettings={{
+                    src: "/kintag-logo.png",
+                    height: 45,
+                    width: 45,
+                    excavate: true,
+                  }}
+                />
               </div>
             </div>
             <button onClick={() => downloadQR(qrModalProfile.name)} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white p-4 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all">
