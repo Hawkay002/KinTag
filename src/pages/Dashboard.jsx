@@ -7,6 +7,15 @@ import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon } from 'lucide-react';
 
+const QR_STYLES = {
+  obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200' },
+  bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200' },
+  ocean: { name: 'Ocean Blue', fg: '#0284c7', bg: '#f0f9ff', border: 'border-sky-200' },
+  minty: { name: 'Minty Green', fg: '#0d9488', bg: '#f0fdfa', border: 'border-teal-200' },
+  lavender: { name: 'Lavender Violet', fg: '#7c3aed', bg: '#f5f3ff', border: 'border-violet-200' },
+  sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200' },
+};
+
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -81,6 +90,9 @@ export default function Dashboard() {
   };
 
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  
+  // Calculate active style for modal if one is open
+  const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
 
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-zinc-500">Loading your dashboard...</div>;
 
@@ -89,7 +101,6 @@ export default function Dashboard() {
       <div className="max-w-4xl mx-auto">
         <div className="flex justify-between items-center mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
           <div className="flex items-center space-x-3">
-            {/* NEW: Logo in Dashboard Header */}
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
             <div>
               <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
@@ -183,15 +194,16 @@ export default function Dashboard() {
             <h2 className="text-2xl font-extrabold text-brandDark mb-1 tracking-tight">KinTag QR</h2>
             <p className="text-zinc-500 mb-6 text-sm font-medium">Scan to view {qrModalProfile.name}'s card.</p>
             <div className="flex justify-center mb-8">
-              <div className="bg-white p-5 rounded-3xl shadow-premium border border-zinc-100 inline-block">
-                {/* NEW: QR Code with Center Logo */}
+              {/* Dynamic border based on selected style */}
+              <div className={`bg-white p-5 rounded-3xl shadow-premium border-2 ${activeStyle.border} inline-block`}>
                 <QRCodeCanvas 
                   id="qr-canvas-modal" 
                   value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
                   size={220} 
                   level="H" 
                   includeMargin={true} 
-                  fgColor="#18181b"
+                  fgColor={activeStyle.fg} // NEW: Dynamically fetch saved color
+                  bgColor={activeStyle.bg} // NEW: Dynamically fetch saved color
                   imageSettings={{
                     src: "/kintag-logo.png",
                     height: 45,
