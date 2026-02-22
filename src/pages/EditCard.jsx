@@ -186,8 +186,19 @@ export default function EditCard() {
   if (initialFetchLoading) return <div className="text-center p-10 font-bold text-zinc-500">Loading details...</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
-      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-10">
+    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
+      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-10 relative">
+        
+        {/* TOP CANCEL/CLOSE BUTTON */}
+        <button 
+          type="button" 
+          onClick={() => navigate('/')} 
+          className="absolute top-6 right-6 p-2 bg-brandMuted text-zinc-400 hover:text-brandDark hover:bg-zinc-200 rounded-full transition-colors" 
+          title="Cancel & Go Back"
+        >
+          <X size={20} />
+        </button>
+
         <h1 className="text-3xl font-extrabold text-brandDark mb-2 tracking-tight">Update Identity</h1>
         <p className="text-zinc-500 font-medium mb-10">Modify details for this digital contact card.</p>
         
@@ -267,9 +278,31 @@ export default function EditCard() {
             </div>
 
             <hr className="border-zinc-200" />
+
+            {/* LOCATION BLOCK MOVED ABOVE GUARDIANS */}
+            <h3 className="text-xl font-extrabold text-brandDark tracking-tight mb-2">Location Information</h3>
             
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
+              <div><label className={labelStyles}>Local Police Station</label><input type="text" name="policeStation" placeholder="Nearest station name" value={formData.policeStation} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-end mb-1.5">
+                <label className="block text-sm font-bold text-brandDark">Safe Address / Meeting Point</label>
+                <button type="button" onClick={fetchLocation} disabled={isFetchingLoc} className="text-xs bg-brandDark text-white font-bold px-3 py-1.5 rounded-lg hover:bg-brandAccent transition-colors flex items-center gap-1.5 shadow-sm">
+                  {isFetchingLoc ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14}/>} 
+                  {isFetchingLoc ? 'Locating...' : 'Auto-Fill Address'}
+                </button>
+              </div>
+              <textarea name="address" placeholder="Tap 'Auto-Fill' or type manually..." value={formData.address} onChange={handleInputChange} required rows="3" className={`${inputStyles} resize-none`} />
+            </div>
+
+            <hr className="border-zinc-200" />
+            
+            {/* GUARDIANS BLOCK */}
             <div className="flex justify-between items-center">
-              <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Guardians</h3>
+              <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Authorized Guardians</h3>
               <button type="button" onClick={addContact} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors">
                 <Plus size={16} /> <span>Add</span>
               </button>
@@ -318,26 +351,8 @@ export default function EditCard() {
               </select>
             </div>
 
-            <hr className="border-zinc-200" />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-              <div><label className={labelStyles}>Local Police Station</label><input type="text" name="policeStation" placeholder="Nearest station name" value={formData.policeStation} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
-            </div>
-
-            <div>
-              <div className="flex justify-between items-end mb-1.5">
-                <label className="block text-sm font-bold text-brandDark">Safe Address / Meeting Point</label>
-                <button type="button" onClick={fetchLocation} disabled={isFetchingLoc} className="text-xs bg-amber-50 text-brandGold font-bold px-3 py-1.5 rounded-lg hover:bg-amber-100 transition-colors flex items-center gap-1.5 border border-amber-100 shadow-sm">
-                  {isFetchingLoc ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14}/>} 
-                  {isFetchingLoc ? 'Locating...' : 'Auto-Fill Location'}
-                </button>
-              </div>
-              <textarea name="address" placeholder="Tap 'Auto-Fill' or type manually..." value={formData.address} onChange={handleInputChange} required rows="3" className={`${inputStyles} resize-none`} />
-            </div>
-
             <div className="flex gap-4 pt-4">
-              <button type="button" onClick={() => navigate('/')} className="w-1/3 bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+              <button type="button" onClick={() => navigate('/')} className="w-1/3 bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-colors text-center">Cancel</button>
               <button type="submit" disabled={loading} className={`w-2/3 text-white p-4 rounded-xl font-bold transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
                 {loading ? 'Updating...' : 'Save Changes'}
               </button>
