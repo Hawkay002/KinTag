@@ -6,27 +6,19 @@ import { useNavigate } from 'react-router-dom';
 
 export default function CreateCard() {
   const navigate = useNavigate();
-  
-  // Core State
   const [type, setType] = useState('kid');
   const [imageFile, setImageFile] = useState(null);
   const [loading, setLoading] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
   const [error, setError] = useState('');
 
-  // Form Data State
+  const [contacts, setContacts] = useState([
+    { id: Date.now().toString(), name: '', phone: '', tag: 'Mother', customTag: '' }
+  ]);
+  const [primaryContactId, setPrimaryContactId] = useState(contacts[0].id);
+
   const [formData, setFormData] = useState({
-    name: '',
-    age: '',
-    heightWeight: '',
-    bloodGroup: '',
-    typeSpecific: '', // Ethnicity for kid, Breed for pet
-    parent1Name: '',
-    parent1Phone: '',
-    parent2Name: '',
-    parent2Phone: '',
-    primaryEmergencyContact: 'parent1', 
-    address: ''
+    name: '', age: '', gender: 'Male', height: '', weight: '', bloodGroup: '', typeSpecific: '', address: ''
   });
 
   const handleInputChange = (e) => {
@@ -34,25 +26,32 @@ export default function CreateCard() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // --- CLOUDINARY UPLOAD FUNCTION ---
+  const handleContactChange = (id, field, value) => {
+    setContacts(contacts.map(c => c.id === id ? { ...c, [field]: value } : c));
+  };
+
+  const addContact = () => {
+    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', tag: 'Other', customTag: '' }]);
+  };
+
+  const removeContact = (id) => {
+    if (contacts.length === 1) return; 
+    const updatedContacts = contacts.filter(c => c.id !== id);
+    setContacts(updatedContacts);
+    if (primaryContactId === id) setPrimaryContactId(updatedContacts[0].id);
+  };
+
   const uploadToCloudinary = async (file) => {
-    // Pulling securely from Vercel Environment Variables built by Vite
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
-    
     const uploadData = new FormData();
     uploadData.append('file', file);
     uploadData.append('upload_preset', uploadPreset);
-
     try {
-      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-        method: 'POST',
-        body: uploadData,
-      });
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: uploadData });
       const data = await response.json();
-      return data.secure_url; // This is the live URL of the hosted image
+      return data.secure_url; 
     } catch (err) {
-      console.error("Cloudinary upload error:", err);
       throw new Error("Image upload failed");
     }
   };
@@ -60,42 +59,22 @@ export default function CreateCard() {
   const handleSave = async (e) => {
     e.preventDefault();
     setError('');
+    if (!auth.currentUser) return setError("You must be logged in.");
     
-    // Security check
-    if (!auth.currentUser) {
-      setError("You must be logged in to create a card.");
-      return;
+    if (contacts.some(c => !c.name || !c.phone || (c.tag === 'Other' && !c.customTag))) {
+      return setError("Please fill out all contact names, phone numbers, and custom tags.");
     }
 
     setLoading(true);
 
     try {
-      let imageUrl = '';
-
-      // 1. Conditionally Upload Image to Cloudinary (if provided)
-      if (imageFile) {
-        imageUrl = await uploadToCloudinary(imageFile);
-      } else {
-        // Fallback placeholder image if they decide to add a real one later
-        imageUrl = 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
-      }
-
-      // 2. Save Data to Firestore Database
+      let imageUrl = imageFile ? await uploadToCloudinary(imageFile) : 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
       const docRef = await addDoc(collection(db, "profiles"), {
-        ...formData,
-        type,
-        imageUrl, // Will be either the real Cloudinary image URL or the placeholder
-        userId: auth.currentUser.uid,
-        createdAt: new Date().toISOString()
+        ...formData, type, imageUrl, contacts, primaryContactId, userId: auth.currentUser.uid, createdAt: new Date().toISOString()
       });
-
-      // 3. Generate Public URL for the QR Code (Using HashRouter structure)
-      const publicUrl = `${window.location.origin}/#/id/${docRef.id}`;
-      setGeneratedUrl(publicUrl);
-
+      setGeneratedUrl(`${window.location.origin}/#/id/${docRef.id}`);
     } catch (err) {
-      console.error("Error saving profile:", err);
-      setError("Failed to save profile. Please try again.");
+      setError("Failed to save profile.");
     } finally {
       setLoading(false);
     }
@@ -107,154 +86,96 @@ export default function CreateCard() {
         <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Create ID Card</h1>
         <p className="text-gray-500 mb-8">Fill in the details below to generate a secure digital contact card.</p>
         
-        {error && (
-          <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg border border-red-200">
-            {error}
-          </div>
-        )}
+        {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>}
 
         {!generatedUrl ? (
           <form onSubmit={handleSave} className="space-y-6">
-            
-            {/* Profile Type Selection */}
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Profile Type</label>
-              <select 
-                value={type} 
-                onChange={(e) => setType(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue outline-none transition-all"
-              >
-                <option value="kid">Kid</option>
-                <option value="pet">Pet</option>
-              </select>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Profile Type</label>
+                <select value={type} onChange={(e) => setType(e.target.value)} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+                  <option value="kid">Kid</option>
+                  <option value="pet">Pet</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-sm font-semibold text-gray-700">Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
             </div>
 
-            {/* Hero Image Upload - Optional */}
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Hero Image (Optional - can add later)</label>
-              <input 
-                type="file" 
-                accept="image/*"
-                onChange={(e) => setImageFile(e.target.files[0])} 
-                className="w-full p-2 border border-gray-300 rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-safetyBlue file:text-white hover:file:bg-blue-600 transition-all cursor-pointer" 
-              />
+              <label className="block text-sm font-semibold text-gray-700">Hero Image (Optional)</label>
+              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="w-full p-2 border rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:bg-safetyBlue file:text-white" />
             </div>
 
-            {/* Basic Details */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Name</label>
-                <input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Age</label>
-                <input type="text" name="age" value={formData.age} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Height & Weight</label>
-                <input type="text" name="heightWeight" placeholder="e.g., 4'2, 60 lbs" value={formData.heightWeight} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Blood Group</label>
-                <input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">{type === 'kid' ? "Ethnicity" : "Breed"}</label>
-              <input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Age</label><input type="text" name="age" value={formData.age} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Height</label><input type="text" name="height" placeholder="e.g., 4'2" value={formData.height} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Weight</label><input type="text" name="weight" placeholder="e.g., 60 lbs" value={formData.weight} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Blood Group</label><input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
             </div>
 
             <hr className="border-gray-200" />
-
-            {/* Parent / Contact Details */}
-            <h3 className="text-lg font-bold text-gray-900">Contact Details</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900">Guardian Contacts</h3>
+              <button type="button" onClick={addContact} className="text-sm bg-blue-50 text-safetyBlue font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Add Contact</button>
+            </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Parent/Owner 1 Name</label>
-                <input type="text" name="parent1Name" value={formData.parent1Name} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Parent/Owner 1 Phone</label>
-                <input type="tel" name="parent1Phone" value={formData.parent1Phone} onChange={handleInputChange} required className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Parent/Owner 2 Name (Optional)</label>
-                <input type="text" name="parent2Name" value={formData.parent2Name} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Parent/Owner 2 Phone (Optional)</label>
-                <input type="tel" name="parent2Phone" value={formData.parent2Phone} onChange={handleInputChange} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
-              </div>
+            <div className="space-y-4">
+              {contacts.map((contact) => (
+                <div key={contact.id} className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative">
+                  {contacts.length > 1 && (
+                    <button type="button" onClick={() => removeContact(contact.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-50 p-1 rounded-md text-xs font-bold">Remove</button>
+                  )}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
+                    <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
+                    <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
+                    <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-2.5 border rounded-lg bg-white outline-none">
+                      <option value="Mother">Mother</option><option value="Father">Father</option><option value="Uncle">Uncle</option>
+                      <option value="Aunt">Aunt</option><option value="Brother">Brother</option><option value="Sister">Sister</option><option value="Other">Other (Custom)</option>
+                    </select>
+                    {contact.tag === 'Other' && (
+                      <input type="text" placeholder="Specify Tag" value={contact.customTag} onChange={(e) => handleContactChange(contact.id, 'customTag', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="space-y-2">
               <label className="block text-sm font-semibold text-gray-700">Primary Emergency Contact</label>
-              <select 
-                name="primaryEmergencyContact"
-                value={formData.primaryEmergencyContact} 
-                onChange={handleInputChange}
-                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue outline-none"
-              >
-                <option value="parent1">Parent/Owner 1</option>
-                <option value="parent2">Parent/Owner 2</option>
+              <select value={primaryContactId} onChange={(e) => setPrimaryContactId(e.target.value)} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+                {contacts.map((contact, index) => (
+                  <option key={contact.id} value={contact.id}>
+                    {contact.name || `Contact ${index + 1}`} ({contact.tag === 'Other' ? contact.customTag || 'Custom' : contact.tag})
+                  </option>
+                ))}
               </select>
             </div>
 
             <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Safe Address / Meeting Point</label>
-              <textarea 
-                name="address" 
-                value={formData.address} 
-                onChange={handleInputChange} 
-                required 
-                rows="3"
-                className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none resize-none" 
-              />
+              <label className="block text-sm font-semibold text-gray-700">Parents House / Safe Address</label>
+              <textarea name="address" value={formData.address} onChange={handleInputChange} required rows="3" className="w-full p-3 border rounded-xl outline-none resize-none" />
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading}
-              className={`w-full text-white p-4 rounded-xl font-bold text-lg transition-all ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-safetyBlue hover:bg-blue-600 shadow-md hover:shadow-lg'}`}
-            >
-              {loading ? 'Uploading & Saving...' : 'Save & Generate QR'}
+            <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-bold text-lg ${loading ? 'bg-blue-400' : 'bg-safetyBlue hover:bg-blue-600 shadow-md'}`}>
+              {loading ? 'Saving Profile...' : 'Save & Generate QR'}
             </button>
           </form>
         ) : (
-          /* Success & Preview State */
           <div className="text-center space-y-8 py-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 mb-4">
-              <svg className="w-8 h-8 text-reassuringGreen" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path></svg>
-            </div>
-            
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900">Profile Secured!</h2>
-              <p className="text-gray-500 mt-2">Your digital contact card is live. Save this QR code or print it on a physical tag.</p>
-            </div>
-            
-            <div className="flex justify-center">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 inline-block">
-                <QRCodeSVG value={generatedUrl} size={220} level="H" includeMargin={true} />
-              </div>
-            </div>
-            
+            <h2 className="text-2xl font-bold text-gray-900">Profile Secured!</h2>
+            <div className="flex justify-center"><QRCodeSVG value={generatedUrl} size={220} level="H" includeMargin={true} /></div>
             <div className="space-y-4 pt-4">
-              <a 
-                href={generatedUrl} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className="block w-full bg-safetyBlue text-white p-4 rounded-xl font-bold shadow-md hover:bg-blue-600 transition-all"
-              >
-                View Live Card Preview
-              </a>
-              <button 
-                onClick={() => navigate('/')} 
-                className="block w-full bg-gray-100 text-gray-700 p-4 rounded-xl font-bold hover:bg-gray-200 transition-all"
-              >
-                Return to Dashboard
-              </button>
+              <a href={generatedUrl} target="_blank" rel="noreferrer" className="block w-full bg-safetyBlue text-white p-4 rounded-xl font-bold shadow-md">View Live Card</a>
+              <button onClick={() => navigate('/')} className="block w-full bg-gray-100 text-gray-700 p-4 rounded-xl font-bold">Return to Dashboard</button>
             </div>
           </div>
         )}
