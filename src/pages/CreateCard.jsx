@@ -3,7 +3,7 @@ import { db, auth } from '../firebase';
 import { collection, addDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-import { Download } from 'lucide-react';
+import { Download, Plus, X } from 'lucide-react';
 
 export default function CreateCard() {
   const navigate = useNavigate();
@@ -81,7 +81,6 @@ export default function CreateCard() {
     }
   };
 
-  // --- NEW: Download QR Function ---
   const downloadQR = () => {
     const canvas = document.getElementById("qr-canvas-create");
     if (!canvas) return;
@@ -92,27 +91,30 @@ export default function CreateCard() {
     downloadLink.click();
   };
 
+  const inputStyles = "w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all font-medium";
+  const labelStyles = "block text-sm font-bold text-brandDark mb-1.5";
+
   return (
-    <div className="max-w-2xl mx-auto p-4 md:p-6 lg:p-8">
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
-        <h1 className="text-3xl font-extrabold text-gray-900 mb-2">Create ID Card</h1>
-        <p className="text-gray-500 mb-8">Fill in the details below to generate a secure digital contact card.</p>
+    <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
+      <div className="max-w-3xl mx-auto bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-10">
+        <h1 className="text-3xl font-extrabold text-brandDark mb-2 tracking-tight">Create Identity</h1>
+        <p className="text-zinc-500 font-medium mb-10">Register a new digital contact card.</p>
         
-        {error && <div className="mb-6 p-4 bg-red-50 text-red-700 rounded-lg">{error}</div>}
+        {error && <div className="mb-8 p-4 bg-red-50 text-red-600 font-medium rounded-xl border border-red-100">{error}</div>}
 
         {!generatedUrl ? (
-          <form onSubmit={handleSave} className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Profile Type</label>
-                <select value={type} onChange={(e) => setType(e.target.value)} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+          <form onSubmit={handleSave} className="space-y-8">
+            <div className="grid grid-cols-2 gap-5">
+              <div>
+                <label className={labelStyles}>Profile Type</label>
+                <select value={type} onChange={(e) => setType(e.target.value)} className={inputStyles}>
                   <option value="kid">Kid</option>
                   <option value="pet">Pet</option>
                 </select>
               </div>
-              <div className="space-y-2">
-                <label className="block text-sm font-semibold text-gray-700">Gender</label>
-                <select name="gender" value={formData.gender} onChange={handleInputChange} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+              <div>
+                <label className={labelStyles}>Gender</label>
+                <select name="gender" value={formData.gender} onChange={handleInputChange} className={inputStyles}>
                   <option value="Male">Male</option>
                   <option value="Female">Female</option>
                   <option value="Other">Other</option>
@@ -120,50 +122,55 @@ export default function CreateCard() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Hero Image (Optional)</label>
-              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="w-full p-2 border rounded-xl bg-gray-50 text-sm file:mr-4 file:py-2 file:px-4 file:rounded-lg file:bg-safetyBlue file:text-white" />
+            <div>
+              <label className={labelStyles}>Hero Image (Optional)</label>
+              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="w-full p-2.5 bg-brandMuted rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandDark file:text-white hover:file:bg-brandAccent transition-all cursor-pointer text-zinc-600 font-medium" />
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Age</label><input type="text" name="age" value={formData.age} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Height</label><input type="text" name="height" placeholder="e.g., 4'2" value={formData.height} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Weight</label><input type="text" name="weight" placeholder="e.g., 60 lbs" value={formData.weight} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">Blood Group</label><input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
-              <div className="space-y-2"><label className="block text-sm font-semibold text-gray-700">{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className="w-full p-3 border rounded-xl outline-none" /></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div><label className={labelStyles}>Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Age</label><input type="text" name="age" value={formData.age} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Height</label><input type="text" name="height" placeholder="e.g., 4'2" value={formData.height} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Weight</label><input type="text" name="weight" placeholder="e.g., 60 lbs" value={formData.weight} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>Blood Group</label><input type="text" name="bloodGroup" placeholder="e.g., O+" value={formData.bloodGroup} onChange={handleInputChange} required className={inputStyles} /></div>
+              <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
             </div>
 
-            <hr className="border-gray-200" />
+            <hr className="border-zinc-200" />
+            
             <div className="flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">Guardian Contacts</h3>
-              <button type="button" onClick={addContact} className="text-sm bg-blue-50 text-safetyBlue font-bold px-3 py-1.5 rounded-lg hover:bg-blue-100">+ Add Contact</button>
+              <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Guardians</h3>
+              <button type="button" onClick={addContact} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors">
+                <Plus size={16} /> <span>Add</span>
+              </button>
             </div>
             
             <div className="space-y-4">
               {contacts.map((contact) => (
-                <div key={contact.id} className="p-4 border border-gray-200 rounded-xl bg-gray-50 relative">
+                <div key={contact.id} className="p-5 border border-zinc-200 rounded-2xl bg-zinc-50 relative group transition-all">
                   {contacts.length > 1 && (
-                    <button type="button" onClick={() => removeContact(contact.id)} className="absolute top-2 right-2 text-red-500 hover:bg-red-50 p-1 rounded-md text-xs font-bold">Remove</button>
+                    <button type="button" onClick={() => removeContact(contact.id)} className="absolute top-3 right-3 text-zinc-400 hover:text-red-500 bg-white shadow-sm p-1.5 rounded-full transition-all">
+                      <X size={14} />
+                    </button>
                   )}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-2">
-                    <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
-                    <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
-                    <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-2.5 border rounded-lg bg-white outline-none">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+                    <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
+                    <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
+                    <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-3 border border-zinc-200 rounded-xl bg-white outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium">
                       <option value="Mother">Mother</option><option value="Father">Father</option><option value="Uncle">Uncle</option>
                       <option value="Aunt">Aunt</option><option value="Brother">Brother</option><option value="Sister">Sister</option><option value="Other">Other (Custom)</option>
                     </select>
                     {contact.tag === 'Other' && (
-                      <input type="text" placeholder="Specify Tag" value={contact.customTag} onChange={(e) => handleContactChange(contact.id, 'customTag', e.target.value)} required className="w-full p-2.5 border rounded-lg outline-none" />
+                      <input type="text" placeholder="Specify Tag" value={contact.customTag} onChange={(e) => handleContactChange(contact.id, 'customTag', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
                     )}
                   </div>
                 </div>
               ))}
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Primary Emergency Contact</label>
-              <select value={primaryContactId} onChange={(e) => setPrimaryContactId(e.target.value)} className="w-full p-3 border rounded-xl bg-gray-50 outline-none">
+            <div>
+              <label className={labelStyles}>Primary Emergency Contact</label>
+              <select value={primaryContactId} onChange={(e) => setPrimaryContactId(e.target.value)} className={inputStyles}>
                 {contacts.map((contact, index) => (
                   <option key={contact.id} value={contact.id}>
                     {contact.name || `Contact ${index + 1}`} ({contact.tag === 'Other' ? contact.customTag || 'Custom' : contact.tag})
@@ -172,36 +179,37 @@ export default function CreateCard() {
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="block text-sm font-semibold text-gray-700">Parents House / Safe Address</label>
-              <textarea name="address" value={formData.address} onChange={handleInputChange} required rows="3" className="w-full p-3 border rounded-xl outline-none resize-none" />
+            <div>
+              <label className={labelStyles}>Safe Address / Meeting Point</label>
+              <textarea name="address" value={formData.address} onChange={handleInputChange} required rows="3" className={`${inputStyles} resize-none`} />
             </div>
 
-            <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-bold text-lg ${loading ? 'bg-blue-400' : 'bg-safetyBlue hover:bg-blue-600 shadow-md'}`}>
-              {loading ? 'Saving Profile...' : 'Save & Generate QR'}
+            <button type="submit" disabled={loading} className={`w-full text-white p-4 rounded-xl font-bold text-lg transition-all shadow-md ${loading ? 'bg-zinc-400' : 'bg-brandDark hover:bg-brandAccent'}`}>
+              {loading ? 'Securing Identity...' : 'Save & Generate ID'}
             </button>
           </form>
         ) : (
           <div className="text-center space-y-6 py-8">
-            <h2 className="text-2xl font-bold text-gray-900">Profile Secured!</h2>
+            <h2 className="text-3xl font-extrabold text-brandDark tracking-tight">Identity Secured</h2>
+            <p className="text-zinc-500 font-medium">Your new digital contact card is live.</p>
             
             <div className="flex justify-center">
-              <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 inline-block">
-                <QRCodeCanvas id="qr-canvas-create" value={generatedUrl} size={220} level="H" includeMargin={true} />
+              <div className="bg-white p-6 rounded-3xl shadow-premium border border-zinc-100 inline-block">
+                <QRCodeCanvas id="qr-canvas-create" value={generatedUrl} size={220} level="H" includeMargin={true} fgColor="#18181b" />
               </div>
             </div>
 
-            <div className="space-y-3 pt-4 max-w-sm mx-auto">
-              <button onClick={downloadQR} className="w-full flex items-center justify-center space-x-2 bg-green-500 text-white p-4 rounded-xl font-bold shadow-md hover:bg-green-600 transition-all">
-                <Download size={20} />
+            <div className="space-y-3 pt-6 max-w-sm mx-auto">
+              <button onClick={downloadQR} className="w-full flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-xl font-bold shadow-md hover:bg-amber-500 transition-all">
+                <Download size={18} />
                 <span>Download QR Code</span>
               </button>
               
-              <a href={generatedUrl} target="_blank" rel="noreferrer" className="block w-full bg-safetyBlue text-white p-4 rounded-xl font-bold shadow-md">
+              <a href={generatedUrl} target="_blank" rel="noreferrer" className="block w-full bg-brandDark text-white p-4 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all">
                 View Live Card
               </a>
               
-              <button onClick={() => navigate('/')} className="block w-full bg-gray-100 text-gray-700 p-4 rounded-xl font-bold hover:bg-gray-200">
+              <button onClick={() => navigate('/')} className="block w-full bg-brandMuted text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-200 transition-all">
                 Return to Dashboard
               </button>
             </div>
