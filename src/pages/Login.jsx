@@ -22,7 +22,7 @@ export default function Login() {
       } else {
         await createUserWithEmailAndPassword(auth, email, password);
       }
-      navigate('/'); // Redirect to dashboard after success
+      navigate('/'); 
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
     } finally {
@@ -37,7 +37,7 @@ export default function Login() {
     
     try {
       await signInWithPopup(auth, provider);
-      navigate('/'); // Redirect to dashboard after success
+      navigate('/'); 
     } catch (err) {
       setError("Google sign-in failed. Please try again.");
     } finally {
@@ -56,28 +56,10 @@ export default function Login() {
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg mb-6 text-sm text-center border border-red-100">{error}</div>}
 
         <form onSubmit={handleEmailAuth} className="space-y-4 mb-6">
-          <input 
-            type="email" 
-            placeholder="Email Address" 
-            required 
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none"
-          />
-          <input 
-            type="password" 
-            placeholder="Password (min 6 characters)" 
-            required 
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none"
-          />
+          <input type="email" placeholder="Email Address" required value={email} onChange={(e) => setEmail(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
+          <input type="password" placeholder="Password (min 6 characters)" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full p-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-safetyBlue outline-none" />
           
-          <button 
-            type="submit" 
-            disabled={loading}
-            className="w-full bg-safetyBlue text-white p-3 rounded-xl font-bold hover:bg-blue-600 transition-all shadow-sm"
-          >
+          <button type="submit" disabled={loading} className="w-full bg-safetyBlue text-white p-3 rounded-xl font-bold hover:bg-blue-600 transition-all shadow-sm">
             {loading ? 'Processing...' : (isLogin ? 'Sign In' : 'Create Account')}
           </button>
         </form>
@@ -87,11 +69,7 @@ export default function Login() {
           <span className="absolute bg-white px-4 text-sm text-gray-400">OR</span>
         </div>
 
-        <button 
-          onClick={handleGoogleAuth} 
-          disabled={loading}
-          className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 p-3 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-sm"
-        >
+        <button onClick={handleGoogleAuth} disabled={loading} className="w-full flex items-center justify-center space-x-2 bg-white border border-gray-300 text-gray-700 p-3 rounded-xl font-bold hover:bg-gray-50 transition-all shadow-sm">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
           <span>Continue with Google</span>
         </button>
