@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { db, storage, auth } from '../firebase';
+import { db, auth } from '../firebase'; 
 import { collection, addDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { QRCodeSVG } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
 
@@ -21,7 +20,7 @@ export default function CreateCard() {
     age: '',
     heightWeight: '',
     bloodGroup: '',
-    typeSpecific: '', 
+    typeSpecific: '', // Ethnicity for kid, Breed for pet
     parent1Name: '',
     parent1Phone: '',
     parent2Name: '',
@@ -35,10 +34,34 @@ export default function CreateCard() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  // --- CLOUDINARY UPLOAD FUNCTION ---
+  const uploadToCloudinary = async (file) => {
+    // Pulling securely from Vercel Environment Variables built by Vite
+    const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
+    const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
+    
+    const uploadData = new FormData();
+    uploadData.append('file', file);
+    uploadData.append('upload_preset', uploadPreset);
+
+    try {
+      const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
+        method: 'POST',
+        body: uploadData,
+      });
+      const data = await response.json();
+      return data.secure_url; // This is the live URL of the hosted image
+    } catch (err) {
+      console.error("Cloudinary upload error:", err);
+      throw new Error("Image upload failed");
+    }
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     setError('');
     
+    // Security check
     if (!auth.currentUser) {
       setError("You must be logged in to create a card.");
       return;
@@ -49,11 +72,9 @@ export default function CreateCard() {
     try {
       let imageUrl = '';
 
-      // 1. Conditionally Upload Image (if provided)
+      // 1. Conditionally Upload Image to Cloudinary (if provided)
       if (imageFile) {
-        const imageRef = ref(storage, `profiles/${auth.currentUser.uid}_${Date.now()}_${imageFile.name}`);
-        await uploadBytes(imageRef, imageFile);
-        imageUrl = await getDownloadURL(imageRef);
+        imageUrl = await uploadToCloudinary(imageFile);
       } else {
         // Fallback placeholder image if they decide to add a real one later
         imageUrl = 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
@@ -63,12 +84,12 @@ export default function CreateCard() {
       const docRef = await addDoc(collection(db, "profiles"), {
         ...formData,
         type,
-        imageUrl, // Will be either the real image URL or the placeholder
+        imageUrl, // Will be either the real Cloudinary image URL or the placeholder
         userId: auth.currentUser.uid,
         createdAt: new Date().toISOString()
       });
 
-      // 3. Generate Public URL for the QR Code (UPDATED WITH HASH ROUTING)
+      // 3. Generate Public URL for the QR Code (Using HashRouter structure)
       const publicUrl = `${window.location.origin}/#/id/${docRef.id}`;
       setGeneratedUrl(publicUrl);
 
@@ -101,7 +122,7 @@ export default function CreateCard() {
               <select 
                 value={type} 
                 onChange={(e) => setType(e.target.value)}
-                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue outline-none"
+                className="w-full p-3 border border-gray-300 rounded-xl bg-gray-50 focus:ring-2 focus:ring-safetyBlue outline-none transition-all"
               >
                 <option value="kid">Kid</option>
                 <option value="pet">Pet</option>
@@ -198,7 +219,7 @@ export default function CreateCard() {
               disabled={loading}
               className={`w-full text-white p-4 rounded-xl font-bold text-lg transition-all ${loading ? 'bg-blue-400 cursor-not-allowed' : 'bg-safetyBlue hover:bg-blue-600 shadow-md hover:shadow-lg'}`}
             >
-              {loading ? 'Saving Profile...' : 'Save & Generate QR'}
+              {loading ? 'Uploading & Saving...' : 'Save & Generate QR'}
             </button>
           </form>
         ) : (
