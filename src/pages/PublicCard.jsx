@@ -41,7 +41,6 @@ export default function PublicCard() {
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
-  // Format new structured fields or fallback to legacy simple strings
   const displayHeight = profile.heightUnit === 'ft' 
     ? `${profile.heightMain}'${profile.heightSub}"` 
     : (profile.heightMain ? `${profile.heightMain} cm` : profile.height);
@@ -70,7 +69,6 @@ export default function PublicCard() {
           </p>
         </div>
 
-        {/* NEW: Medical / Allergies Block */}
         {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start space-x-3">
              <Activity className="text-red-500 shrink-0 mt-0.5" size={20} />
@@ -104,6 +102,26 @@ export default function PublicCard() {
           </div>
         </div>
 
+        {/* LOCATION DETAILS MOVED ABOVE GUARDIANS */}
+        {(profile.policeStation || profile.pincode) && (
+          <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/50">
+            <div className="flex items-center space-x-2 mb-3 text-brandDark">
+              <MapPin size={18} />
+              <h3 className="font-extrabold tracking-tight">Local Information</h3>
+            </div>
+            <div className="space-y-2">
+              <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Police Station</span>
+                <span className="text-sm font-extrabold text-brandDark">{profile.policeStation || 'N/A'}</span>
+              </div>
+              <div className="flex justify-between items-center bg-white p-3 rounded-xl border border-zinc-100">
+                <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Area Pincode</span>
+                <span className="text-sm font-extrabold text-brandDark">{profile.pincode || 'N/A'}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="bg-zinc-50 p-5 rounded-3xl border border-zinc-200/60">
           <div className="flex items-center space-x-2 mb-4 text-brandDark">
             <Users size={18} />
@@ -128,20 +146,6 @@ export default function PublicCard() {
             ))}
           </div>
         </div>
-
-        {/* NEW: Police & Pincode Local Info Block */}
-        {(profile.policeStation || profile.pincode) && (
-          <div className="px-2 text-sm text-zinc-500 font-medium">
-            <div className="flex justify-between border-b border-zinc-100 pb-2 mb-2">
-              <span>Local Police Station</span>
-              <span className="text-brandDark font-bold">{profile.policeStation || 'N/A'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Area Pincode</span>
-              <span className="text-brandDark font-bold">{profile.pincode || 'N/A'}</span>
-            </div>
-          </div>
-        )}
 
         <div className="mt-10 bg-brandDark text-white p-6 rounded-3xl text-center shadow-floating relative overflow-hidden border border-zinc-800">
           <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brandGold/40 via-brandGold to-brandGold/40"></div>
