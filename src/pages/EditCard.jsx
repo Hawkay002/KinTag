@@ -53,7 +53,7 @@ export default function EditCard() {
             bloodGroup: data.bloodGroup || 'A+', typeSpecific: data.typeSpecific || '', 
             nationality: data.nationality || '', allergies: data.allergies || 'None Known',
             policeStation: data.policeStation || '', pincode: data.pincode || '', address: data.address || '',
-            qrStyle: data.qrStyle || 'obsidian' // NEW: Fetch existing style or default
+            qrStyle: data.qrStyle || 'obsidian'
           });
 
           if (data.contacts && data.contacts.length > 0) {
@@ -127,7 +127,9 @@ export default function EditCard() {
       () => {
         setError("Location access denied. Please type address manually.");
         setIsFetchingLoc(false);
-      }
+      },
+      // NEW: Forces high accuracy GPS mode
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -356,7 +358,6 @@ export default function EditCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* NEW: QR Code Visual Presets Selector */}
             <div className="bg-brandMuted p-5 rounded-2xl border border-zinc-200/60">
               <label className="block text-sm font-bold text-brandDark mb-3">QR Code Visual Style</label>
               <div className="flex flex-wrap gap-3">
