@@ -2,13 +2,24 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Smartphone } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react'; // Needed for the digital pass generation
+
+const QR_STYLES = {
+  obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200' },
+  bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200' },
+  ocean: { name: 'Ocean Blue', fg: '#0284c7', bg: '#f0f9ff', border: 'border-sky-200' },
+  minty: { name: 'Minty Green', fg: '#0d9488', bg: '#f0fdfa', border: 'border-teal-200' },
+  lavender: { name: 'Lavender Violet', fg: '#7c3aed', bg: '#f5f3ff', border: 'border-violet-200' },
+  sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200' },
+};
 
 export default function PublicCard() {
   const { profileId } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
+  const [showDigitalPass, setShowDigitalPass] = useState(false); // NEW
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,7 +38,9 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-zinc-500">Retrieving secure identity...</div>;
+  // NEW: Render Skeleton Loader while fetching
+  if (loading) return <PublicCardSkeleton />;
+  
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
 
   let displayContacts = profile.contacts || [
@@ -49,6 +62,8 @@ export default function PublicCard() {
     ? `${profile.weightMain} ${profile.weightUnit}` 
     : profile.weight;
 
+  const activeStyle = QR_STYLES[profile.qrStyle || 'obsidian'];
+
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
@@ -56,7 +71,6 @@ export default function PublicCard() {
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
         
-        {/* NEW: Brand Logo Overlay Top Left */}
         <div className="absolute top-5 left-5 z-20 flex items-center space-x-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-sm">
           <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm" />
           <span className="text-white font-bold text-sm tracking-tight drop-shadow-sm">KinTag</span>
@@ -153,14 +167,12 @@ export default function PublicCard() {
           </div>
         </div>
 
-        <div className="mt-10 bg-brandDark text-white p-6 rounded-3xl text-center shadow-floating relative overflow-hidden border border-zinc-800">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brandGold/40 via-brandGold to-brandGold/40"></div>
-          <h3 className="font-extrabold text-xl tracking-tight mb-1.5">Get Your Own KinTag</h3>
-          <p className="text-zinc-400 text-xs font-medium mb-5">Protect your family and pets with a free digital identity card.</p>
-          <a href="/" target="_blank" rel="noopener noreferrer" className="inline-block w-full bg-white text-brandDark py-3 rounded-xl font-extrabold text-sm hover:bg-zinc-200 transition-colors shadow-sm">
-            Create Free KinTag
-          </a>
-        </div>
+        {/* NEW: Save Digital ID Button */}
+        <button onClick={() => setShowDigitalPass(true)} className="w-full mt-4 flex items-center justify-center space-x-2 bg-brandDark text-white p-4 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all">
+          <Smartphone size={18} />
+          <span>Save Mobile ID</span>
+        </button>
+
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
@@ -180,7 +192,37 @@ export default function PublicCard() {
         </div>
       </div>
 
-      {isImageEnlarged && (
+      {/* NEW: Digital Pass Modal */}
+      {showDigitalPass && (
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
+          <button onClick={() => setShowDigitalPass(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition z-10">
+            <X size={24} />
+          </button>
+          
+          <div className="max-w-xs w-full text-center">
+            <p className="text-white mb-4 text-sm font-medium">Screenshot this pass and save it to your lockscreen or favorites.</p>
+            
+            <div className="bg-brandDark rounded-3xl overflow-hidden shadow-2xl relative border border-zinc-700 text-left mb-6 mx-auto w-full aspect-[9/16] flex flex-col">
+              <div className="h-[40%] w-full relative shrink-0">
+                <img src={profile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-80" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/40 to-transparent"></div>
+                <div className="absolute bottom-4 left-5 right-5">
+                  <h3 className="text-2xl font-extrabold text-white tracking-tight">{profile.name}</h3>
+                  <p className="text-brandGold text-xs font-bold uppercase tracking-widest">{profile.typeSpecific}</p>
+                </div>
+              </div>
+              <div className="flex-1 bg-brandDark p-5 flex flex-col items-center justify-center">
+                <div className={`bg-white p-4 rounded-3xl shadow-lg border-2 ${activeStyle.border}`}>
+                  <QRCodeCanvas value={window.location.href} size={180} level="H" fgColor={activeStyle.fg} bgColor={activeStyle.bg} imageSettings={{ src: "/kintag-logo.png", height: 35, width: 35, excavate: true }} />
+                </div>
+                <p className="text-white/60 text-[10px] uppercase tracking-widest font-bold mt-5">Scan in Emergency</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isImageEnlarged && !showDigitalPass && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
           <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
             <X size={24} />
@@ -188,6 +230,38 @@ export default function PublicCard() {
           <img src={profile.imageUrl} alt={profile.name} className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" />
         </div>
       )}
+    </div>
+  );
+}
+
+// NEW: Beautiful Skeleton Loader Component for Public View
+function PublicCardSkeleton() {
+  return (
+    <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative overflow-hidden">
+      {/* Image Skeleton */}
+      <div className="h-[45vh] w-full bg-zinc-200 animate-pulse"></div>
+      
+      {/* Body Skeleton */}
+      <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative">
+        {/* Title Area */}
+        <div className="flex flex-col items-center space-y-3 border-b border-zinc-100 pb-6">
+          <div className="h-10 w-2/3 bg-zinc-200 animate-pulse rounded-xl"></div>
+          <div className="h-4 w-1/3 bg-zinc-100 animate-pulse rounded-md"></div>
+        </div>
+        
+        {/* Grid Stats */}
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-zinc-50 p-4 rounded-2xl h-24 border border-zinc-100 animate-pulse flex flex-col items-center justify-center space-y-2">
+              <div className="h-6 w-6 bg-zinc-200 rounded-full"></div>
+              <div className="h-3 w-1/2 bg-zinc-200 rounded"></div>
+            </div>
+          ))}
+        </div>
+
+        {/* Guardians Box */}
+        <div className="bg-zinc-50 p-5 rounded-3xl h-48 border border-zinc-100 animate-pulse"></div>
+      </div>
     </div>
   );
 }
