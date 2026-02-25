@@ -20,7 +20,6 @@ export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
-  const [showDigitalPass, setShowDigitalPass] = useState(false); // NEW: Toggle for digital pass view
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const { currentUser } = useAuth();
@@ -81,6 +80,7 @@ export default function Dashboard() {
   };
 
   const downloadQR = (name) => {
+    // Downloads the QR Canvas itself
     const canvas = document.getElementById("qr-canvas-modal");
     if (!canvas) return;
     const pngUrl = canvas.toDataURL("image/png");
@@ -93,7 +93,6 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
 
-  // NEW: Render the sleek Skeleton Loader while fetching data
   if (loading) return <DashboardSkeleton />;
 
   return (
@@ -168,8 +167,8 @@ export default function Dashboard() {
                       <Eye size={16} />
                       <span>View</span>
                     </Link>
-                    <button onClick={() => { setQrModalProfile(profile); setShowDigitalPass(false); }} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="QR & Digital Pass">
-                      <QrCode size={18} />
+                    <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="Mobile ID & QR">
+                      <Smartphone size={18} />
                     </button>
                     <Link to={`/edit/${profile.id}`} className="bg-brandMuted hover:bg-zinc-200 text-brandDark p-2.5 rounded-xl transition-colors" title="Edit Profile">
                       <Edit size={18} />
@@ -186,72 +185,73 @@ export default function Dashboard() {
       </div>
 
       {qrModalProfile && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-white rounded-3xl p-6 md:p-8 max-w-sm w-full text-center relative shadow-2xl border border-zinc-100 my-8">
-            <button onClick={() => setQrModalProfile(null)} className="absolute top-4 right-4 text-zinc-400 hover:text-brandDark bg-brandMuted p-1.5 rounded-full transition-colors z-10">
-              <X size={20} />
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg overflow-y-auto">
+          <div className="max-w-sm w-full relative">
+            
+            <button onClick={() => setQrModalProfile(null)} className="absolute -top-12 right-0 text-white/70 hover:text-white bg-white/10 p-2 rounded-full transition z-10">
+              <X size={24} />
             </button>
             
-            {!showDigitalPass ? (
-              <>
-                <h2 className="text-2xl font-extrabold text-brandDark mb-1 tracking-tight">KinTag QR</h2>
-                <p className="text-zinc-500 mb-6 text-sm font-medium">Scan to view {qrModalProfile.name}'s card.</p>
+            <div className="text-center mb-4">
+               <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
+               <p className="text-white/60 text-xs font-medium">Screenshot this card to save it to your phone.</p>
+            </div>
+
+            {/* THE MOBILE ID CARD */}
+            <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
+              
+              {/* HERO SECTION */}
+              <div className="h-[45%] w-full relative shrink-0">
+                <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
                 
-                <div className="flex justify-center mb-6">
-                  <div className={`bg-white p-5 rounded-3xl shadow-premium border-2 ${activeStyle.border} inline-block`}>
-                    <QRCodeCanvas 
-                      id="qr-canvas-modal" 
-                      value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
-                      size={220} 
-                      level="H" 
-                      includeMargin={true} 
-                      fgColor={activeStyle.fg} 
-                      bgColor={activeStyle.bg} 
-                      imageSettings={{ src: "/kintag-logo.png", height: 45, width: 45, excavate: true }}
-                    />
-                  </div>
+                {/* Logo Badge */}
+                <div className="absolute top-5 left-5 flex items-center space-x-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                   <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded" />
+                   <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
                 </div>
 
-                <div className="space-y-3">
-                  <button onClick={() => downloadQR(qrModalProfile.name)} className="w-full flex items-center justify-center space-x-2 bg-brandMuted text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-all">
-                    <Download size={18} />
-                    <span>Download QR Image</span>
-                  </button>
-                  {/* NEW: Button to toggle Digital Pass view */}
-                  <button onClick={() => setShowDigitalPass(true)} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white p-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-all">
-                    <Smartphone size={18} />
-                    <span>View Mobile Digital Pass</span>
-                  </button>
-                </div>
-              </>
-            ) : (
-              // NEW: Mobile Digital Pass View (Wallet Alternative)
-              <div className="pt-4">
-                <h2 className="text-xl font-extrabold text-brandDark mb-1 tracking-tight">Mobile Pass</h2>
-                <p className="text-zinc-500 mb-4 text-xs font-medium px-4">Take a screenshot of this pass and save it to your phone's lockscreen or favorites.</p>
-                
-                <div className="bg-brandDark rounded-3xl overflow-hidden shadow-2xl relative border border-zinc-800 text-left mb-6 mx-auto w-full aspect-[9/16] max-h-[60vh] flex flex-col">
-                  <div className="h-1/3 w-full relative shrink-0">
-                    <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-80" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/40 to-transparent"></div>
-                    <div className="absolute bottom-3 left-4 right-4">
-                      <h3 className="text-2xl font-extrabold text-white tracking-tight">{qrModalProfile.name}</h3>
-                      <p className="text-brandGold text-xs font-bold uppercase tracking-widest">{qrModalProfile.typeSpecific}</p>
-                    </div>
-                  </div>
-                  <div className="flex-1 bg-brandDark p-5 flex flex-col items-center justify-center">
-                    <div className={`bg-white p-3 rounded-2xl shadow-lg border-2 ${activeStyle.border}`}>
-                      <QRCodeCanvas value={`${window.location.origin}/#/id/${qrModalProfile.id}`} size={160} level="H" fgColor={activeStyle.fg} bgColor={activeStyle.bg} imageSettings={{ src: "/kintag-logo.png", height: 30, width: 30, excavate: true }} />
-                    </div>
-                    <p className="text-white/60 text-[10px] uppercase tracking-widest font-bold mt-4">Scan in Emergency</p>
+                <div className="absolute bottom-4 left-6 right-6">
+                  <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
+                  <div className="flex items-center space-x-2 text-brandGold text-xs font-bold uppercase tracking-widest">
+                     <span>{qrModalProfile.typeSpecific}</span>
+                     <span>•</span>
+                     <span>{qrModalProfile.age} Yrs</span>
                   </div>
                 </div>
-
-                <button onClick={() => setShowDigitalPass(false)} className="w-full bg-brandMuted text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-all">
-                  Back to QR Code
-                </button>
               </div>
-            )}
+
+              {/* QR SECTION */}
+              <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
+                <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
+                  <QRCodeCanvas 
+                    id="qr-canvas-modal"
+                    value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
+                    size={160} 
+                    level="H" 
+                    fgColor={activeStyle.fg} 
+                    bgColor={activeStyle.bg} 
+                    imageSettings={{ src: "/kintag-logo.png", height: 35, width: 35, excavate: true }} 
+                  />
+                </div>
+                <div className="mt-6 space-y-1">
+                  <p className="text-white font-bold text-lg tracking-tight">Emergency Contact</p>
+                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Scan for Medical & Location Info</p>
+                </div>
+                
+                {/* Visual ID Footer */}
+                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
+                   ID: {qrModalProfile.id.slice(0,8).toUpperCase()}
+                </div>
+              </div>
+            </div>
+
+            {/* ACTION BUTTON */}
+            <button onClick={() => downloadQR(qrModalProfile.name)} className="w-full mt-6 flex items-center justify-center space-x-2 bg-white text-brandDark p-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all">
+              <Download size={20} />
+              <span>Download QR Code Only</span>
+            </button>
+
           </div>
         </div>
       )}
@@ -280,16 +280,12 @@ export default function Dashboard() {
   );
 }
 
-// NEW: Beautiful Skeleton Loader Component for Dashboard
 function DashboardSkeleton() {
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
       <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header Skeleton */}
         <div className="h-24 bg-zinc-200 animate-pulse rounded-3xl w-full"></div>
-        {/* Search Bar Skeleton */}
         <div className="h-14 bg-zinc-200 animate-pulse rounded-2xl w-full"></div>
-        {/* Cards Grid Skeleton */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
           {[1, 2, 3].map(i => (
             <div key={i} className="h-[300px] bg-white rounded-3xl overflow-hidden shadow-sm border border-zinc-100 flex flex-col">
