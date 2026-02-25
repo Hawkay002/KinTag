@@ -35,7 +35,6 @@ export default function CreateCard() {
     bloodGroup: 'A+', typeSpecific: '', nationality: '', 
     allergies: 'None Known', policeStation: '', pincode: '', address: '',
     qrStyle: 'obsidian',
-    // NEW FIELDS
     microchip: '', vaccinationStatus: 'Up to Date', temperament: 'Friendly', specialNeeds: ''
   });
 
@@ -224,16 +223,19 @@ export default function CreateCard() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelStyles}>Blood Group</label>
-                <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className={inputStyles}>
-                  <option value="A+">A+</option><option value="A-">A-</option>
-                  <option value="B+">B+</option><option value="B-">B-</option>
-                  <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                  <option value="O+">O+</option><option value="O-">O-</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </div>
+              {/* DYNAMIC: Hide Blood Group for Pets */}
+              {type === 'kid' && (
+                <div>
+                  <label className={labelStyles}>Blood Group</label>
+                  <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className={inputStyles}>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+              )}
               
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
               
@@ -248,7 +250,6 @@ export default function CreateCard() {
                 <input type="text" name="allergies" placeholder="e.g., Peanuts, Penicillin (Leave 'None Known' if none)" value={formData.allergies} onChange={handleInputChange} required className={inputStyles} />
               </div>
 
-              {/* DYNAMIC FIELDS: Kid vs Pet */}
               {type === 'kid' ? (
                 <>
                   <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} className={inputStyles} /></div>
