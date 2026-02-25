@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart } from 'lucide-react';
 
 export default function PublicCard() {
   const { profileId } = useParams();
@@ -76,6 +76,7 @@ export default function PublicCard() {
           </p>
         </div>
 
+        {/* MEDICAL ALERTS */}
         {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start space-x-3">
              <Activity className="text-red-500 shrink-0 mt-0.5" size={20} />
@@ -86,6 +87,41 @@ export default function PublicCard() {
            </div>
         )}
 
+        {/* BEHAVIORAL / SPECIAL NEEDS (KIDS ONLY) */}
+        {profile.type === 'kid' && profile.specialNeeds && (
+           <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl flex items-start space-x-3">
+             <Heart className="text-violet-500 shrink-0 mt-0.5" size={20} />
+             <div>
+               <h3 className="text-violet-700 font-extrabold text-xs uppercase tracking-widest mb-1">Behavioral / Special Needs</h3>
+               <p className="text-violet-900 font-bold text-sm">{profile.specialNeeds}</p>
+             </div>
+           </div>
+        )}
+
+        {/* PET SPECIFIC DETAILS */}
+        {profile.type === 'pet' && (
+          <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/50 space-y-3">
+            <h3 className="font-extrabold text-brandDark tracking-tight flex items-center gap-2"><PawPrint size={18}/> Pet Details</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-white p-3 rounded-xl border border-zinc-100">
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Temperament</span>
+                 <p className={`text-sm font-extrabold ${profile.temperament !== 'Friendly' ? 'text-red-600' : 'text-brandDark'}`}>{profile.temperament}</p>
+              </div>
+              <div className="bg-white p-3 rounded-xl border border-zinc-100">
+                 <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Vaccination</span>
+                 <p className="text-sm font-extrabold text-brandDark">{profile.vaccinationStatus}</p>
+              </div>
+              {profile.microchip && (
+                <div className="bg-white p-3 rounded-xl border border-zinc-100 col-span-2 flex justify-between items-center">
+                   <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Microchip ID</span>
+                   <span className="text-sm font-extrabold text-brandDark font-mono">{profile.microchip}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STANDARD GRID STATS */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
             {profile.type === 'kid' ? <User className="text-zinc-700 mb-2.5" size={22} /> : <PawPrint className="text-zinc-700 mb-2.5" size={22}/>}
@@ -153,7 +189,6 @@ export default function PublicCard() {
           </div>
         </div>
 
-        {/* NEW: Sleek Slim Promo Banner */}
         <div className="flex justify-center pb-6">
           <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-zinc-200/50 px-4 py-2 rounded-full shadow-sm hover:bg-white transition-all group">
             <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider group-hover:text-brandGold transition-colors">Secured by</span>
