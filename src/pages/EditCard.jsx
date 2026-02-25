@@ -264,16 +264,19 @@ export default function EditCard() {
                 </div>
               </div>
 
-              <div>
-                <label className={labelStyles}>Blood Group</label>
-                <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className={inputStyles}>
-                  <option value="A+">A+</option><option value="A-">A-</option>
-                  <option value="B+">B+</option><option value="B-">B-</option>
-                  <option value="AB+">AB+</option><option value="AB-">AB-</option>
-                  <option value="O+">O+</option><option value="O-">O-</option>
-                  <option value="Unknown">Unknown</option>
-                </select>
-              </div>
+              {/* DYNAMIC: Hide Blood Group for Pets */}
+              {type === 'kid' && (
+                <div>
+                  <label className={labelStyles}>Blood Group</label>
+                  <select name="bloodGroup" value={formData.bloodGroup} onChange={handleInputChange} className={inputStyles}>
+                    <option value="A+">A+</option><option value="A-">A-</option>
+                    <option value="B+">B+</option><option value="B-">B-</option>
+                    <option value="AB+">AB+</option><option value="AB-">AB-</option>
+                    <option value="O+">O+</option><option value="O-">O-</option>
+                    <option value="Unknown">Unknown</option>
+                  </select>
+                </div>
+              )}
 
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
             </div>
