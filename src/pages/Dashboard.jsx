@@ -121,11 +121,11 @@ export default function Dashboard() {
       ctx.fillRect(0, imgHeight - 350, canvas.width, 350);
 
       // 4. KinTag Brand Pill (Top Left)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
-      ctx.roundRect(50, 50, 210, 60, 30);
+      ctx.roundRect(50, 50, 220, 70, 35);
       ctx.fill();
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
       ctx.lineWidth = 2;
       ctx.stroke();
 
@@ -133,42 +133,41 @@ export default function Dashboard() {
       logoImg.crossOrigin = "anonymous";
       logoImg.src = "/kintag-logo.png";
       await new Promise((resolve) => { logoImg.onload = resolve; logoImg.onerror = resolve; });
-      if (logoImg.width) ctx.drawImage(logoImg, 65, 60, 40, 40);
+      if (logoImg.width) ctx.drawImage(logoImg, 65, 60, 50, 50);
       
       ctx.fillStyle = 'white';
-      ctx.font = 'bold 26px sans-serif';
+      ctx.font = 'bold 30px sans-serif';
       ctx.textBaseline = 'middle';
-      ctx.fillText("KinTag", 115, 80);
+      ctx.textAlign = 'left';
+      ctx.fillText("KinTag", 130, 85);
 
       // 5. Profile Name & Details
       ctx.textBaseline = 'alphabetic';
-      ctx.textAlign = 'left';
-      
       ctx.fillStyle = 'white';
       ctx.font = '900 85px sans-serif';
-      ctx.fillText(profile.name, 60, imgHeight - 60);
+      ctx.fillText(profile.name, 60, imgHeight - 50);
 
       ctx.fillStyle = '#fbbf24'; // Brand Gold
-      ctx.font = 'bold 26px sans-serif';
+      ctx.font = 'bold 28px sans-serif';
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
-      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 15);
+      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 5);
 
       // 6. QR Code Container
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
-        const qrSize = 520;
-        const padding = 40;
-        const boxSize = qrSize + (padding * 2); // 600px total
+        const boxSize = 600;
         const qrBoxX = (canvas.width - boxSize) / 2;
         const qrBoxY = imgHeight + 110; 
 
         // Glowing Drop Shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 30;
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 40;
         ctx.shadowOffsetY = 15;
 
-        // Container Body
-        ctx.fillStyle = 'white';
+        // Custom Colored Box
+        const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
+        
+        ctx.fillStyle = styleTheme.bg; // Use theme bg
         ctx.beginPath();
         ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60);
         ctx.fill();
@@ -176,17 +175,18 @@ export default function Dashboard() {
         // Reset shadow
         ctx.shadowColor = 'transparent';
 
-        // Custom Colored Border based on preset
-        const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
         ctx.strokeStyle = styleTheme.hexBorder;
         ctx.lineWidth = 14;
         ctx.stroke();
 
+        // Draw QR code centered in the box with padding
+        const padding = 40;
+        const qrSize = boxSize - (padding * 2);
         ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
       }
 
       // 7. Footer Text
-      const textY = imgHeight + 110 + 600 + 110; // Under the QR Box
+      const textY = imgHeight + 110 + 600 + 100; // 864 + 110 + 600 + 100 = 1674
       ctx.textAlign = 'center';
       
       ctx.fillStyle = 'white';
@@ -195,7 +195,7 @@ export default function Dashboard() {
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = 'bold 24px sans-serif';
-      ctx.letterSpacing = "3px"; // Modern canvas property
+      ctx.letterSpacing = "3px"; 
       ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", canvas.width / 2, textY + 60);
       ctx.letterSpacing = "0px";
 
@@ -312,20 +312,20 @@ export default function Dashboard() {
       </div>
 
       {qrModalProfile && (
-        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg overflow-y-auto">
+        // FIXED: flex, p-4, and m-auto ensures the modal safely scrolls if it overflows the screen height!
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
           
-          {/* NEW: Fixed Close Button Top Right of Screen */}
-          <button 
-            onClick={() => setQrModalProfile(null)} 
-            className="fixed top-6 right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-lg backdrop-blur-md"
-          >
-            <X size={24} />
-          </button>
-
-          <div className="max-w-sm w-full relative mt-8 md:mt-0">
-            <div className="text-center mb-5">
-               <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
-               <p className="text-white/60 text-xs font-medium mt-1">Download this card to save to your photos.</p>
+          <div className="max-w-sm w-full relative m-auto py-8">
+            
+            {/* INLINE HEADER: Keeps the Close Button safe and visible */}
+            <div className="flex justify-between items-start mb-6">
+               <div className="text-left">
+                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
+                 <p className="text-white/60 text-xs font-medium mt-1">Save to phone or print directly.</p>
+               </div>
+               <button onClick={() => setQrModalProfile(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition shadow-sm">
+                 <X size={20} />
+               </button>
             </div>
 
             {/* THE MOBILE ID CARD VISUAL */}
@@ -357,6 +357,7 @@ export default function Dashboard() {
                     value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
                     size={160} 
                     level="H" 
+                    includeMargin={false} // FIXED: Prevents double white padding
                     fgColor={activeStyle.fg} 
                     bgColor={activeStyle.bg} 
                     imageSettings={{ src: "/kintag-logo.png", height: 35, width: 35, excavate: true }} 
