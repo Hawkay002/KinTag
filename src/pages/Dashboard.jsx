@@ -80,48 +80,50 @@ export default function Dashboard() {
     }
   };
 
-  // NEW: Completely redesigned High-Fidelity Canvas Generator
   const downloadFullPass = async (profile) => {
     setDownloading(true);
     try {
       const canvas = document.createElement('canvas');
       canvas.width = 1080;
-      canvas.height = 1920; // Perfect 9:16 Mobile Aspect Ratio
+      canvas.height = 1920; 
       const ctx = canvas.getContext('2d');
 
-      // 1. Base card styling with rounded corners
+      // 1. Base Dark Background with rounded edges
       ctx.beginPath();
       ctx.roundRect(0, 0, canvas.width, canvas.height, 80);
-      ctx.clip(); // Ensure nothing spills outside the rounded corners
-
-      ctx.fillStyle = '#18181b'; // Base Dark Background
+      ctx.clip(); 
+      ctx.fillStyle = '#18181b'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Render Hero Image
+      // 2. Render Hero Image with perfect "object-fit: cover" math
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = profile.imageUrl;
       await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
-      const imgHeight = canvas.height * 0.45; // Hero covers top 45%
+      const imgHeight = canvas.height * 0.45; // Hero covers top 45% exactly
       if (img.width && img.height) {
-        const scale = Math.max(canvas.width / img.width, imgHeight / img.height);
-        const x = (canvas.width - img.width * scale) / 2;
-        const y = (imgHeight - img.height * scale) / 2;
-        ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+        // Calculate the crop to mimic CSS object-fit: cover
+        const scaleFactor = Math.max(canvas.width / img.width, imgHeight / img.height);
+        const drawW = canvas.width / scaleFactor;
+        const drawH = imgHeight / scaleFactor;
+        const sX = (img.width - drawW) / 2;
+        const sY = (img.height - drawH) / 2;
+        
+        ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, canvas.width, imgHeight);
       }
 
-      // 3. Smooth Gradient Overlay for text readability
-      const gradient = ctx.createLinearGradient(0, imgHeight - 400, 0, imgHeight + 5);
+      // 3. Smooth Gradient Overlay at the bottom of the image
+      const gradient = ctx.createLinearGradient(0, imgHeight - 350, 0, imgHeight);
       gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
       gradient.addColorStop(1, "#18181b");
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, imgHeight - 400, canvas.width, 405);
+      ctx.fillRect(0, imgHeight - 350, canvas.width, 350);
 
       // 4. KinTag Brand Pill (Top Left)
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
       ctx.beginPath();
-      ctx.roundRect(60, 60, 260, 80, 40);
+      ctx.roundRect(50, 50, 210, 60, 30);
       ctx.fill();
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
       ctx.lineWidth = 2;
@@ -131,70 +133,75 @@ export default function Dashboard() {
       logoImg.crossOrigin = "anonymous";
       logoImg.src = "/kintag-logo.png";
       await new Promise((resolve) => { logoImg.onload = resolve; logoImg.onerror = resolve; });
-      if (logoImg.width) ctx.drawImage(logoImg, 80, 75, 50, 50);
+      if (logoImg.width) ctx.drawImage(logoImg, 65, 60, 40, 40);
       
       ctx.fillStyle = 'white';
-      ctx.font = 'bold 32px sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText("KinTag", 145, 110);
+      ctx.font = 'bold 26px sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText("KinTag", 115, 80);
 
-      // 5. Profile Name & Details (Left-aligned, matching HTML layout)
-      ctx.fillStyle = 'white';
-      ctx.font = '900 90px sans-serif';
+      // 5. Profile Name & Details
+      ctx.textBaseline = 'alphabetic';
       ctx.textAlign = 'left';
-      ctx.fillText(profile.name, 70, imgHeight - 50);
+      
+      ctx.fillStyle = 'white';
+      ctx.font = '900 85px sans-serif';
+      ctx.fillText(profile.name, 60, imgHeight - 60);
 
       ctx.fillStyle = '#fbbf24'; // Brand Gold
-      ctx.font = 'bold 32px sans-serif';
+      ctx.font = 'bold 26px sans-serif';
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
-      ctx.fillText(infoText.toUpperCase(), 75, imgHeight + 10);
+      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 15);
 
-      // 6. Center QR Code Container
+      // 6. QR Code Container
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
-        const qrBoxSize = 650;
-        const qrSize = 550;
-        const qrBoxY = imgHeight + 180;
-        const qrBoxX = (canvas.width - qrBoxSize) / 2;
+        const qrSize = 520;
+        const padding = 40;
+        const boxSize = qrSize + (padding * 2); // 600px total
+        const qrBoxX = (canvas.width - boxSize) / 2;
+        const qrBoxY = imgHeight + 110; 
 
-        // Container Shadow
+        // Glowing Drop Shadow
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        ctx.shadowBlur = 40;
-        ctx.shadowOffsetY = 20;
+        ctx.shadowBlur = 30;
+        ctx.shadowOffsetY = 15;
 
         // Container Body
         ctx.fillStyle = 'white';
         ctx.beginPath();
-        ctx.roundRect(qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 80);
+        ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60);
         ctx.fill();
 
-        // Reset shadow for inner elements
+        // Reset shadow
         ctx.shadowColor = 'transparent';
 
-        // Colored Border
+        // Custom Colored Border based on preset
         const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
         ctx.strokeStyle = styleTheme.hexBorder;
-        ctx.lineWidth = 16;
+        ctx.lineWidth = 14;
         ctx.stroke();
 
-        // Draw the actual QR Code
-        ctx.drawImage(qrCanvas, qrBoxX + 50, qrBoxY + 50, qrSize, qrSize);
+        ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
       }
 
-      // 7. Emergency Footer
+      // 7. Footer Text
+      const textY = imgHeight + 110 + 600 + 110; // Under the QR Box
       ctx.textAlign = 'center';
+      
       ctx.fillStyle = 'white';
-      ctx.font = 'bold 50px sans-serif';
-      ctx.fillText("Emergency Contact", canvas.width / 2, 1750);
+      ctx.font = 'bold 48px sans-serif';
+      ctx.fillText("Emergency Contact", canvas.width / 2, textY);
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = 'bold 28px sans-serif';
-      ctx.letterSpacing = "2px";
-      ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", canvas.width / 2, 1810);
+      ctx.font = 'bold 24px sans-serif';
+      ctx.letterSpacing = "3px"; // Modern canvas property
+      ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", canvas.width / 2, textY + 60);
+      ctx.letterSpacing = "0px";
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.font = 'bold 22px monospace';
-      ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, canvas.width / 2, 1860);
+      ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, canvas.width / 2, canvas.height - 70);
 
       // Trigger Download
       const link = document.createElement('a');
@@ -305,35 +312,34 @@ export default function Dashboard() {
       </div>
 
       {qrModalProfile && (
-        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg overflow-y-auto">
-          <div className="max-w-sm w-full relative">
-            
-            {/* NEW: Clean Header with Top-Right Close Button */}
-            <div className="flex justify-between items-start mb-6">
-               <div className="text-left">
-                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
-                 <p className="text-white/60 text-xs font-medium">Save to phone or print directly.</p>
-               </div>
-               <button onClick={() => setQrModalProfile(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition shadow-sm">
-                 <X size={20} />
-               </button>
+        <div className="fixed inset-0 z-[100] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg overflow-y-auto">
+          
+          {/* NEW: Fixed Close Button Top Right of Screen */}
+          <button 
+            onClick={() => setQrModalProfile(null)} 
+            className="fixed top-6 right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-lg backdrop-blur-md"
+          >
+            <X size={24} />
+          </button>
+
+          <div className="max-w-sm w-full relative mt-8 md:mt-0">
+            <div className="text-center mb-5">
+               <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
+               <p className="text-white/60 text-xs font-medium mt-1">Download this card to save to your photos.</p>
             </div>
 
             {/* THE MOBILE ID CARD VISUAL */}
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
               
-              {/* HERO SECTION */}
               <div className="h-[45%] w-full relative shrink-0">
                 <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
                 
-                {/* Logo Badge */}
-                <div className="absolute top-5 left-5 flex items-center space-x-2 bg-black/20 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
+                <div className="absolute top-5 left-5 flex items-center space-x-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                    <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded" />
                    <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
                 </div>
 
-                {/* Name and Vitals Aligned to match Download Canvas */}
                 <div className="absolute bottom-4 left-6 right-6">
                   <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
                   <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest">
@@ -344,7 +350,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* QR SECTION */}
               <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
                 <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
                   <QRCodeCanvas 
@@ -362,15 +367,14 @@ export default function Dashboard() {
                   <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Scan for Medical & Location Info</p>
                 </div>
                 
-                {/* Visual ID Footer */}
                 <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
                    ID: {qrModalProfile.id.slice(0,8).toUpperCase()}
                 </div>
               </div>
             </div>
 
-            {/* NEW: Single Clear Download Button */}
-            <div className="mt-6">
+            {/* ACTION BUTTON */}
+            <div className="mt-6 mb-8">
               <button 
                 onClick={() => downloadFullPass(qrModalProfile)} 
                 disabled={downloading}
