@@ -231,7 +231,7 @@ export default function Dashboard() {
       // "Scan if lost for"
       ctx.fillStyle = 'white';
       ctx.font = 'bold 45px sans-serif';
-      ctx.fillText("Scan if lost for", W / 2, textY);
+      ctx.fillText("Scan (if lost) for", W / 2, textY);
 
       // "Emergency Contact, Medical and Location Info" (Wrapped to 2 lines to match UI)
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
