@@ -88,39 +88,33 @@ export default function Dashboard() {
       canvas.height = 1920; 
       const ctx = canvas.getContext('2d');
 
-      // 1. Base Dark Background with rounded edges
       ctx.beginPath();
       ctx.roundRect(0, 0, canvas.width, canvas.height, 80);
       ctx.clip(); 
       ctx.fillStyle = '#18181b'; 
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // 2. Render Hero Image with perfect "object-fit: cover" math
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = profile.imageUrl;
       await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
-      const imgHeight = canvas.height * 0.45; // Hero covers top 45% exactly
+      const imgHeight = canvas.height * 0.45; 
       if (img.width && img.height) {
-        // Calculate the crop to mimic CSS object-fit: cover
         const scaleFactor = Math.max(canvas.width / img.width, imgHeight / img.height);
         const drawW = canvas.width / scaleFactor;
         const drawH = imgHeight / scaleFactor;
         const sX = (img.width - drawW) / 2;
         const sY = (img.height - drawH) / 2;
-        
         ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, canvas.width, imgHeight);
       }
 
-      // 3. Smooth Gradient Overlay at the bottom of the image
       const gradient = ctx.createLinearGradient(0, imgHeight - 350, 0, imgHeight);
       gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
       gradient.addColorStop(1, "#18181b");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, imgHeight - 350, canvas.width, 350);
 
-      // 4. KinTag Brand Pill (Top Left)
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
       ctx.roundRect(50, 50, 220, 70, 35);
@@ -141,52 +135,56 @@ export default function Dashboard() {
       ctx.textAlign = 'left';
       ctx.fillText("KinTag", 130, 85);
 
-      // 5. Profile Name & Details
       ctx.textBaseline = 'alphabetic';
       ctx.fillStyle = 'white';
       ctx.font = '900 85px sans-serif';
-      ctx.fillText(profile.name, 60, imgHeight - 50);
+      ctx.fillText(profile.name, 60, imgHeight - 75);
 
-      ctx.fillStyle = '#fbbf24'; // Brand Gold
+      ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
-      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 5);
+      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 30);
 
-      // 6. QR Code Container
+      // NEW: Dynamic Warning Alert built into the image download
+      if (profile.type === 'kid' && profile.specialNeeds) {
+        ctx.fillStyle = '#ef4444'; 
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, imgHeight + 20);
+      } else if (profile.type === 'pet' && profile.temperament && profile.temperament !== 'Friendly') {
+        ctx.fillStyle = '#ef4444';
+        ctx.font = 'bold 24px sans-serif';
+        ctx.fillText(`TEMPERAMENT: ${profile.temperament}`.toUpperCase(), 65, imgHeight + 20);
+      }
+
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
         const boxSize = 600;
         const qrBoxX = (canvas.width - boxSize) / 2;
         const qrBoxY = imgHeight + 110; 
 
-        // Glowing Drop Shadow
         ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
         ctx.shadowBlur = 40;
         ctx.shadowOffsetY = 15;
 
-        // Custom Colored Box
         const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
         
-        ctx.fillStyle = styleTheme.bg; // Use theme bg
+        ctx.fillStyle = styleTheme.bg; 
         ctx.beginPath();
         ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60);
         ctx.fill();
 
-        // Reset shadow
         ctx.shadowColor = 'transparent';
 
         ctx.strokeStyle = styleTheme.hexBorder;
         ctx.lineWidth = 14;
         ctx.stroke();
 
-        // Draw QR code centered in the box with padding
         const padding = 40;
         const qrSize = boxSize - (padding * 2);
         ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
       }
 
-      // 7. Footer Text
-      const textY = imgHeight + 110 + 600 + 100; // 864 + 110 + 600 + 100 = 1674
+      const textY = imgHeight + 110 + 600 + 100; 
       ctx.textAlign = 'center';
       
       ctx.fillStyle = 'white';
@@ -203,7 +201,6 @@ export default function Dashboard() {
       ctx.font = 'bold 22px monospace';
       ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, canvas.width / 2, canvas.height - 70);
 
-      // Trigger Download
       const link = document.createElement('a');
       link.download = `${profile.name}-Mobile-ID.png`;
       link.href = canvas.toDataURL('image/png');
@@ -312,12 +309,10 @@ export default function Dashboard() {
       </div>
 
       {qrModalProfile && (
-        // FIXED: flex, p-4, and m-auto ensures the modal safely scrolls if it overflows the screen height!
         <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
           
           <div className="max-w-sm w-full relative m-auto py-8">
             
-            {/* INLINE HEADER: Keeps the Close Button safe and visible */}
             <div className="flex justify-between items-start mb-6">
                <div className="text-left">
                  <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
@@ -328,7 +323,6 @@ export default function Dashboard() {
                </button>
             </div>
 
-            {/* THE MOBILE ID CARD VISUAL */}
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
               
               <div className="h-[45%] w-full relative shrink-0">
@@ -342,11 +336,18 @@ export default function Dashboard() {
 
                 <div className="absolute bottom-4 left-6 right-6">
                   <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
-                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest">
+                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1.5">
                      <span>{qrModalProfile.typeSpecific}</span>
                      <span>•</span>
                      <span>{qrModalProfile.age} Yrs</span>
                   </div>
+                  {/* Visual Warning inside the app's modal viewer */}
+                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
+                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider">{qrModalProfile.specialNeeds}</p>
+                  )}
+                  {qrModalProfile.type === 'pet' && qrModalProfile.temperament && qrModalProfile.temperament !== 'Friendly' && (
+                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider">{qrModalProfile.temperament}</p>
+                  )}
                 </div>
               </div>
 
@@ -357,15 +358,15 @@ export default function Dashboard() {
                     value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
                     size={160} 
                     level="H" 
-                    includeMargin={false} // FIXED: Prevents double white padding
+                    includeMargin={false} 
                     fgColor={activeStyle.fg} 
                     bgColor={activeStyle.bg} 
                     imageSettings={{ src: "/kintag-logo.png", height: 35, width: 35, excavate: true }} 
                   />
                 </div>
                 <div className="mt-6 space-y-1">
-                  <p className="text-white font-bold text-lg tracking-tight">Scan for</p>
-                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Emergency Contact, Medical & Location Info</p>
+                  <p className="text-white font-bold text-lg tracking-tight">Emergency Contact</p>
+                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Scan for Medical & Location Info</p>
                 </div>
                 
                 <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
@@ -374,7 +375,6 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ACTION BUTTON */}
             <div className="mt-6 mb-8">
               <button 
                 onClick={() => downloadFullPass(qrModalProfile)} 
