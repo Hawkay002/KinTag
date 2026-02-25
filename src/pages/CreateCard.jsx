@@ -34,7 +34,7 @@ export default function CreateCard() {
     weightUnit: 'kg', weightMain: '', 
     bloodGroup: 'A+', typeSpecific: '', nationality: '', 
     allergies: 'None Known', policeStation: '', pincode: '', address: '',
-    qrStyle: 'obsidian' // NEW: Default QR Style
+    qrStyle: 'obsidian' 
   });
 
   const handleInputChange = (e) => {
@@ -83,7 +83,9 @@ export default function CreateCard() {
       () => {
         setError("Location access denied. Please type address manually.");
         setIsFetchingLoc(false);
-      }
+      },
+      // NEW: Forces high accuracy GPS mode
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
 
@@ -317,7 +319,6 @@ export default function CreateCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* NEW: QR Code Visual Presets Selector */}
             <div className="bg-brandMuted p-5 rounded-2xl border border-zinc-200/60">
               <label className="block text-sm font-bold text-brandDark mb-3">QR Code Visual Style</label>
               <div className="flex flex-wrap gap-3">
@@ -359,8 +360,8 @@ export default function CreateCard() {
                   size={220} 
                   level="H" 
                   includeMargin={true} 
-                  fgColor={activeStyle.fg} // NEW: Uses selected foreground color
-                  bgColor={activeStyle.bg} // NEW: Uses selected background color
+                  fgColor={activeStyle.fg} 
+                  bgColor={activeStyle.bg} 
                   imageSettings={{
                     src: "/kintag-logo.png",
                     height: 45,
