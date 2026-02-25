@@ -84,37 +84,54 @@ export default function Dashboard() {
     setDownloading(true);
     try {
       const canvas = document.createElement('canvas');
-      canvas.width = 1080;
-      canvas.height = 1920; 
       const ctx = canvas.getContext('2d');
 
+      // 🌟 NEW: 4K Retina Upscaling Engine
+      const pixelScale = 2; // Renders the image at 2160 x 3840 for massive sharpness
+      const W = 1080; // Logical Width
+      const H = 1920; // Logical Height
+
+      canvas.width = W * pixelScale;
+      canvas.height = H * pixelScale; 
+      
+      // Scale context so our math stays simple
+      ctx.scale(pixelScale, pixelScale);
+      
+      // Force high-quality image smoothing
+      ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = 'high';
+
+      // 1. Base Dark Background with rounded edges
       ctx.beginPath();
-      ctx.roundRect(0, 0, canvas.width, canvas.height, 80);
+      ctx.roundRect(0, 0, W, H, 80);
       ctx.clip(); 
       ctx.fillStyle = '#18181b'; 
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillRect(0, 0, W, H);
 
+      // 2. Render Hero Image
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = profile.imageUrl;
       await new Promise((resolve) => { img.onload = resolve; img.onerror = resolve; });
 
-      const imgHeight = canvas.height * 0.45; 
+      const imgHeight = H * 0.45; 
       if (img.width && img.height) {
-        const scaleFactor = Math.max(canvas.width / img.width, imgHeight / img.height);
-        const drawW = canvas.width / scaleFactor;
+        const scaleFactor = Math.max(W / img.width, imgHeight / img.height);
+        const drawW = W / scaleFactor;
         const drawH = imgHeight / scaleFactor;
         const sX = (img.width - drawW) / 2;
         const sY = (img.height - drawH) / 2;
-        ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, canvas.width, imgHeight);
+        ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, W, imgHeight);
       }
 
+      // 3. Smooth Gradient Overlay 
       const gradient = ctx.createLinearGradient(0, imgHeight - 350, 0, imgHeight);
       gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
       gradient.addColorStop(1, "#18181b");
       ctx.fillStyle = gradient;
-      ctx.fillRect(0, imgHeight - 350, canvas.width, 350);
+      ctx.fillRect(0, imgHeight - 350, W, 350);
 
+      // 4. KinTag Brand Pill
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
       ctx.roundRect(50, 50, 220, 70, 35);
@@ -135,15 +152,13 @@ export default function Dashboard() {
       ctx.textAlign = 'left';
       ctx.fillText("KinTag", 130, 85);
 
-      // --- TEXT RENDERING DYNAMICS ---
+      // 5. Profile Name & Details
       ctx.textBaseline = 'alphabetic';
-      
-      // Calculate dynamic Y base based on type to ensure fit
       let textBaseY = imgHeight - 30;
       if (profile.type === 'pet') {
-        textBaseY = imgHeight - 115; // Shift name up to fit 3 pet lines
+        textBaseY = imgHeight - 115; 
       } else if (profile.type === 'kid' && profile.specialNeeds) {
-        textBaseY = imgHeight - 75; // Shift name up to fit alert
+        textBaseY = imgHeight - 75; 
       }
 
       ctx.fillStyle = 'white';
@@ -155,7 +170,6 @@ export default function Dashboard() {
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
 
-      // NEW: Draw the dynamic pet fields or kid alerts below the infoText
       if (profile.type === 'pet') {
         ctx.font = 'bold 24px sans-serif';
         let lineY = textBaseY + 38;
@@ -187,11 +201,11 @@ export default function Dashboard() {
         ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, textBaseY + 45);
       }
 
-      // --- QR CODE DRAWING ---
+      // 6. QR Code
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
         const boxSize = 600;
-        const qrBoxX = (canvas.width - boxSize) / 2;
+        const qrBoxX = (W - boxSize) / 2;
         const qrBoxY = imgHeight + 110; 
 
         ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
@@ -213,29 +227,35 @@ export default function Dashboard() {
 
         const padding = 40;
         const qrSize = boxSize - (padding * 2);
+        
+        // Disable smoothing specifically for the QR code so it stays crisp pixel art
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
+        ctx.imageSmoothingEnabled = true; // Turn back on for text
       }
 
+      // 7. Footer
       const textY = imgHeight + 110 + 600 + 100; 
       ctx.textAlign = 'center';
       
       ctx.fillStyle = 'white';
       ctx.font = 'bold 48px sans-serif';
-      ctx.fillText("Emergency Contact", canvas.width / 2, textY);
+      ctx.fillText("Emergency Contact", W / 2, textY);
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = 'bold 24px sans-serif';
       ctx.letterSpacing = "3px"; 
-      ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", canvas.width / 2, textY + 60);
+      ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", W / 2, textY + 60);
       ctx.letterSpacing = "0px";
 
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.font = 'bold 22px monospace';
-      ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, canvas.width / 2, canvas.height - 70);
+      ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, W / 2, H - 70);
 
+      // We export to high quality PNG
       const link = document.createElement('a');
       link.download = `${profile.name}-Mobile-ID.png`;
-      link.href = canvas.toDataURL('image/png');
+      link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
 
     } catch (e) {
@@ -375,7 +395,6 @@ export default function Dashboard() {
                      <span>{qrModalProfile.age} Yrs</span>
                   </div>
                   
-                  {/* DYNAMIC: Mobile view for Pet Lines or Kid Special Needs */}
                   {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
                     <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>
                   )}
@@ -400,15 +419,17 @@ export default function Dashboard() {
 
               <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
                 <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
+                  {/* 🌟 NEW: Massive 1024px Canvas shrunk by CSS for extreme Retina sharpness */}
                   <QRCodeCanvas 
                     id="qr-canvas-modal"
                     value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
-                    size={160} 
+                    size={1024} 
+                    style={{ width: '160px', height: '160px' }}
                     level="H" 
                     includeMargin={false} 
                     fgColor={activeStyle.fg} 
                     bgColor={activeStyle.bg} 
-                    imageSettings={{ src: "/kintag-logo.png", height: 35, width: 35, excavate: true }} 
+                    imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} 
                   />
                 </div>
                 <div className="mt-6 space-y-1">
