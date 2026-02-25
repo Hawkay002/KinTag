@@ -135,27 +135,59 @@ export default function Dashboard() {
       ctx.textAlign = 'left';
       ctx.fillText("KinTag", 130, 85);
 
+      // --- TEXT RENDERING DYNAMICS ---
       ctx.textBaseline = 'alphabetic';
+      
+      // Calculate dynamic Y base based on type to ensure fit
+      let textBaseY = imgHeight - 30;
+      if (profile.type === 'pet') {
+        textBaseY = imgHeight - 115; // Shift name up to fit 3 pet lines
+      } else if (profile.type === 'kid' && profile.specialNeeds) {
+        textBaseY = imgHeight - 75; // Shift name up to fit alert
+      }
+
       ctx.fillStyle = 'white';
       ctx.font = '900 85px sans-serif';
-      ctx.fillText(profile.name, 60, imgHeight - 75);
+      ctx.fillText(profile.name, 60, textBaseY - 45);
 
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
-      ctx.fillText(infoText.toUpperCase(), 65, imgHeight - 30);
+      ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
 
-      // NEW: Dynamic Warning Alert built into the image download
-      if (profile.type === 'kid' && profile.specialNeeds) {
+      // NEW: Draw the dynamic pet fields or kid alerts below the infoText
+      if (profile.type === 'pet') {
+        ctx.font = 'bold 24px sans-serif';
+        let lineY = textBaseY + 38;
+        
+        ctx.fillStyle = 'white';
+        let label = "TEMPERAMENT - ";
+        ctx.fillText(label, 65, lineY);
+        ctx.fillStyle = profile.temperament !== 'Friendly' ? '#ef4444' : '#fbbf24';
+        ctx.fillText(profile.temperament.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+        
+        lineY += 32;
+        ctx.fillStyle = 'white';
+        label = "VACCINATION STATUS - ";
+        ctx.fillText(label, 65, lineY);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillText(profile.vaccinationStatus.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+
+        if (profile.microchip) {
+          lineY += 32;
+          ctx.fillStyle = 'white';
+          label = "MICROCHIP NUMBER - ";
+          ctx.fillText(label, 65, lineY);
+          ctx.fillStyle = '#fbbf24';
+          ctx.fillText(profile.microchip.toUpperCase(), 65 + ctx.measureText(label).width, lineY);
+        }
+      } else if (profile.type === 'kid' && profile.specialNeeds) {
         ctx.fillStyle = '#ef4444'; 
-        ctx.font = 'bold 24px sans-serif';
-        ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, imgHeight + 20);
-      } else if (profile.type === 'pet' && profile.temperament && profile.temperament !== 'Friendly') {
-        ctx.fillStyle = '#ef4444';
-        ctx.font = 'bold 24px sans-serif';
-        ctx.fillText(`TEMPERAMENT: ${profile.temperament}`.toUpperCase(), 65, imgHeight + 20);
+        ctx.font = 'bold 26px sans-serif';
+        ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, textBaseY + 45);
       }
 
+      // --- QR CODE DRAWING ---
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
         const boxSize = 600;
@@ -311,16 +343,17 @@ export default function Dashboard() {
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
           
+          <button 
+            onClick={() => setQrModalProfile(null)} 
+            className="fixed top-6 right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-lg backdrop-blur-md"
+          >
+            <X size={24} />
+          </button>
+
           <div className="max-w-sm w-full relative m-auto py-8">
-            
-            <div className="flex justify-between items-start mb-6">
-               <div className="text-left">
-                 <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
-                 <p className="text-white/60 text-xs font-medium mt-1">Save to phone or print directly.</p>
-               </div>
-               <button onClick={() => setQrModalProfile(null)} className="text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2 rounded-full transition shadow-sm">
-                 <X size={20} />
-               </button>
+            <div className="text-center mb-5">
+               <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
+               <p className="text-white/60 text-xs font-medium mt-1">Download this card to save to your photos.</p>
             </div>
 
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
@@ -334,20 +367,34 @@ export default function Dashboard() {
                    <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
                 </div>
 
-                <div className="absolute bottom-4 left-6 right-6">
+                <div className="absolute bottom-3 left-6 right-6">
                   <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
-                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1.5">
+                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
                      <span>{qrModalProfile.typeSpecific}</span>
                      <span>•</span>
                      <span>{qrModalProfile.age} Yrs</span>
                   </div>
-                  {/* Visual Warning inside the app's modal viewer */}
+                  
+                  {/* DYNAMIC: Mobile view for Pet Lines or Kid Special Needs */}
                   {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
-                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider">{qrModalProfile.specialNeeds}</p>
+                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>
                   )}
-                  {qrModalProfile.type === 'pet' && qrModalProfile.temperament && qrModalProfile.temperament !== 'Friendly' && (
-                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider">{qrModalProfile.temperament}</p>
+                  {qrModalProfile.type === 'pet' && (
+                    <div className="space-y-0.5 mt-2">
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">
+                         Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span>
+                       </p>
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">
+                         Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span>
+                       </p>
+                       {qrModalProfile.microchip && (
+                         <p className="text-white text-[10px] font-bold uppercase tracking-wider">
+                           Microchip - <span className="text-brandGold">{qrModalProfile.microchip}</span>
+                         </p>
+                       )}
+                    </div>
                   )}
+
                 </div>
               </div>
 
