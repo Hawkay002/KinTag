@@ -364,8 +364,8 @@ export default function Dashboard() {
                   />
                 </div>
                 <div className="mt-6 space-y-1">
-                  <p className="text-white font-bold text-lg tracking-tight">Emergency Contact</p>
-                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Scan for Medical & Location Info</p>
+                  <p className="text-white font-bold text-lg tracking-tight">Scan for</p>
+                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Emergency Contact, Medical & Location Info</p>
                 </div>
                 
                 <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
