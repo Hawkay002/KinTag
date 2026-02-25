@@ -5,7 +5,7 @@ import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone } from 'lucide-react';
+import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2 } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200' },
@@ -22,6 +22,7 @@ export default function Dashboard() {
   const [qrModalProfile, setQrModalProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
+  const [downloading, setDownloading] = useState(false); // New state for download process
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
@@ -79,15 +80,100 @@ export default function Dashboard() {
     }
   };
 
-  const downloadQR = (name) => {
-    // Downloads the QR Canvas itself
-    const canvas = document.getElementById("qr-canvas-modal");
-    if (!canvas) return;
-    const pngUrl = canvas.toDataURL("image/png");
-    const downloadLink = document.createElement("a");
-    downloadLink.href = pngUrl;
-    downloadLink.download = `${name}_KinTag_QR.png`; 
-    downloadLink.click();
+  // NEW: Generates a Full Mobile ID Card (Image + Text + QR) on a canvas and downloads it
+  const downloadFullPass = async (profile) => {
+    setDownloading(true);
+    try {
+      const canvas = document.createElement('canvas');
+      // Set to high resolution (1080x1920 ~ Mobile Wallpaper size)
+      canvas.width = 1080;
+      canvas.height = 1920;
+      const ctx = canvas.getContext('2d');
+
+      // 1. Draw Background (Dark)
+      ctx.fillStyle = '#18181b';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // 2. Load and Draw Hero Image
+      const img = new Image();
+      img.crossOrigin = "anonymous"; // Crucial for CORS
+      img.src = profile.imageUrl;
+      
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = resolve; // Continue even if image fails (avoids hanging)
+      });
+
+      // Draw image covering top 55%
+      const h = canvas.height * 0.55;
+      const scale = Math.max(canvas.width / img.width, h / img.height);
+      const x = (canvas.width - img.width * scale) / 2;
+      const y = (h - img.height * scale) / 2;
+      ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+      // Gradient Fade at bottom of image
+      const gradient = ctx.createLinearGradient(0, h - 250, 0, h);
+      gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
+      gradient.addColorStop(1, "#18181b");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, h - 250, canvas.width, 250);
+
+      // 3. Draw Text Details
+      ctx.fillStyle = 'white';
+      ctx.textAlign = 'center';
+      
+      // Name
+      ctx.font = 'bold 90px sans-serif';
+      ctx.fillText(profile.name, canvas.width / 2, canvas.height * 0.58);
+
+      // Type & Age
+      ctx.font = 'bold 40px sans-serif';
+      ctx.fillStyle = '#fbbf24'; // Brand Gold
+      const infoText = `${profile.typeSpecific || 'Family Member'} • ${profile.age} Yrs`;
+      ctx.fillText(infoText.toUpperCase(), canvas.width / 2, canvas.height * 0.63);
+
+      // 4. Draw QR Code
+      const qrCanvas = document.getElementById("qr-canvas-modal");
+      if (qrCanvas) {
+        // White rounded container
+        const qrSize = 500;
+        const qrY = canvas.height * 0.68;
+        const qrX = (canvas.width - qrSize) / 2;
+        const pad = 50;
+
+        ctx.fillStyle = 'white';
+        // Draw rounded rect (simplified)
+        ctx.beginPath();
+        ctx.roundRect(qrX - pad, qrY - pad, qrSize + pad * 2, qrSize + pad * 2, 40);
+        ctx.fill();
+
+        // Draw QR
+        ctx.drawImage(qrCanvas, qrX, qrY, qrSize, qrSize);
+      }
+
+      // 5. Footer Text
+      ctx.fillStyle = 'rgba(255,255,255,0.6)';
+      ctx.font = 'bold 35px sans-serif';
+      ctx.fillText("SCAN IN EMERGENCY", canvas.width / 2, canvas.height * 0.94);
+
+      // 6. Branding
+      ctx.font = 'bold 40px sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'white';
+      ctx.fillText("KinTag", 60, 100);
+
+      // 7. Trigger Download
+      const link = document.createElement('a');
+      link.download = `${profile.name}-Mobile-ID.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+
+    } catch (e) {
+      console.error("Generation failed", e);
+      alert("Could not generate image due to browser security restrictions. Please take a screenshot instead.");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -188,21 +274,17 @@ export default function Dashboard() {
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg overflow-y-auto">
           <div className="max-w-sm w-full relative">
             
-            <button onClick={() => setQrModalProfile(null)} className="absolute -top-12 right-0 text-white/70 hover:text-white bg-white/10 p-2 rounded-full transition z-10">
-              <X size={24} />
-            </button>
-            
             <div className="text-center mb-4">
                <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
-               <p className="text-white/60 text-xs font-medium">Screenshot this card to save it to your phone.</p>
+               <p className="text-white/60 text-xs font-medium">Download this card to save to your photos.</p>
             </div>
 
-            {/* THE MOBILE ID CARD */}
+            {/* THE MOBILE ID CARD VISUAL */}
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
               
               {/* HERO SECTION */}
               <div className="h-[45%] w-full relative shrink-0">
-                <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" />
+                <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
                 
                 {/* Logo Badge */}
@@ -246,11 +328,25 @@ export default function Dashboard() {
               </div>
             </div>
 
-            {/* ACTION BUTTON */}
-            <button onClick={() => downloadQR(qrModalProfile.name)} className="w-full mt-6 flex items-center justify-center space-x-2 bg-white text-brandDark p-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all">
-              <Download size={20} />
-              <span>Download QR Code Only</span>
-            </button>
+            {/* NEW: ACTION BUTTONS (Download & Close) */}
+            <div className="mt-6 space-y-3">
+              <button 
+                onClick={() => downloadFullPass(qrModalProfile)} 
+                disabled={downloading}
+                className="w-full flex items-center justify-center space-x-2 bg-white text-brandDark p-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50"
+              >
+                {downloading ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
+                <span>{downloading ? 'Generating High-Res ID...' : 'Download Full Mobile ID'}</span>
+              </button>
+              
+              <button 
+                onClick={() => setQrModalProfile(null)} 
+                className="w-full flex items-center justify-center space-x-2 bg-white/10 text-white p-4 rounded-2xl font-bold hover:bg-white/20 transition-all border border-white/10"
+              >
+                <X size={20} />
+                <span>Close</span>
+              </button>
+            </div>
 
           </div>
         </div>
