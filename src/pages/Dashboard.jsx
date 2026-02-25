@@ -427,7 +427,7 @@ export default function Dashboard() {
                 
                 {/* 🌟 FIXED: NEW FOOTER TEXT FOR UI MODAL */}
                 <div className="mt-5 text-center px-4">
-                  <p className="text-white font-bold text-lg tracking-tight mb-1">Scan if lost for</p>
+                  <p className="text-white font-bold text-lg tracking-tight mb-1">Scan (if lost) for</p>
                   <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">
                     Emergency Contact, Medical and Location<br/>Info
                   </p>
