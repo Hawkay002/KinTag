@@ -5,12 +5,12 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, X, MapPin, Loader2, Check } from 'lucide-react';
 
 const QR_STYLES = {
-  obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200' },
-  bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200' },
-  ocean: { name: 'Ocean Blue', fg: '#0284c7', bg: '#f0f9ff', border: 'border-sky-200' },
-  minty: { name: 'Minty Green', fg: '#0d9488', bg: '#f0fdfa', border: 'border-teal-200' },
-  lavender: { name: 'Lavender Violet', fg: '#7c3aed', bg: '#f5f3ff', border: 'border-violet-200' },
-  sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200' },
+  obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
+  bubblegum: { name: 'Bubblegum Pink', fg: '#db2777', bg: '#fdf2f8', border: 'border-pink-200', hexBorder: '#fbcfe8' },
+  ocean: { name: 'Ocean Blue', fg: '#0284c7', bg: '#f0f9ff', border: 'border-sky-200', hexBorder: '#bae6fd' },
+  minty: { name: 'Minty Green', fg: '#0d9488', bg: '#f0fdfa', border: 'border-teal-200', hexBorder: '#99f6e4' },
+  lavender: { name: 'Lavender Violet', fg: '#7c3aed', bg: '#f5f3ff', border: 'border-violet-200', hexBorder: '#ddd6fe' },
+  sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200', hexBorder: '#fde68a' },
 };
 
 export default function EditCard() {
@@ -34,7 +34,8 @@ export default function EditCard() {
     weightUnit: 'kg', weightMain: '', 
     bloodGroup: 'A+', typeSpecific: '', nationality: '', 
     allergies: 'None Known', policeStation: '', pincode: '', address: '',
-    qrStyle: 'obsidian'
+    qrStyle: 'obsidian',
+    microchip: '', vaccinationStatus: 'Up to Date', temperament: 'Friendly', specialNeeds: ''
   });
 
   useEffect(() => {
@@ -53,7 +54,9 @@ export default function EditCard() {
             bloodGroup: data.bloodGroup || 'A+', typeSpecific: data.typeSpecific || '', 
             nationality: data.nationality || '', allergies: data.allergies || 'None Known',
             policeStation: data.policeStation || '', pincode: data.pincode || '', address: data.address || '',
-            qrStyle: data.qrStyle || 'obsidian'
+            qrStyle: data.qrStyle || 'obsidian',
+            microchip: data.microchip || '', vaccinationStatus: data.vaccinationStatus || 'Up to Date', 
+            temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
 
           if (data.contacts && data.contacts.length > 0) {
@@ -128,7 +131,6 @@ export default function EditCard() {
         setError("Location access denied. Please type address manually.");
         setIsFetchingLoc(false);
       },
-      // NEW: Forces high accuracy GPS mode
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
   };
@@ -274,14 +276,47 @@ export default function EditCard() {
               </div>
 
               <div><label className={labelStyles}>{type === 'kid' ? "Ethnicity" : "Breed"}</label><input type="text" name="typeSpecific" value={formData.typeSpecific} onChange={handleInputChange} required className={inputStyles} /></div>
-              {type === 'kid' && (
-                <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} required className={inputStyles} /></div>
-              )}
             </div>
 
-            <div>
-              <label className={labelStyles}>Known Allergies / Medical Conditions</label>
-              <input type="text" name="allergies" placeholder="e.g., Peanuts, Penicillin (Leave 'None Known' if none)" value={formData.allergies} onChange={handleInputChange} required className={inputStyles} />
+            <hr className="border-zinc-200" />
+            <h3 className="text-xl font-extrabold text-brandDark tracking-tight mb-2">Health & Specifics</h3>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="md:col-span-2">
+                <label className={labelStyles}>Known Allergies / Medical Conditions</label>
+                <input type="text" name="allergies" placeholder="e.g., Peanuts, Penicillin (Leave 'None Known' if none)" value={formData.allergies} onChange={handleInputChange} required className={inputStyles} />
+              </div>
+
+              {type === 'kid' ? (
+                <>
+                  <div><label className={labelStyles}>Nationality</label><input type="text" name="nationality" placeholder="e.g., American" value={formData.nationality} onChange={handleInputChange} className={inputStyles} /></div>
+                  <div><label className={labelStyles}>Behavioral / Special Needs (Optional)</label><input type="text" name="specialNeeds" placeholder="e.g., Autism, Non-Verbal, ADHD" value={formData.specialNeeds} onChange={handleInputChange} className={inputStyles} /></div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className={labelStyles}>Temperament</label>
+                    <select name="temperament" value={formData.temperament} onChange={handleInputChange} className={inputStyles}>
+                      <option value="Friendly">Friendly</option>
+                      <option value="Anxious">Anxious / Timid</option>
+                      <option value="Needs Care">Needs Care / Special</option>
+                      <option value="Do Not Pet">Aggressive / Do Not Pet</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelStyles}>Vaccination Status</label>
+                    <select name="vaccinationStatus" value={formData.vaccinationStatus} onChange={handleInputChange} className={inputStyles}>
+                      <option value="Up to Date">Up to Date</option>
+                      <option value="Needs Update">Needs Update</option>
+                      <option value="Unknown">Unknown</option>
+                    </select>
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className={labelStyles}>Microchip Number (Optional)</label>
+                    <input type="text" name="microchip" placeholder="e.g., 98514100XXXXXXX" value={formData.microchip} onChange={handleInputChange} className={inputStyles} />
+                  </div>
+                </>
+              )}
             </div>
 
             <hr className="border-zinc-200" />
