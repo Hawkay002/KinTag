@@ -76,7 +76,6 @@ export default function PublicCard() {
           </p>
         </div>
 
-        {/* MEDICAL ALERTS */}
         {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
            <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start space-x-3">
              <Activity className="text-red-500 shrink-0 mt-0.5" size={20} />
@@ -87,7 +86,6 @@ export default function PublicCard() {
            </div>
         )}
 
-        {/* BEHAVIORAL / SPECIAL NEEDS (KIDS ONLY) */}
         {profile.type === 'kid' && profile.specialNeeds && (
            <div className="bg-violet-50 border border-violet-100 p-4 rounded-2xl flex items-start space-x-3">
              <Heart className="text-violet-500 shrink-0 mt-0.5" size={20} />
@@ -98,7 +96,6 @@ export default function PublicCard() {
            </div>
         )}
 
-        {/* PET SPECIFIC DETAILS */}
         {profile.type === 'pet' && (
           <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/50 space-y-3">
             <h3 className="font-extrabold text-brandDark tracking-tight flex items-center gap-2"><PawPrint size={18}/> Pet Details</h3>
@@ -121,18 +118,22 @@ export default function PublicCard() {
           </div>
         )}
 
-        {/* STANDARD GRID STATS */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
             {profile.type === 'kid' ? <User className="text-zinc-700 mb-2.5" size={22} /> : <PawPrint className="text-zinc-700 mb-2.5" size={22}/>}
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Gender</span>
             <span className="font-extrabold text-brandDark">{profile.gender}</span>
           </div>
-          <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
-            <Droplet className="text-zinc-700 mb-2.5" size={22} />
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Blood Group</span>
-            <span className="font-extrabold text-brandDark">{profile.bloodGroup}</span>
-          </div>
+
+          {/* DYNAMIC: Hide Blood Group if Pet */}
+          {profile.type === 'kid' && (
+            <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
+              <Droplet className="text-zinc-700 mb-2.5" size={22} />
+              <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Blood Group</span>
+              <span className="font-extrabold text-brandDark">{profile.bloodGroup}</span>
+            </div>
+          )}
+
           <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
             <Ruler className="text-zinc-700 mb-2.5" size={22} />
             <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mb-1">Height</span>
