@@ -86,29 +86,24 @@ export default function Dashboard() {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
 
-      // 🌟 NEW: 4K Retina Upscaling Engine
-      const pixelScale = 2; // Renders the image at 2160 x 3840 for massive sharpness
-      const W = 1080; // Logical Width
-      const H = 1920; // Logical Height
+      const pixelScale = 2; 
+      const W = 1080; 
+      const H = 1920; 
 
       canvas.width = W * pixelScale;
       canvas.height = H * pixelScale; 
       
-      // Scale context so our math stays simple
       ctx.scale(pixelScale, pixelScale);
       
-      // Force high-quality image smoothing
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
-      // 1. Base Dark Background with rounded edges
       ctx.beginPath();
       ctx.roundRect(0, 0, W, H, 80);
       ctx.clip(); 
       ctx.fillStyle = '#18181b'; 
       ctx.fillRect(0, 0, W, H);
 
-      // 2. Render Hero Image
       const img = new Image();
       img.crossOrigin = "anonymous";
       img.src = profile.imageUrl;
@@ -124,14 +119,12 @@ export default function Dashboard() {
         ctx.drawImage(img, sX, sY, drawW, drawH, 0, 0, W, imgHeight);
       }
 
-      // 3. Smooth Gradient Overlay 
       const gradient = ctx.createLinearGradient(0, imgHeight - 350, 0, imgHeight);
       gradient.addColorStop(0, "rgba(24, 24, 27, 0)");
       gradient.addColorStop(1, "#18181b");
       ctx.fillStyle = gradient;
       ctx.fillRect(0, imgHeight - 350, W, 350);
 
-      // 4. KinTag Brand Pill
       ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
       ctx.beginPath();
       ctx.roundRect(50, 50, 220, 70, 35);
@@ -152,7 +145,6 @@ export default function Dashboard() {
       ctx.textAlign = 'left';
       ctx.fillText("KinTag", 130, 85);
 
-      // 5. Profile Name & Details
       ctx.textBaseline = 'alphabetic';
       let textBaseY = imgHeight - 30;
       if (profile.type === 'pet') {
@@ -201,7 +193,6 @@ export default function Dashboard() {
         ctx.fillText(`ATTENTION: ${profile.specialNeeds}`.toUpperCase(), 65, textBaseY + 45);
       }
 
-      // 6. QR Code
       const qrCanvas = document.getElementById("qr-canvas-modal");
       if (qrCanvas) {
         const boxSize = 600;
@@ -228,31 +219,33 @@ export default function Dashboard() {
         const padding = 40;
         const qrSize = boxSize - (padding * 2);
         
-        // Disable smoothing specifically for the QR code so it stays crisp pixel art
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
-        ctx.imageSmoothingEnabled = true; // Turn back on for text
+        ctx.imageSmoothingEnabled = true; 
       }
 
-      // 7. Footer
-      const textY = imgHeight + 110 + 600 + 100; 
+      // 🌟 FIXED: NEW FOOTER TEXT FOR CANVAS
+      const textY = imgHeight + 110 + 600 + 90; 
       ctx.textAlign = 'center';
       
+      // "Scan if lost for"
       ctx.fillStyle = 'white';
-      ctx.font = 'bold 48px sans-serif';
-      ctx.fillText("Emergency Contact", W / 2, textY);
+      ctx.font = 'bold 45px sans-serif';
+      ctx.fillText("Scan if lost for", W / 2, textY);
 
+      // "Emergency Contact, Medical and Location Info" (Wrapped to 2 lines to match UI)
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
-      ctx.font = 'bold 24px sans-serif';
+      ctx.font = 'bold 22px sans-serif';
       ctx.letterSpacing = "3px"; 
-      ctx.fillText("SCAN FOR MEDICAL & LOCATION INFO", W / 2, textY + 60);
+      ctx.fillText("EMERGENCY CONTACT, MEDICAL AND LOCATION", W / 2, textY + 55);
+      ctx.fillText("INFO", W / 2, textY + 90);
       ctx.letterSpacing = "0px";
 
+      // ID Footer
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.font = 'bold 22px monospace';
       ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, W / 2, H - 70);
 
-      // We export to high quality PNG
       const link = document.createElement('a');
       link.download = `${profile.name}-Mobile-ID.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
@@ -419,7 +412,6 @@ export default function Dashboard() {
 
               <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
                 <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
-                  {/* 🌟 NEW: Massive 1024px Canvas shrunk by CSS for extreme Retina sharpness */}
                   <QRCodeCanvas 
                     id="qr-canvas-modal"
                     value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
@@ -432,9 +424,13 @@ export default function Dashboard() {
                     imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} 
                   />
                 </div>
-                <div className="mt-6 space-y-1">
-                  <p className="text-white font-bold text-lg tracking-tight">Scan if lost for</p>
-                  <p className="text-white/50 text-xs uppercase tracking-widest font-bold">Emergency Contact, Medical and Location Info</p>
+                
+                {/* 🌟 FIXED: NEW FOOTER TEXT FOR UI MODAL */}
+                <div className="mt-5 text-center px-4">
+                  <p className="text-white font-bold text-lg tracking-tight mb-1">Scan if lost for</p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">
+                    Emergency Contact, Medical and Location<br/>Info
+                  </p>
                 </div>
                 
                 <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
