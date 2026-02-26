@@ -1,6 +1,6 @@
 import admin from 'firebase-admin';
 
-// Initialize the Firebase Admin SDK securely using Vercel Environment Variables
+// Initialize the Firebase Admin SDK securely
 if (!admin.apps.length) {
   try {
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
@@ -37,11 +37,11 @@ export default async function handler(req, res) {
       notification: { title, body },
       webpush: {
         notification: {
-          icon: "https://kintag.vercel.app/kintag-logo.png",
-          data: {
-            // ALWAYS opens the in-app Notification Center on tap
-            url: "https://kintag.vercel.app/#/?view=notifications"
-          }
+          icon: "https://kintag.vercel.app/kintag-logo.png"
+        },
+        // 🌟 THE FIX: This is the official Firebase command that makes the banner clickable!
+        fcmOptions: {
+          link: "https://kintag.vercel.app/#/?view=notifications"
         }
       },
       token: fcmToken,
