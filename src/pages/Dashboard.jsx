@@ -20,6 +20,10 @@ const QR_STYLES = {
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
+  
+  // 🌟 NEW: State to hold our system broadcast messages
+  const [systemMessages, setSystemMessages] = useState([]);
+  
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
@@ -31,7 +35,6 @@ export default function Dashboard() {
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
-  // 🌟 NEW: Track the exact time the user last opened the notifications
   const [lastViewedTime, setLastViewedTime] = useState(localStorage.getItem('kintag_last_read') || null);
 
   const { currentUser } = useAuth();
@@ -59,6 +62,14 @@ export default function Dashboard() {
         const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setScans(fetchedScans);
+
+        // 🌟 NEW: Fetching System Messages
+        const qSys = query(collection(db, "systemMessages"));
+        const sysSnap = await getDocs(qSys);
+        const fetchedSys = sysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        fetchedSys.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setSystemMessages(fetchedSys);
+
       } catch (error) {
         console.error("Error fetching data:", error);
       } finally {
@@ -68,7 +79,6 @@ export default function Dashboard() {
     fetchData();
   }, [currentUser]);
 
-  // 🌟 NEW: When the Notification Center is opened, immediately reset the counter
   useEffect(() => {
     if (showNotifCenter && scans.length > 0) {
       const latestTimestamp = scans[0].timestamp;
@@ -324,12 +334,10 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
-  // 🌟 NEW: Calculate unread count strictly based on the time it was last opened
   const unreadCount = lastViewedTime 
     ? scans.filter(scan => new Date(scan.timestamp) > new Date(lastViewedTime)).length 
     : scans.length;
 
-  // 🌟 NEW: Helper script to magically group scans by their dates 
   const groupedScans = [];
   scans.forEach(scan => {
     const dateObj = new Date(scan.timestamp);
@@ -337,7 +345,6 @@ export default function Dashboard() {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
 
-    // Formats date nicely e.g., "February 26, 2026"
     let dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
     if (dateObj.toDateString() === today.toDateString()) {
       dateStr = 'Today';
@@ -345,7 +352,6 @@ export default function Dashboard() {
       dateStr = 'Yesterday';
     }
 
-    // Assign scan to its specific date group to build the UI
     let group = groupedScans.find(g => g.date === dateStr);
     if (!group) {
       group = { date: dateStr, items: [] };
@@ -386,7 +392,6 @@ export default function Dashboard() {
           <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
             <Bell size={18} />
             <span>Notifications</span>
-            {/* The badge will instantly disappear when opened, and restart from 1 if a new scan drops */}
             {unreadCount > 0 && (
               <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-pulse">
                 {unreadCount}
@@ -500,11 +505,12 @@ export default function Dashboard() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
+              
+              {/* PERSONAL SCANS TAB */}
               {notifTab === 'personal' && (
                 groupedScans.length === 0 ? (
                   <div className="text-center mt-10 text-zinc-400 font-medium">No scans recorded yet.</div>
                 ) : (
-                  // 🌟 NEW: Loops over each distinct date and renders a beautiful separator line
                   groupedScans.map(group => (
                     <div key={group.date} className="mb-6 last:mb-2">
                       <div className="flex items-center mb-4">
@@ -539,11 +545,26 @@ export default function Dashboard() {
                 )
               )}
 
+              {/* 🌟 NEW: SYSTEM UPDATES TAB */}
               {notifTab === 'system' && (
-                <div className="text-center mt-10">
-                  <Bell size={32} className="mx-auto text-zinc-300 mb-3" />
-                  <p className="text-zinc-500 font-medium text-sm">System broadcast messages from KinTag Admin will appear here.</p>
-                </div>
+                systemMessages.length === 0 ? (
+                  <div className="text-center mt-10">
+                    <Bell size={32} className="mx-auto text-zinc-300 mb-3" />
+                    <p className="text-zinc-500 font-medium text-sm">System broadcast messages from KinTag Admin will appear here.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {systemMessages.map(msg => (
+                      <div key={msg.id} className="bg-brandDark text-white p-5 rounded-2xl shadow-md border border-brandDark">
+                        <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
+                          <span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span>
+                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">{new Date(msg.timestamp).toLocaleDateString()}</span>
+                        </div>
+                        <p className="text-sm text-white/80 font-medium leading-relaxed">{msg.body}</p>
+                      </div>
+                    ))}
+                  </div>
+                )
               )}
             </div>
           </div>
