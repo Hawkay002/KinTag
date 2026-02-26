@@ -10,9 +10,10 @@ export default function PublicCard() {
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  // Using useRef guarantees the passive alert never double-fires on page load
-  const passiveAlertSent = useRef(false);
+  // DYNAMIC ISLAND STATE
+  const [isIslandExpanded, setIsIslandExpanded] = useState(false);
   
+  const passiveAlertSent = useRef(false);
   const [isSendingAlert, setIsSendingAlert] = useState(false);
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
@@ -34,11 +35,10 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  // 🌟 TIER 1: PASSIVE IP SCAN ALERT
   useEffect(() => {
     const sendPassiveAlert = async () => {
       if (!profile || passiveAlertSent.current) return;
-      passiveAlertSent.current = true; // Instantly lock it so it can't fire twice
+      passiveAlertSent.current = true; 
       
       try {
         const res = await fetch('https://ipapi.co/json/');
@@ -63,7 +63,7 @@ export default function PublicCard() {
             ownerId: profile.userId,
             title: `👀 ${profile.name}'s Tag Scanned!`,
             body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`,
-            link: `https://kintag.vercel.app` 
+            link: `https://kintag.vercel.app/#/?view=notifications` 
           })
         });
       } catch (error) {
@@ -78,8 +78,8 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId]);
 
-  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT
-  const handleActiveAlert = () => {
+  const handleActiveAlert = (e) => {
+    e.stopPropagation(); // Stops dynamic island from instantly collapsing
     setIsSendingAlert(true);
     setGpsError('');
 
@@ -94,7 +94,7 @@ export default function PublicCard() {
         try {
           const { latitude, longitude } = position.coords;
           
-          // 🌟 FIXED: The official, universal Google Maps URL format for coordinates
+          // 🌟 FIXED URL: Clean, official Google Maps coordinates link
           const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
           
           await addDoc(collection(db, "scans"), {
@@ -108,21 +108,20 @@ export default function PublicCard() {
             timestamp: new Date().toISOString()
           });
 
-          // Passing the Maps link to the backend for the push notification
           await fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ownerId: profile.userId,
               title: `📍 URGENT: ${profile.name} FOUND!`,
-              body: `A Good Samaritan has shared their exact GPS location. TAP HERE to open Google Maps!`,
-              link: mapsLink 
+              body: `A Good Samaritan has shared their exact GPS location. TAP HERE to open details!`,
+              link: `https://kintag.vercel.app/#/?view=notifications` 
             })
           });
 
           setActiveAlertSent(true);
         } catch (error) {
-          setGpsError("Failed to send alert. Please call the emergency contact directly.");
+          setGpsError("Failed to send alert.");
         } finally {
           setIsSendingAlert(false);
         }
@@ -147,7 +146,7 @@ export default function PublicCard() {
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
   
-  // 🌟 FIXED: The official Google Maps Search URL for the "Navigate Home" button
+  // 🌟 FIXED URL: Official Google Maps Search string
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
   
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
@@ -164,6 +163,47 @@ export default function PublicCard() {
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
+      {/* 🌟 DYNAMIC ISLAND (Sticky Top Center) */}
+      <div 
+        onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
+        className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
+      >
+        {!isIslandExpanded ? (
+          <>
+            <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
+            <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type}?</span>
+          </>
+        ) : (
+          <div className="animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-3">
+               <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
+               <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
+            </div>
+            
+            {!activeAlertSent ? (
+              <>
+                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
+                <button 
+                  onClick={handleActiveAlert} 
+                  disabled={isSendingAlert}
+                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70"
+                >
+                  {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <MapPin size={20} />}
+                  <span>{isSendingAlert ? "Locating..." : `Share My Location`}</span>
+                </button>
+                {gpsError && <p className="text-red-400 text-xs font-bold mt-3 text-center">{gpsError}</p>}
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                <CheckCircle2 size={40} className="text-emerald-400" />
+                <h3 className="font-extrabold text-emerald-400 text-xl">Owner Notified!</h3>
+                <p className="text-white/70 text-sm text-center">Your exact location has been sent to their phone. Please stay nearby.</p>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       <div className="relative h-[45vh] w-full shrink-0">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
@@ -185,32 +225,6 @@ export default function PublicCard() {
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
             {profile.age} Yrs • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
           </p>
-        </div>
-
-        {/* EMERGENCY GPS BUTTON */}
-        <div className="bg-red-50 border-2 border-red-100 p-5 rounded-3xl text-center shadow-sm">
-          {!activeAlertSent ? (
-            <>
-              <h3 className="text-red-700 font-extrabold text-lg mb-1 tracking-tight">Found this {profile.type}?</h3>
-              <p className="text-red-900/70 font-medium text-xs mb-4">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
-              
-              <button 
-                onClick={handleActiveAlert} 
-                disabled={isSendingAlert}
-                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70"
-              >
-                {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <BellRing size={20} />}
-                <span>{isSendingAlert ? "Locating & Notifying..." : `Notify Owner of Location`}</span>
-              </button>
-              {gpsError && <p className="text-red-600 text-xs font-bold mt-3 animate-pulse">{gpsError}</p>}
-            </>
-          ) : (
-            <div className="flex flex-col items-center justify-center space-y-2 py-2">
-              <CheckCircle2 size={36} className="text-emerald-500" />
-              <h3 className="text-emerald-700 font-extrabold text-lg tracking-tight">Owner Notified!</h3>
-              <p className="text-emerald-900/70 font-medium text-xs">Your exact location has been sent to their phone. Please stay nearby.</p>
-            </div>
-          )}
         </div>
 
         {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
