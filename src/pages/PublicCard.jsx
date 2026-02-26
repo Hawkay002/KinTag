@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
@@ -10,7 +10,9 @@ export default function PublicCard() {
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  const [passiveAlertSent, setPassiveAlertSent] = useState(false);
+  // 🌟 FIX: Using useRef guarantees the passive alert never double-fires
+  const passiveAlertSent = useRef(false);
+  
   const [isSendingAlert, setIsSendingAlert] = useState(false);
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
@@ -32,17 +34,17 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  // 🌟 TIER 1: PASSIVE IP SCAN ALERT (Now triggers Push Notification!)
+  // TIER 1: PASSIVE IP SCAN ALERT
   useEffect(() => {
     const sendPassiveAlert = async () => {
-      if (!profile || passiveAlertSent) return;
+      if (!profile || passiveAlertSent.current) return;
+      passiveAlertSent.current = true; // Instantly lock it so it can't fire twice
       
       try {
         const res = await fetch('https://ipapi.co/json/');
         const ipData = await res.json();
         const cityStr = ipData.city ? `${ipData.city}, ${ipData.region}` : 'an unknown location';
         
-        // 1. Log to Database
         await addDoc(collection(db, "scans"), {
           profileId: profileId,
           ownerId: profile.userId,
@@ -54,18 +56,16 @@ export default function PublicCard() {
           timestamp: new Date().toISOString()
         });
 
-        // 2. Trigger the Push Notification via our new Vercel Backend
         await fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ownerId: profile.userId,
             title: `👀 ${profile.name}'s Tag Scanned!`,
-            body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`
+            body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`,
+            link: `https://kintag.vercel.app` // Normal scan just opens the app
           })
         });
-        
-        setPassiveAlertSent(true);
       } catch (error) {
         console.error("Passive alert failed silently:", error);
       }
@@ -76,9 +76,9 @@ export default function PublicCard() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [profile, profileId, passiveAlertSent]);
+  }, [profile, profileId]);
 
-  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT (Now triggers Push Notification!)
+  // TIER 2: ACTIVE EXACT GPS ALERT
   const handleActiveAlert = () => {
     setIsSendingAlert(true);
     setGpsError('');
@@ -93,9 +93,9 @@ export default function PublicCard() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          const mapsLink = `http://googleusercontent.com/maps.google.com/3${latitude},${longitude}`;
+          // 🌟 NEW: The perfect Google Maps URL string
+          const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
           
-          // 1. Log exact GPS to Database
           await addDoc(collection(db, "scans"), {
             profileId: profileId,
             ownerId: profile.userId,
@@ -107,14 +107,15 @@ export default function PublicCard() {
             timestamp: new Date().toISOString()
           });
 
-          // 2. Trigger the URGENT Push Notification via Vercel Backend
+          // 🌟 NEW: Passing the mapsLink to the Vercel backend
           await fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ownerId: profile.userId,
               title: `📍 URGENT: ${profile.name} FOUND!`,
-              body: `A Good Samaritan has shared their exact GPS location. Check your database/email immediately!`
+              body: `A Good Samaritan has shared their exact GPS location. TAP HERE to open Google Maps!`,
+              link: mapsLink 
             })
           });
 
