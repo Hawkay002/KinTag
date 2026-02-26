@@ -10,7 +10,7 @@ export default function PublicCard() {
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  // 🌟 FIX: Using useRef guarantees the passive alert never double-fires
+  // Using useRef guarantees the passive alert never double-fires on page load
   const passiveAlertSent = useRef(false);
   
   const [isSendingAlert, setIsSendingAlert] = useState(false);
@@ -34,7 +34,7 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  // TIER 1: PASSIVE IP SCAN ALERT
+  // 🌟 TIER 1: PASSIVE IP SCAN ALERT
   useEffect(() => {
     const sendPassiveAlert = async () => {
       if (!profile || passiveAlertSent.current) return;
@@ -63,7 +63,7 @@ export default function PublicCard() {
             ownerId: profile.userId,
             title: `👀 ${profile.name}'s Tag Scanned!`,
             body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`,
-            link: `https://kintag.vercel.app` // Normal scan just opens the app
+            link: `https://kintag.vercel.app` 
           })
         });
       } catch (error) {
@@ -78,7 +78,7 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId]);
 
-  // TIER 2: ACTIVE EXACT GPS ALERT
+  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT
   const handleActiveAlert = () => {
     setIsSendingAlert(true);
     setGpsError('');
@@ -93,7 +93,8 @@ export default function PublicCard() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          // 🌟 NEW: The perfect Google Maps URL string
+          
+          // 🌟 FIXED: The official, universal Google Maps URL format for coordinates
           const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
           
           await addDoc(collection(db, "scans"), {
@@ -107,7 +108,7 @@ export default function PublicCard() {
             timestamp: new Date().toISOString()
           });
 
-          // 🌟 NEW: Passing the mapsLink to the Vercel backend
+          // Passing the Maps link to the backend for the push notification
           await fetch('/api/notify', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -145,7 +146,10 @@ export default function PublicCard() {
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
-  const googleMapsUrl = `http://googleusercontent.com/maps.google.com/4${encodedAddress}`;
+  
+  // 🌟 FIXED: The official Google Maps Search URL for the "Navigate Home" button
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
