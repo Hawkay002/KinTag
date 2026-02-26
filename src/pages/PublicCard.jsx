@@ -10,7 +10,6 @@ export default function PublicCard() {
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  // NEW: States for the Emergency Alert system
   const [passiveAlertSent, setPassiveAlertSent] = useState(false);
   const [isSendingAlert, setIsSendingAlert] = useState(false);
   const [activeAlertSent, setActiveAlertSent] = useState(false);
@@ -33,26 +32,37 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
-  // 🌟 TIER 1: PASSIVE IP SCAN ALERT
+  // 🌟 TIER 1: PASSIVE IP SCAN ALERT (Now triggers Push Notification!)
   useEffect(() => {
     const sendPassiveAlert = async () => {
       if (!profile || passiveAlertSent) return;
       
       try {
-        // Silently fetch approximate location via IP
         const res = await fetch('https://ipapi.co/json/');
         const ipData = await res.json();
+        const cityStr = ipData.city ? `${ipData.city}, ${ipData.region}` : 'an unknown location';
         
-        // Write the alert to the database for the Cloud Function to pick up
+        // 1. Log to Database
         await addDoc(collection(db, "scans"), {
           profileId: profileId,
-          ownerId: profile.userId, // We need this to know who to send the push notification to
+          ownerId: profile.userId,
           profileName: profile.name,
           type: 'passive',
           city: ipData.city || 'Unknown City',
           region: ipData.region || 'Unknown Region',
           country: ipData.country_name || '',
           timestamp: new Date().toISOString()
+        });
+
+        // 2. Trigger the Push Notification via our new Vercel Backend
+        await fetch('/api/notify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ownerId: profile.userId,
+            title: `👀 ${profile.name}'s Tag Scanned!`,
+            body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`
+          })
         });
         
         setPassiveAlertSent(true);
@@ -61,7 +71,6 @@ export default function PublicCard() {
       }
     };
 
-    // Delay slightly to ensure page loads fast first
     const timer = setTimeout(() => {
       sendPassiveAlert();
     }, 1500);
@@ -69,7 +78,7 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId, passiveAlertSent]);
 
-  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT
+  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT (Now triggers Push Notification!)
   const handleActiveAlert = () => {
     setIsSendingAlert(true);
     setGpsError('');
@@ -84,7 +93,9 @@ export default function PublicCard() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
+          const mapsLink = `http://googleusercontent.com/maps.google.com/3${latitude},${longitude}`;
           
+          // 1. Log exact GPS to Database
           await addDoc(collection(db, "scans"), {
             profileId: profileId,
             ownerId: profile.userId,
@@ -92,8 +103,19 @@ export default function PublicCard() {
             type: 'active',
             latitude: latitude,
             longitude: longitude,
-            googleMapsLink: `https://www.google.com/maps?q=${latitude},${longitude}`,
+            googleMapsLink: mapsLink,
             timestamp: new Date().toISOString()
+          });
+
+          // 2. Trigger the URGENT Push Notification via Vercel Backend
+          await fetch('/api/notify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              ownerId: profile.userId,
+              title: `📍 URGENT: ${profile.name} FOUND!`,
+              body: `A Good Samaritan has shared their exact GPS location. Check your database/email immediately!`
+            })
           });
 
           setActiveAlertSent(true);
@@ -122,7 +144,7 @@ export default function PublicCard() {
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
-  const googleMapsUrl = `https://maps.google.com/?q=${encodedAddress}`;
+  const googleMapsUrl = `http://googleusercontent.com/maps.google.com/4${encodedAddress}`;
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
@@ -160,7 +182,7 @@ export default function PublicCard() {
           </p>
         </div>
 
-        {/* 🌟 NEW: EMERGENCY GPS BUTTON (TIER 2) */}
+        {/* EMERGENCY GPS BUTTON */}
         <div className="bg-red-50 border-2 border-red-100 p-5 rounded-3xl text-center shadow-sm">
           {!activeAlertSent ? (
             <>
