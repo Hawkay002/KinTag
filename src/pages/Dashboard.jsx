@@ -6,7 +6,7 @@ import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing } from 'lucide-react';
+import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -19,86 +19,97 @@ const QR_STYLES = {
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
+  const [scans, setScans] = useState([]);
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
-  const [isEnablingPush, setIsEnablingPush] = useState(false); // NEW STATE
+  
+  // NEW: Notification Center & Modals
+  const [isEnablingPush, setIsEnablingPush] = useState(false);
+  const [showSoftAskModal, setShowSoftAskModal] = useState(false);
+  const [showNotifCenter, setShowNotifCenter] = useState(false);
+  const [notifTab, setNotifTab] = useState('personal'); 
+
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 NEW: Manual button trigger with alerts so we can see the exact error on mobile!
-  const enableNotifications = async () => {
-    if (!currentUser) return alert("You must be logged in.");
-    setIsEnablingPush(true);
-
-    try {
-      if (!('Notification' in window)) {
-        alert("Fail: Your browser does not support notifications.");
-        setIsEnablingPush(false);
-        return;
-      }
-
-      const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
-        // Double check if VAPID key exists
-        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        if (!vapidKey) {
-          alert("Fail: VAPID Key is missing from Vercel Environment Variables!");
-          setIsEnablingPush(false);
-          return;
-        }
-
-        const currentToken = await getToken(messaging, { vapidKey: vapidKey });
-
-        if (currentToken) {
-          const userRef = doc(db, "users", currentUser.uid);
-          await setDoc(userRef, {
-            fcmToken: currentToken,
-            email: currentUser.email,
-            lastUpdated: new Date().toISOString()
-          }, { merge: true }); 
-          
-          alert("SUCCESS! Your device is now connected to Emergency Alerts. Check Firestore!");
-        } else {
-          alert("Fail: Firebase could not generate a token. Check your service worker file.");
-        }
-      } else {
-        alert("Fail: You blocked the permission prompt, or your phone settings are blocking it.");
-      }
-    } catch (error) {
-      alert("CRITICAL ERROR: " + error.message);
-    } finally {
-      setIsEnablingPush(false);
+  // Auto-open notification center if coming from a push notification click
+  useEffect(() => {
+    if (window.location.hash.includes('view=notifications')) {
+      setShowNotifCenter(true);
+      window.history.replaceState(null, '', '/#/'); 
     }
-  };
+  }, []);
 
   useEffect(() => {
-    const fetchProfiles = async () => {
+    const fetchData = async () => {
       if (!currentUser) return;
       try {
-        const q = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
-        const querySnapshot = await getDocs(q);
-        const fetchedProfiles = [];
-        querySnapshot.forEach((doc) => {
-          fetchedProfiles.push({ id: doc.id, ...doc.data() });
-        });
+        const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
+        const profileSnap = await getDocs(qProfiles);
+        const fetchedProfiles = profileSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedProfiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setProfiles(fetchedProfiles);
+
+        // Fetch Scans for Notification Center
+        const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
+        const scanSnap = await getDocs(qScans);
+        const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        fetchedScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        setScans(fetchedScans);
       } catch (error) {
-        console.error("Error fetching profiles:", error);
+        console.error("Error fetching data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchProfiles();
+    fetchData();
   }, [currentUser]);
 
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/login');
+  };
+
+  // Soft Ask Permission Flow
+  const handleEnableAlertsClick = () => {
+    if (!('Notification' in window)) {
+      alert("Fail: Your browser does not support notifications.");
+      return;
+    }
+    if (Notification.permission === 'granted') {
+      alert("Alerts are already enabled on this device!");
+    } else if (Notification.permission === 'denied') {
+      alert("You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.");
+    } else {
+      setShowSoftAskModal(true);
+    }
+  };
+
+  const processNotificationPermission = async () => {
+    setShowSoftAskModal(false);
+    setIsEnablingPush(true);
+    try {
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        const currentToken = await getToken(messaging, { vapidKey });
+        if (currentToken) {
+          await setDoc(doc(db, "users", currentUser.uid), {
+            fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString()
+          }, { merge: true }); 
+          alert("SUCCESS! Emergency Alerts connected.");
+        }
+      } else {
+        alert("Permission denied. You won't receive emergency popups.");
+      }
+    } catch (error) {
+      alert("Error: " + error.message);
+    } finally {
+      setIsEnablingPush(false);
+    }
   };
 
   const extractPublicId = (url) => {
@@ -304,15 +315,16 @@ export default function Dashboard() {
 
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
+  const unreadCount = scans.length;
 
   if (loading) return <DashboardSkeleton />;
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
+    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative pb-32">
       <div className="max-w-4xl mx-auto">
         
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
+        {/* HEADER - Log out button pushed to the right and made red */}
+        <div className="flex justify-between items-center gap-4 mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
           <div className="flex items-center space-x-3 w-full md:w-auto">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
             <div className="flex-1">
@@ -321,23 +333,28 @@ export default function Dashboard() {
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
-            <button onClick={handleLogout} className="flex items-center space-x-2 text-zinc-500 hover:text-brandDark bg-brandMuted hover:bg-zinc-200 px-4 py-2.5 rounded-xl transition-all font-bold text-sm">
-              <LogOut size={16} />
-              <span className="hidden md:inline">Log Out</span>
-            </button>
-            
-            {/* 🌟 NEW NOTIFICATION BUTTON */}
-            <button onClick={enableNotifications} disabled={isEnablingPush} className="flex items-center space-x-2 bg-brandGold text-white px-4 py-2.5 rounded-xl hover:bg-amber-500 transition-all font-bold text-sm shadow-md disabled:opacity-50">
-              {isEnablingPush ? <Loader2 size={16} className="animate-spin" /> : <BellRing size={16} />}
-              <span>Enable Alerts</span>
-            </button>
+          <button onClick={handleLogout} className="flex items-center justify-center space-x-2 text-white bg-red-600 hover:bg-red-700 p-3 md:px-4 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
+            <LogOut size={18} />
+            <span className="hidden md:inline">Log Out</span>
+          </button>
+        </div>
 
-            <Link to="/create" className="flex items-center space-x-2 bg-brandDark text-white px-4 py-2.5 rounded-xl hover:bg-brandAccent transition-all font-bold text-sm shadow-md">
-              <Plus size={16} />
-              <span>Add Profile</span>
-            </Link>
-          </div>
+        {/* FULL WIDTH ACTION BUTTONS */}
+        <div className="flex gap-3 mb-8">
+          <button onClick={handleEnableAlertsClick} disabled={isEnablingPush} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-2xl hover:bg-amber-500 transition-all font-bold shadow-md disabled:opacity-50">
+            {isEnablingPush ? <Loader2 size={18} className="animate-spin" /> : <BellRing size={18} />}
+            <span>Enable Alerts</span>
+          </button>
+          
+          <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
+            <Bell size={18} />
+            <span>Notifications</span>
+            {unreadCount > 0 && (
+              <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-pulse">
+                {unreadCount}
+              </span>
+            )}
+          </button>
         </div>
 
         {profiles.length > 0 && (
@@ -359,11 +376,7 @@ export default function Dashboard() {
               <QrCode size={28} />
             </div>
             <h2 className="text-xl font-bold text-brandDark mb-2 tracking-tight">No Profiles Yet</h2>
-            <p className="text-zinc-500 mb-6 font-medium">Create your first digital contact card.</p>
-            <Link to="/create" className="inline-flex items-center space-x-2 bg-brandDark text-white px-6 py-3 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors">
-              <Plus size={18} />
-              <span>Create New KinTag</span>
-            </Link>
+            <p className="text-zinc-500 mb-6 font-medium">Create your first digital contact card using the button below.</p>
           </div>
         ) : filteredProfiles.length === 0 ? (
           <div className="text-center py-12 text-zinc-500 font-medium">No profiles match your search.</div>
@@ -405,6 +418,86 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* FLOATING ACTION BUTTON (+) */}
+      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-50 via-zinc-50/80 to-transparent pointer-events-none z-40"></div>
+      <Link to="/create" className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-2xl hover:bg-brandAccent transition-transform hover:scale-105 z-50 pointer-events-auto border-4 border-white">
+        <Plus size={32} strokeWidth={3} />
+      </Link>
+
+      {/* SOFT ASK PERMISSION MODAL */}
+      {showSoftAskModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center mx-auto mb-4">
+              <BellRing size={32} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-brandDark mb-2">Enable Alerts?</h2>
+            <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">KinTag needs permission to send you emergency push notifications when your tag is scanned. This is crucial for your peace of mind.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setShowSoftAskModal(false)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold">Maybe Later</button>
+              <button onClick={processNotificationPermission} className="flex-1 bg-brandGold text-white py-3.5 rounded-xl font-bold shadow-md">Proceed</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* NOTIFICATION CENTER MODAL */}
+      {showNotifCenter && (
+        <div className="fixed inset-0 z-[100] flex justify-end bg-brandDark/50 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
+            
+            <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50 shrink-0">
+              <h2 className="text-2xl font-extrabold text-brandDark tracking-tight">Notifications</h2>
+              <button onClick={() => setShowNotifCenter(false)} className="p-2 bg-white rounded-full text-zinc-500 hover:text-brandDark shadow-sm"><X size={20}/></button>
+            </div>
+
+            <div className="flex border-b border-zinc-200 shrink-0">
+              <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
+                Personal Scans
+              </button>
+              <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
+                System Updates
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
+              {notifTab === 'personal' && (
+                scans.length === 0 ? (
+                  <div className="text-center mt-10 text-zinc-400 font-medium">No scans recorded yet.</div>
+                ) : (
+                  scans.map(scan => (
+                    <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-extrabold text-brandDark">{scan.profileName} Scanned</span>
+                        <span className="text-[10px] text-zinc-400 font-bold uppercase">{new Date(scan.timestamp).toLocaleDateString()} • {new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                      </div>
+                      
+                      {scan.type === 'active' ? (
+                        <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+                          <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
+                          <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
+                            <MapPin size={16}/> Open in Google Maps
+                          </a>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
+                      )}
+                    </div>
+                  ))
+                )
+              )}
+
+              {notifTab === 'system' && (
+                <div className="text-center mt-10">
+                  <Bell size={32} className="mx-auto text-zinc-300 mb-3" />
+                  <p className="text-zinc-500 font-medium text-sm">System broadcast messages from KinTag Admin will appear here.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR MODAL */}
       {qrModalProfile && (
