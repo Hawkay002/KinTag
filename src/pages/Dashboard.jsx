@@ -558,7 +558,12 @@ export default function Dashboard() {
                       <div key={msg.id} className="bg-brandDark text-white p-5 rounded-2xl shadow-md border border-brandDark">
                         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
                           <span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span>
-                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">{new Date(msg.timestamp).toLocaleDateString()}</span>
+                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
+  {msg.timestamp?.toDate 
+    ? msg.timestamp.toDate().toLocaleDateString() 
+    : new Date(msg.timestamp).toLocaleDateString()
+  }
+</span>
                         </div>
                         <p className="text-sm text-white/80 font-medium leading-relaxed">{msg.body}</p>
                       </div>
