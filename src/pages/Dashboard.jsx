@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { db, auth } from '../firebase';
-import { collection, query, where, getDocs, doc, deleteDoc } from 'firebase/firestore';
+import { db, auth, messaging } from '../firebase'; // Added messaging import
+import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from 'firebase/firestore'; // Added setDoc
+import { getToken } from 'firebase/messaging'; // Added getToken
 import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -25,6 +26,48 @@ export default function Dashboard() {
   const [downloading, setDownloading] = useState(false);
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // 🌟 NEW: Request Notification Permission & Save Token
+  useEffect(() => {
+    const requestNotificationPermission = async () => {
+      if (!currentUser) return;
+
+      try {
+        const permission = await Notification.requestPermission();
+        
+        if (permission === 'granted') {
+          // Pulls VAPID key securely from your .env file
+          const currentToken = await getToken(messaging, { 
+            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY 
+          });
+
+          if (currentToken) {
+            console.log("Push Notification Token secured!");
+            const userRef = doc(db, "users", currentUser.uid);
+            await setDoc(userRef, {
+              fcmToken: currentToken,
+              email: currentUser.email,
+              lastUpdated: new Date().toISOString()
+            }, { merge: true }); 
+          } else {
+            console.log('No registration token available. Request permission to generate one.');
+          }
+        } else {
+          console.log('Notification permission denied by parent.');
+        }
+      } catch (error) {
+        console.error('An error occurred while retrieving token. ', error);
+      }
+    };
+
+    // We use a slight timeout to ensure the UI loads smoothly before asking for permission
+    const timer = setTimeout(() => {
+      requestNotificationPermission();
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [currentUser]);
+
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -224,16 +267,13 @@ export default function Dashboard() {
         ctx.imageSmoothingEnabled = true; 
       }
 
-      // 🌟 FIXED: NEW FOOTER TEXT FOR CANVAS
       const textY = imgHeight + 110 + 600 + 90; 
       ctx.textAlign = 'center';
       
-      // "Scan if lost for"
       ctx.fillStyle = 'white';
       ctx.font = 'bold 45px sans-serif';
       ctx.fillText("Scan (if lost) for", W / 2, textY);
 
-      // "Emergency Contact, Medical and Location Info" (Wrapped to 2 lines to match UI)
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = 'bold 22px sans-serif';
       ctx.letterSpacing = "3px"; 
@@ -241,7 +281,6 @@ export default function Dashboard() {
       ctx.fillText("INFO", W / 2, textY + 90);
       ctx.letterSpacing = "0px";
 
-      // ID Footer
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.font = 'bold 22px monospace';
       ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, W / 2, H - 70);
@@ -425,7 +464,6 @@ export default function Dashboard() {
                   />
                 </div>
                 
-                {/* 🌟 FIXED: NEW FOOTER TEXT FOR UI MODAL */}
                 <div className="mt-5 text-center px-4">
                   <p className="text-white font-bold text-lg tracking-tight mb-1">Scan (if lost) for</p>
                   <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">
