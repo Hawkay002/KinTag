@@ -34,13 +34,13 @@ export default async function handler(req, res) {
 
     const message = {
       notification: { title, body },
-      // 🌟 NEW: Send the link as raw hidden data so the phone can't ignore it
-      data: {
-        url: link || "https://kintag.vercel.app" 
-      },
       webpush: {
         notification: {
-          icon: "https://kintag.vercel.app/kintag-logo.png"
+          icon: "https://kintag.vercel.app/kintag-logo.png",
+          // 🌟 FIXED: The data payload MUST be inside this specific notification block!
+          data: {
+            url: link || "https://kintag.vercel.app"
+          }
         }
       },
       token: fcmToken,
