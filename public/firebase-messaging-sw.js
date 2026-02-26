@@ -1,7 +1,7 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-// 🌟 NEW: This forces the phone to instantly delete the old, double-firing code
+// 🌟 FORCE UPDATE: Instantly destroys the old double-notification code on the phone
 self.addEventListener('install', function(event) {
   self.skipWaiting();
 });
@@ -9,7 +9,7 @@ self.addEventListener('activate', function(event) {
   event.waitUntil(self.clients.claim());
 });
 
-// NOTE: Keep your actual string values here!
+// NOTE: Paste your Firebase string values back in here!
 firebase.initializeApp({
   apiKey: "AIzaSyAS4oLPUdC6qIWgO6dLwupPn4UVvkl8Uso",
   authDomain: "kintag-4c1ac.firebaseapp.com",
@@ -20,7 +20,20 @@ firebase.initializeApp({
 });
 
 const messaging = firebase.messaging();
-// Let Firebase handle the notifications automatically so the map links work!
 
+// 🌟 BULLETPROOF LINK OPENER: Forces the phone to open Google Maps when tapped
+self.addEventListener('notificationclick', function(event) {
+  event.notification.close(); // Clears the notification from the tray
+  
+  // Grabs the map URL we securely passed from the Vercel backend
+  const urlToOpen = event.notification.data?.url || "https://kintag.vercel.app";
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windowClients) => {
+      // Forces the browser to open the link
+      return clients.openWindow(urlToOpen);
+    })
+  );
+});
 
 
