@@ -1,14 +1,20 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart } from 'lucide-react';
+import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2 } from 'lucide-react';
 
 export default function PublicCard() {
   const { profileId } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
+  
+  // NEW: States for the Emergency Alert system
+  const [passiveAlertSent, setPassiveAlertSent] = useState(false);
+  const [isSendingAlert, setIsSendingAlert] = useState(false);
+  const [activeAlertSent, setActiveAlertSent] = useState(false);
+  const [gpsError, setGpsError] = useState('');
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,8 +33,86 @@ export default function PublicCard() {
     fetchProfile();
   }, [profileId]);
 
+  // 🌟 TIER 1: PASSIVE IP SCAN ALERT
+  useEffect(() => {
+    const sendPassiveAlert = async () => {
+      if (!profile || passiveAlertSent) return;
+      
+      try {
+        // Silently fetch approximate location via IP
+        const res = await fetch('https://ipapi.co/json/');
+        const ipData = await res.json();
+        
+        // Write the alert to the database for the Cloud Function to pick up
+        await addDoc(collection(db, "scans"), {
+          profileId: profileId,
+          ownerId: profile.userId, // We need this to know who to send the push notification to
+          profileName: profile.name,
+          type: 'passive',
+          city: ipData.city || 'Unknown City',
+          region: ipData.region || 'Unknown Region',
+          country: ipData.country_name || '',
+          timestamp: new Date().toISOString()
+        });
+        
+        setPassiveAlertSent(true);
+      } catch (error) {
+        console.error("Passive alert failed silently:", error);
+      }
+    };
+
+    // Delay slightly to ensure page loads fast first
+    const timer = setTimeout(() => {
+      sendPassiveAlert();
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [profile, profileId, passiveAlertSent]);
+
+  // 🌟 TIER 2: ACTIVE EXACT GPS ALERT
+  const handleActiveAlert = () => {
+    setIsSendingAlert(true);
+    setGpsError('');
+
+    if (!navigator.geolocation) {
+      setGpsError("Location services aren't supported by this browser.");
+      setIsSendingAlert(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          
+          await addDoc(collection(db, "scans"), {
+            profileId: profileId,
+            ownerId: profile.userId,
+            profileName: profile.name,
+            type: 'active',
+            latitude: latitude,
+            longitude: longitude,
+            googleMapsLink: `https://www.google.com/maps?q=${latitude},${longitude}`,
+            timestamp: new Date().toISOString()
+          });
+
+          setActiveAlertSent(true);
+        } catch (error) {
+          setGpsError("Failed to send alert. Please call the emergency contact directly.");
+        } finally {
+          setIsSendingAlert(false);
+        }
+      },
+      (error) => {
+        setGpsError("Please allow location access so the owner can find you.");
+        setIsSendingAlert(false);
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
+
+
   if (loading) return <PublicCardSkeleton />;
-  
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
 
   let displayContacts = profile.contacts || [
@@ -38,7 +122,7 @@ export default function PublicCard() {
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
-  const googleMapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${encodedAddress}`;
+  const googleMapsUrl = `https://maps.google.com/?q=${encodedAddress}`;
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
@@ -67,7 +151,7 @@ export default function PublicCard() {
         </button>
       </div>
       
-      <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative pb-52 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
+      <div className="flex-1 bg-white -mt-10 rounded-t-[2.5rem] p-7 z-10 space-y-7 relative pb-64 shadow-[0_-10px_40px_rgba(0,0,0,0.1)]">
         
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
@@ -76,12 +160,38 @@ export default function PublicCard() {
           </p>
         </div>
 
+        {/* 🌟 NEW: EMERGENCY GPS BUTTON (TIER 2) */}
+        <div className="bg-red-50 border-2 border-red-100 p-5 rounded-3xl text-center shadow-sm">
+          {!activeAlertSent ? (
+            <>
+              <h3 className="text-red-700 font-extrabold text-lg mb-1 tracking-tight">Found this {profile.type}?</h3>
+              <p className="text-red-900/70 font-medium text-xs mb-4">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
+              
+              <button 
+                onClick={handleActiveAlert} 
+                disabled={isSendingAlert}
+                className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70"
+              >
+                {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <BellRing size={20} />}
+                <span>{isSendingAlert ? "Locating & Notifying..." : `Notify Owner of Location`}</span>
+              </button>
+              {gpsError && <p className="text-red-600 text-xs font-bold mt-3 animate-pulse">{gpsError}</p>}
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center space-y-2 py-2">
+              <CheckCircle2 size={36} className="text-emerald-500" />
+              <h3 className="text-emerald-700 font-extrabold text-lg tracking-tight">Owner Notified!</h3>
+              <p className="text-emerald-900/70 font-medium text-xs">Your exact location has been sent to their phone. Please stay nearby.</p>
+            </div>
+          )}
+        </div>
+
         {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
-           <div className="bg-red-50 border border-red-100 p-4 rounded-2xl flex items-start space-x-3">
-             <Activity className="text-red-500 shrink-0 mt-0.5" size={20} />
+           <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-start space-x-3">
+             <Activity className="text-amber-600 shrink-0 mt-0.5" size={20} />
              <div>
-               <h3 className="text-red-700 font-extrabold text-xs uppercase tracking-widest mb-1">Medical Alert / Allergies</h3>
-               <p className="text-red-900 font-bold text-sm">{profile.allergies}</p>
+               <h3 className="text-amber-800 font-extrabold text-xs uppercase tracking-widest mb-1">Medical Alert / Allergies</h3>
+               <p className="text-amber-950 font-bold text-sm">{profile.allergies}</p>
              </div>
            </div>
         )}
@@ -125,7 +235,6 @@ export default function PublicCard() {
             <span className="font-extrabold text-brandDark">{profile.gender}</span>
           </div>
 
-          {/* DYNAMIC: Hide Blood Group if Pet */}
           {profile.type === 'kid' && (
             <div className="bg-brandMuted p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200/50">
               <Droplet className="text-zinc-700 mb-2.5" size={22} />
