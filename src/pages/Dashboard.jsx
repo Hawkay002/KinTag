@@ -26,16 +26,17 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
-  // NEW: Notification Center & Modals
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [showSoftAskModal, setShowSoftAskModal] = useState(false);
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
+  // 🌟 NEW: Track the exact time the user last opened the notifications
+  const [lastViewedTime, setLastViewedTime] = useState(localStorage.getItem('kintag_last_read') || null);
+
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Auto-open notification center if coming from a push notification click
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
       setShowNotifCenter(true);
@@ -53,7 +54,6 @@ export default function Dashboard() {
         fetchedProfiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setProfiles(fetchedProfiles);
 
-        // Fetch Scans for Notification Center
         const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const scanSnap = await getDocs(qScans);
         const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -68,12 +68,20 @@ export default function Dashboard() {
     fetchData();
   }, [currentUser]);
 
+  // 🌟 NEW: When the Notification Center is opened, immediately reset the counter
+  useEffect(() => {
+    if (showNotifCenter && scans.length > 0) {
+      const latestTimestamp = scans[0].timestamp;
+      localStorage.setItem('kintag_last_read', latestTimestamp);
+      setLastViewedTime(latestTimestamp);
+    }
+  }, [showNotifCenter, scans]);
+
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/login');
   };
 
-  // Soft Ask Permission Flow
   const handleEnableAlertsClick = () => {
     if (!('Notification' in window)) {
       alert("Fail: Your browser does not support notifications.");
@@ -315,7 +323,36 @@ export default function Dashboard() {
 
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
-  const unreadCount = scans.length;
+  
+  // 🌟 NEW: Calculate unread count strictly based on the time it was last opened
+  const unreadCount = lastViewedTime 
+    ? scans.filter(scan => new Date(scan.timestamp) > new Date(lastViewedTime)).length 
+    : scans.length;
+
+  // 🌟 NEW: Helper script to magically group scans by their dates 
+  const groupedScans = [];
+  scans.forEach(scan => {
+    const dateObj = new Date(scan.timestamp);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    // Formats date nicely e.g., "February 26, 2026"
+    let dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
+    if (dateObj.toDateString() === today.toDateString()) {
+      dateStr = 'Today';
+    } else if (dateObj.toDateString() === yesterday.toDateString()) {
+      dateStr = 'Yesterday';
+    }
+
+    // Assign scan to its specific date group to build the UI
+    let group = groupedScans.find(g => g.date === dateStr);
+    if (!group) {
+      group = { date: dateStr, items: [] };
+      groupedScans.push(group);
+    }
+    group.items.push(scan);
+  });
 
   if (loading) return <DashboardSkeleton />;
 
@@ -323,7 +360,7 @@ export default function Dashboard() {
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative pb-32">
       <div className="max-w-4xl mx-auto">
         
-        {/* HEADER - Log out button pushed to the right and made red */}
+        {/* HEADER */}
         <div className="flex justify-between items-center gap-4 mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
           <div className="flex items-center space-x-3 w-full md:w-auto">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
@@ -349,6 +386,7 @@ export default function Dashboard() {
           <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
             <Bell size={18} />
             <span>Notifications</span>
+            {/* The badge will instantly disappear when opened, and restart from 1 if a new scan drops */}
             {unreadCount > 0 && (
               <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-pulse">
                 {unreadCount}
@@ -463,26 +501,39 @@ export default function Dashboard() {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
               {notifTab === 'personal' && (
-                scans.length === 0 ? (
+                groupedScans.length === 0 ? (
                   <div className="text-center mt-10 text-zinc-400 font-medium">No scans recorded yet.</div>
                 ) : (
-                  scans.map(scan => (
-                    <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="font-extrabold text-brandDark">{scan.profileName} Scanned</span>
-                        <span className="text-[10px] text-zinc-400 font-bold uppercase">{new Date(scan.timestamp).toLocaleDateString()} • {new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                  // 🌟 NEW: Loops over each distinct date and renders a beautiful separator line
+                  groupedScans.map(group => (
+                    <div key={group.date} className="mb-6 last:mb-2">
+                      <div className="flex items-center mb-4">
+                        <div className="h-px bg-zinc-200 flex-1"></div>
+                        <span className="px-3 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">{group.date}</span>
+                        <div className="h-px bg-zinc-200 flex-1"></div>
                       </div>
                       
-                      {scan.type === 'active' ? (
-                        <div className="bg-red-50 p-3 rounded-xl border border-red-100">
-                          <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
-                          <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
-                            <MapPin size={16}/> Open in Google Maps
-                          </a>
-                        </div>
-                      ) : (
-                        <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
-                      )}
+                      <div className="space-y-3">
+                        {group.items.map(scan => (
+                          <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="font-extrabold text-brandDark">{scan.profileName} Scanned</span>
+                              <span className="text-[10px] text-zinc-400 font-bold uppercase">{new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                            </div>
+                            
+                            {scan.type === 'active' ? (
+                              <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+                                <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
+                                <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
+                                  <MapPin size={16}/> Open in Google Maps
+                                </a>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
                   ))
                 )
@@ -599,6 +650,7 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* DELETE CONFIRMATION MODAL */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100">
