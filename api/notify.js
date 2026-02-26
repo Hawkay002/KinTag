@@ -2,7 +2,6 @@ import admin from 'firebase-admin';
 
 if (!admin.apps.length) {
   try {
-    // Aggressively clean the private key to remove accidental quotes or broken line breaks from Vercel
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
       ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/^"|"$/g, '')
       : '';
@@ -22,7 +21,7 @@ if (!admin.apps.length) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   
-  const { ownerId, title, body } = req.body;
+  const { ownerId, title, body, link } = req.body;
 
   try {
     const db = admin.firestore();
@@ -33,14 +32,22 @@ export default async function handler(req, res) {
     const fcmToken = userDoc.data().fcmToken;
     if (!fcmToken) return res.status(400).json({ error: "Owner has no FCM token saved" });
 
+    // 🌟 FIXED: Added the 'icon' property inside the webpush notification settings!
     const message = {
       notification: { title, body },
+      webpush: {
+        notification: {
+          icon: "https://kintag.vercel.app/kintag-logo.png" // Tells the phone to use your custom logo
+        },
+        fcmOptions: {
+          link: link || "https://kintag.vercel.app" // Keeps your Google Maps link working
+        }
+      },
       token: fcmToken,
     };
 
     await admin.messaging().send(message);
     
-    // Success!
     res.status(200).json({ success: true });
   } catch (error) {
     console.error("Push Error Details:", error);
