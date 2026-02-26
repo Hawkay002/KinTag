@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react'; 
-import { db, auth, messaging } from '../firebase'; // Added messaging import
-import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from 'firebase/firestore'; // Added setDoc
-import { getToken } from 'firebase/messaging'; // Added getToken
+import { useState, useEffect } from 'react';
+import { db, auth, messaging } from '../firebase'; 
+import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from 'firebase/firestore'; 
+import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2 } from 'lucide-react';
+import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -24,50 +24,56 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
+  const [isEnablingPush, setIsEnablingPush] = useState(false); // NEW STATE
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 NEW: Request Notification Permission & Save Token
-  useEffect(() => {
-    const requestNotificationPermission = async () => {
-      if (!currentUser) return;
+  // 🌟 NEW: Manual button trigger with alerts so we can see the exact error on mobile!
+  const enableNotifications = async () => {
+    if (!currentUser) return alert("You must be logged in.");
+    setIsEnablingPush(true);
 
-      try {
-        const permission = await Notification.requestPermission();
-        
-        if (permission === 'granted') {
-          // Pulls VAPID key securely from your .env file
-          const currentToken = await getToken(messaging, { 
-            vapidKey: import.meta.env.VITE_FIREBASE_VAPID_KEY 
-          });
-
-          if (currentToken) {
-            console.log("Push Notification Token secured!");
-            const userRef = doc(db, "users", currentUser.uid);
-            await setDoc(userRef, {
-              fcmToken: currentToken,
-              email: currentUser.email,
-              lastUpdated: new Date().toISOString()
-            }, { merge: true }); 
-          } else {
-            console.log('No registration token available. Request permission to generate one.');
-          }
-        } else {
-          console.log('Notification permission denied by parent.');
-        }
-      } catch (error) {
-        console.error('An error occurred while retrieving token. ', error);
+    try {
+      if (!('Notification' in window)) {
+        alert("Fail: Your browser does not support notifications.");
+        setIsEnablingPush(false);
+        return;
       }
-    };
 
-    // We use a slight timeout to ensure the UI loads smoothly before asking for permission
-    const timer = setTimeout(() => {
-      requestNotificationPermission();
-    }, 2000);
+      const permission = await Notification.requestPermission();
+      
+      if (permission === 'granted') {
+        // Double check if VAPID key exists
+        const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
+        if (!vapidKey) {
+          alert("Fail: VAPID Key is missing from Vercel Environment Variables!");
+          setIsEnablingPush(false);
+          return;
+        }
 
-    return () => clearTimeout(timer);
-  }, [currentUser]);
+        const currentToken = await getToken(messaging, { vapidKey: vapidKey });
 
+        if (currentToken) {
+          const userRef = doc(db, "users", currentUser.uid);
+          await setDoc(userRef, {
+            fcmToken: currentToken,
+            email: currentUser.email,
+            lastUpdated: new Date().toISOString()
+          }, { merge: true }); 
+          
+          alert("SUCCESS! Your device is now connected to Emergency Alerts. Check Firestore!");
+        } else {
+          alert("Fail: Firebase could not generate a token. Check your service worker file.");
+        }
+      } else {
+        alert("Fail: You blocked the permission prompt, or your phone settings are blocking it.");
+      }
+    } catch (error) {
+      alert("CRITICAL ERROR: " + error.message);
+    } finally {
+      setIsEnablingPush(false);
+    }
+  };
 
   useEffect(() => {
     const fetchProfiles = async () => {
@@ -116,7 +122,6 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
     } catch (error) {
-      console.error("Error deleting profile:", error);
       alert("Failed to delete profile.");
     } finally {
       setProfileToDelete(null); 
@@ -291,7 +296,6 @@ export default function Dashboard() {
       link.click();
 
     } catch (e) {
-      console.error("Generation failed", e);
       alert("Could not generate image due to device restrictions. Please take a screenshot instead.");
     } finally {
       setDownloading(false);
@@ -306,22 +310,32 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
-          <div className="flex items-center space-x-3">
+        
+        {/* HEADER */}
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
+          <div className="flex items-center space-x-3 w-full md:w-auto">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
-            <div>
+            <div className="flex-1">
               <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
               <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">{currentUser?.email}</p>
             </div>
           </div>
-          <div className="flex space-x-3">
+          
+          <div className="flex flex-wrap gap-2 w-full md:w-auto justify-end">
             <button onClick={handleLogout} className="flex items-center space-x-2 text-zinc-500 hover:text-brandDark bg-brandMuted hover:bg-zinc-200 px-4 py-2.5 rounded-xl transition-all font-bold text-sm">
               <LogOut size={16} />
               <span className="hidden md:inline">Log Out</span>
             </button>
-            <Link to="/create" className="flex items-center space-x-2 bg-brandDark text-white px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all font-bold text-sm shadow-md">
-              <Plus size={18} />
-              <span className="hidden md:inline">Add Profile</span>
+            
+            {/* 🌟 NEW NOTIFICATION BUTTON */}
+            <button onClick={enableNotifications} disabled={isEnablingPush} className="flex items-center space-x-2 bg-brandGold text-white px-4 py-2.5 rounded-xl hover:bg-amber-500 transition-all font-bold text-sm shadow-md disabled:opacity-50">
+              {isEnablingPush ? <Loader2 size={16} className="animate-spin" /> : <BellRing size={16} />}
+              <span>Enable Alerts</span>
+            </button>
+
+            <Link to="/create" className="flex items-center space-x-2 bg-brandDark text-white px-4 py-2.5 rounded-xl hover:bg-brandAccent transition-all font-bold text-sm shadow-md">
+              <Plus size={16} />
+              <span>Add Profile</span>
             </Link>
           </div>
         </div>
@@ -392,6 +406,7 @@ export default function Dashboard() {
         )}
       </div>
 
+      {/* QR MODAL */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
           
@@ -409,7 +424,6 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
-              
               <div className="h-[45%] w-full relative shrink-0">
                 <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
