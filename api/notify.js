@@ -1,5 +1,6 @@
 import admin from 'firebase-admin';
 
+// Initialize the Firebase Admin SDK securely using Vercel Environment Variables
 if (!admin.apps.length) {
   try {
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
@@ -21,7 +22,7 @@ if (!admin.apps.length) {
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   
-  const { ownerId, title, body, link } = req.body;
+  const { ownerId, title, body } = req.body;
 
   try {
     const db = admin.firestore();
@@ -37,9 +38,9 @@ export default async function handler(req, res) {
       webpush: {
         notification: {
           icon: "https://kintag.vercel.app/kintag-logo.png",
-          // 🌟 FIXED: The data payload MUST be inside this specific notification block!
           data: {
-            url: link || "https://kintag.vercel.app"
+            // ALWAYS opens the in-app Notification Center on tap
+            url: "https://kintag.vercel.app/#/?view=notifications"
           }
         }
       },
