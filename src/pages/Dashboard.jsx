@@ -6,7 +6,8 @@ import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info } from 'lucide-react';
+// 🌟 Added CheckCircle2 and AlertTriangle for the custom alerts
+import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -27,7 +28,7 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
-  // 🌟 NEW: State to track which notification the user wants to delete
+  // State to track which notification the user wants to delete
   const [scanToDelete, setScanToDelete] = useState(null);
   
   const [isEnablingPush, setIsEnablingPush] = useState(false);
@@ -35,10 +36,18 @@ export default function Dashboard() {
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
+  // 🌟 NEW: Global Custom Alert State
+  const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
+
   const [lastViewedTime, setLastViewedTime] = useState(null);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
+
+  // 🌟 NEW: Helper function to trigger custom alerts instead of window.alert
+  const showMessage = (title, message, type = 'info', onClose = null) => {
+    setCustomAlert({ isOpen: true, title, message, type, onClose });
+  };
 
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
@@ -102,13 +111,13 @@ export default function Dashboard() {
 
   const handleEnableAlertsClick = () => {
     if (!('Notification' in window)) {
-      alert("Fail: Your browser does not support notifications.");
+      showMessage("Not Supported", "Your browser does not support notifications.", "error");
       return;
     }
     if (Notification.permission === 'granted') {
-      alert("Alerts are already enabled on this device!");
+      showMessage("Already Active", "Emergency Alerts are already enabled on this device!", "success");
     } else if (Notification.permission === 'denied') {
-      alert("You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.");
+      showMessage("Permission Blocked", "You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.", "warning");
     } else {
       setShowSoftAskModal(true);
     }
@@ -126,13 +135,13 @@ export default function Dashboard() {
           await setDoc(doc(db, "users", currentUser.uid), {
             fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString()
           }, { merge: true }); 
-          alert("SUCCESS! Emergency Alerts connected.");
+          showMessage("Connected!", "Your device is now securely connected to Emergency Alerts.", "success");
         }
       } else {
-        alert("Permission denied. You won't receive emergency popups.");
+        showMessage("Permission Denied", "You won't receive emergency popups.", "warning");
       }
     } catch (error) {
-      alert("Error: " + error.message);
+      showMessage("Connection Error", error.message, "error");
     } finally {
       setIsEnablingPush(false);
     }
@@ -159,13 +168,12 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
     } catch (error) {
-      alert("Failed to delete profile.");
+      showMessage("Error", "Failed to delete profile.", "error");
     } finally {
       setProfileToDelete(null); 
     }
   };
 
-  // 🌟 NEW: The function executed when the user confirms deletion in our custom modal
   const confirmDeleteScan = async () => {
     if (!scanToDelete) return;
     try {
@@ -173,7 +181,7 @@ export default function Dashboard() {
       setScans(scans.filter(s => s.id !== scanToDelete)); 
     } catch (error) {
       console.error(error);
-      alert("Failed to delete notification.");
+      showMessage("Error", "Failed to delete notification.", "error");
     } finally {
       setScanToDelete(null); // Close the modal
     }
@@ -347,7 +355,7 @@ export default function Dashboard() {
       link.click();
 
     } catch (e) {
-      alert("Could not generate image due to device restrictions. Please take a screenshot instead.");
+      showMessage("Download Failed", "Could not generate image due to device restrictions. Please take a screenshot instead.", "error");
     } finally {
       setDownloading(false);
     }
@@ -490,6 +498,36 @@ export default function Dashboard() {
         <Plus size={32} strokeWidth={3} />
       </Link>
 
+      {/* 🌟 GENERIC CUSTOM ALERT MODAL */}
+      {customAlert.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+              customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-500' :
+              customAlert.type === 'error' ? 'bg-red-50 text-red-600' :
+              customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
+              'bg-brandMuted text-brandDark'
+            }`}>
+              {customAlert.type === 'success' && <CheckCircle2 size={32} />}
+              {customAlert.type === 'error' && <AlertOctagon size={32} />}
+              {customAlert.type === 'warning' && <AlertTriangle size={32} />}
+              {customAlert.type === 'info' && <Info size={32} />}
+            </div>
+            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">{customAlert.title}</h2>
+            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">{customAlert.message}</p>
+            <button 
+              onClick={() => {
+                if(customAlert.onClose) customAlert.onClose();
+                setCustomAlert({ ...customAlert, isOpen: false });
+              }} 
+              className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* SOFT ASK PERMISSION MODAL */}
       {showSoftAskModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
@@ -545,7 +583,6 @@ export default function Dashboard() {
                         {group.items.map(scan => (
                           <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
                             
-                            {/* 🌟 OPEN CUSTOM DELETE MODAL BUTTON */}
                             <button 
                               onClick={() => setScanToDelete(scan.id)}
                               className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
@@ -727,7 +764,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🌟 NEW: DELETE NOTIFICATION SCAN MODAL */}
+      {/* DELETE NOTIFICATION SCAN MODAL */}
       {scanToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
