@@ -48,11 +48,10 @@ export default async function handler(req, res) {
 
     await admin.messaging().send(message);
     res.status(200).json({ success: true });
-    
   } catch (error) {
     console.error("Push Error Details:", error);
     
-    // 🌟 THE FIX: If the token is dead because the user cleared their cache, silently delete it so it stops crashing!
+    // 🌟 THE FIX: Automatically clean up dead tokens to prevent 500 crashes
     if (error.code === 'messaging/registration-token-not-registered') {
         const db = admin.firestore();
         await db.collection('users').doc(ownerId).update({
