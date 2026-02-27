@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-// 🌟 NEW: Added onSnapshot for real-time database streaming
 import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
@@ -165,7 +164,6 @@ export default function Dashboard() {
       return;
     }
     
-    // 🌟 THE FIX: If permission is already granted, FORCE a token refresh anyway to replace the dead token!
     if (Notification.permission === 'granted') {
       processNotificationPermission();
     } else if (Notification.permission === 'denied') {
@@ -182,7 +180,19 @@ export default function Dashboard() {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        const currentToken = await getToken(messaging, { vapidKey });
+        
+        // 🌟 THE FIX: Explicitly force the app to wait until the Service Worker is fully active before asking for the token
+        let swRegistration = null;
+        if ('serviceWorker' in navigator) {
+          swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+          swRegistration = await navigator.serviceWorker.ready; 
+        }
+
+        const currentToken = await getToken(messaging, { 
+          vapidKey,
+          serviceWorkerRegistration: swRegistration 
+        });
+
         if (currentToken) {
           await setDoc(doc(db, "users", currentUser.uid), {
             fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString()
