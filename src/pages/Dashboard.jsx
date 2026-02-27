@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-// 🌟 NEW: Added getDoc to the imports so we can fetch the user's cloud-synced read status
 import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
@@ -28,12 +27,14 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
+  // 🌟 NEW: State to track which notification the user wants to delete
+  const [scanToDelete, setScanToDelete] = useState(null);
+  
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [showSoftAskModal, setShowSoftAskModal] = useState(false);
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
-  // 🌟 FIXED: Removed localStorage. We now start as null and let the database tell us when we last read!
   const [lastViewedTime, setLastViewedTime] = useState(null);
 
   const { currentUser } = useAuth();
@@ -50,28 +51,24 @@ export default function Dashboard() {
     const fetchData = async () => {
       if (!currentUser) return;
       try {
-        // Fetch Profiles
         const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const profileSnap = await getDocs(qProfiles);
         const fetchedProfiles = profileSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedProfiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setProfiles(fetchedProfiles);
 
-        // Fetch Scans
         const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const scanSnap = await getDocs(qScans);
         const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setScans(fetchedScans);
 
-        // Fetch System Messages
         const qSys = query(collection(db, "systemMessages"));
         const sysSnap = await getDocs(qSys);
         const fetchedSys = sysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedSys.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setSystemMessages(fetchedSys);
 
-        // 🌟 NEW: Fetch Cloud-Synced Notification Counter Status
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists() && userDoc.data().lastViewedNotifications) {
@@ -87,11 +84,10 @@ export default function Dashboard() {
     fetchData();
   }, [currentUser]);
 
-  // 🌟 FIXED: Now saves the read receipt directly to your Firestore Database so it syncs across devices!
   useEffect(() => {
     if (showNotifCenter && scans.length > 0 && currentUser) {
       const latestTimestamp = scans[0].timestamp;
-      setLastViewedTime(latestTimestamp); // Update UI instantly
+      setLastViewedTime(latestTimestamp); 
       
       setDoc(doc(db, "users", currentUser.uid), {
         lastViewedNotifications: latestTimestamp
@@ -169,15 +165,17 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 NEW: The function to delete a specific scan from the database permanently
-  const handleDeleteScan = async (scanId) => {
-    if (!window.confirm("Permanently delete this notification log?")) return;
+  // 🌟 NEW: The function executed when the user confirms deletion in our custom modal
+  const confirmDeleteScan = async () => {
+    if (!scanToDelete) return;
     try {
-      await deleteDoc(doc(db, "scans", scanId));
-      setScans(scans.filter(s => s.id !== scanId)); // Instantly removes it from the UI!
+      await deleteDoc(doc(db, "scans", scanToDelete));
+      setScans(scans.filter(s => s.id !== scanToDelete)); 
     } catch (error) {
       console.error(error);
       alert("Failed to delete notification.");
+    } finally {
+      setScanToDelete(null); // Close the modal
     }
   };
 
@@ -358,7 +356,6 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
-  // Unread count dynamically relies on our Cloud-Synced lastViewedTime
   const unreadCount = lastViewedTime 
     ? scans.filter(scan => new Date(scan.timestamp) > new Date(lastViewedTime)).length 
     : scans.length;
@@ -548,9 +545,9 @@ export default function Dashboard() {
                         {group.items.map(scan => (
                           <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
                             
-                            {/* 🌟 NEW: Delete Scan Button */}
+                            {/* 🌟 OPEN CUSTOM DELETE MODAL BUTTON */}
                             <button 
-                              onClick={() => handleDeleteScan(scan.id)}
+                              onClick={() => setScanToDelete(scan.id)}
                               className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
                               title="Delete Scan Record"
                             >
@@ -708,7 +705,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
+      {/* DELETE PROFILE CONFIRMATION MODAL */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100">
@@ -729,6 +726,29 @@ export default function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* 🌟 NEW: DELETE NOTIFICATION SCAN MODAL */}
+      {scanToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertOctagon size={32} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Notification?</h2>
+            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">This action cannot be undone. This scan record will be permanently removed from your history.</p>
+            
+            <div className="flex gap-3">
+              <button onClick={() => setScanToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmDeleteScan} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
