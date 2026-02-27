@@ -43,18 +43,15 @@ export default function Dashboard() {
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
   const [lastViewedSystem, setLastViewedSystem] = useState(null);
 
-  // 🌟 NEW: Track initial loads so we don't play the chime for old notifications on refresh
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad = useRef(true);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 NEW: The Audio Player for new notifications
   const playChime = () => {
     try {
       const audio = new Audio('/chime.mp3');
-      // Catches errors if user hasn't clicked on the page yet (browser interaction rules) or file is missing
       audio.play().catch(e => console.log("Audio prevented by browser or file missing:", e));
     } catch (err) {}
   };
@@ -70,7 +67,6 @@ export default function Dashboard() {
     }
   }, []);
 
-  // 🌟 FIXED: Swapped static `getDocs` for real-time streaming `onSnapshot` listeners
   useEffect(() => {
     if (!currentUser) return;
 
@@ -78,7 +74,6 @@ export default function Dashboard() {
 
     const setupListeners = async () => {
       try {
-        // Fetch Cloud-Synced Timestamps once on load
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
@@ -87,7 +82,6 @@ export default function Dashboard() {
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
         }
 
-        // Real-Time Profiles Listener
         const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         unsubProfiles = onSnapshot(qProfiles, (snap) => {
           const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
@@ -95,7 +89,6 @@ export default function Dashboard() {
           setProfiles(fetchedProfiles);
         });
 
-        // Real-Time Scans Listener
         const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         unsubScans = onSnapshot(qScans, (snap) => {
           if (!isInitialScansLoad.current) {
@@ -109,7 +102,6 @@ export default function Dashboard() {
           isInitialScansLoad.current = false;
         });
 
-        // Real-Time System Messages Listener
         const qSys = query(collection(db, "systemMessages"));
         unsubSys = onSnapshot(qSys, (snap) => {
           if (!isInitialSysLoad.current) {
@@ -132,7 +124,6 @@ export default function Dashboard() {
 
     setupListeners();
 
-    // Clean up the active connections when you navigate away from the Dashboard
     return () => {
       if (unsubProfiles) unsubProfiles();
       if (unsubScans) unsubScans();
@@ -225,7 +216,6 @@ export default function Dashboard() {
         });
       }
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
-      // Profiles are real-time now, so they'll auto-update, but we can manually clean state immediately for speed
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
     } catch (error) {
       showMessage("Error", "Failed to delete profile.", "error");
@@ -326,7 +316,8 @@ export default function Dashboard() {
 
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
-      const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} Yrs`;
+      // 🌟 NEW: Handles Canvas Image Age text depending on unit
+      const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} ${profile.ageUnit === 'Months' ? 'MOS' : 'YRS'}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
 
       if (profile.type === 'pet') {
@@ -526,9 +517,10 @@ export default function Dashboard() {
                   <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
                   <div className="absolute bottom-4 left-4 right-4 text-white">
                     <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
+                    {/* 🌟 NEW: Dashboard cards handle both Mos and Yrs */}
                     <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
                       {profile.type === 'kid' ? <User size={12} /> : <PawPrint size={12} />}
-                      {profile.type} • {profile.age} • {profile.gender}
+                      {profile.type} • {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.gender}
                     </p>
                   </div>
                 </div>
@@ -744,7 +736,8 @@ export default function Dashboard() {
                   <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
                      <span>{qrModalProfile.typeSpecific}</span>
                      <span>•</span>
-                     <span>{qrModalProfile.age} Yrs</span>
+                     {/* 🌟 NEW: Handles UI Age unit in Mobile View */}
+                     <span>{qrModalProfile.age} {qrModalProfile.ageUnit === 'Months' ? 'Mos' : 'Yrs'}</span>
                   </div>
                   
                   {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
