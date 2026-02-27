@@ -164,8 +164,10 @@ export default function Dashboard() {
       showMessage("Not Supported", "Your browser does not support notifications.", "error");
       return;
     }
+    
+    // 🌟 THE FIX: If permission is already granted, FORCE a token refresh anyway to replace the dead token!
     if (Notification.permission === 'granted') {
-      showMessage("Already Active", "Emergency Alerts are already enabled on this device!", "success");
+      processNotificationPermission();
     } else if (Notification.permission === 'denied') {
       showMessage("Permission Blocked", "You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.", "warning");
     } else {
@@ -316,7 +318,6 @@ export default function Dashboard() {
 
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
-      // 🌟 NEW: Handles Canvas Image Age text depending on unit
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} ${profile.ageUnit === 'Months' ? 'MOS' : 'YRS'}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
 
@@ -517,7 +518,6 @@ export default function Dashboard() {
                   <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
                   <div className="absolute bottom-4 left-4 right-4 text-white">
                     <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
-                    {/* 🌟 NEW: Dashboard cards handle both Mos and Yrs */}
                     <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
                       {profile.type === 'kid' ? <User size={12} /> : <PawPrint size={12} />}
                       {profile.type} • {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.gender}
