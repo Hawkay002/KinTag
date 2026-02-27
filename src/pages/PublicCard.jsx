@@ -13,10 +13,22 @@ export default function PublicCard() {
   // DYNAMIC ISLAND STATE
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
   
+  // 🌟 NEW: Top Left Logo Pill State
+  const [isLogoExpanded, setIsLogoExpanded] = useState(true);
+  const logoTimeoutRef = useRef(null);
+
   const passiveAlertSent = useRef(false);
   const [isSendingAlert, setIsSendingAlert] = useState(false);
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
+
+  // 🌟 NEW: Logo Auto-Collapse Timer
+  const startLogoTimer = () => {
+    if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
+    logoTimeoutRef.current = setTimeout(() => {
+      setIsLogoExpanded(false);
+    }, 3000);
+  };
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -30,9 +42,15 @@ export default function PublicCard() {
         console.error("Error fetching public profile:", error);
       } finally {
         setLoading(false);
+        // Start the 3-second timer as soon as the card finishes loading
+        startLogoTimer();
       }
     };
     fetchProfile();
+
+    return () => {
+      if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
+    };
   }, [profileId]);
 
   useEffect(() => {
@@ -79,7 +97,7 @@ export default function PublicCard() {
   }, [profile, profileId]);
 
   const handleActiveAlert = (e) => {
-    e.stopPropagation(); // Stops dynamic island from instantly collapsing
+    e.stopPropagation(); 
     setIsSendingAlert(true);
     setGpsError('');
 
@@ -133,6 +151,12 @@ export default function PublicCard() {
     );
   };
 
+  // 🌟 NEW: Handles tapping the logo to expand it again
+  const handleLogoClick = (e) => {
+    e.stopPropagation();
+    setIsLogoExpanded(true);
+    startLogoTimer();
+  };
 
   if (loading) return <PublicCardSkeleton />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
@@ -161,7 +185,7 @@ export default function PublicCard() {
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
-      {/* 🌟 DYNAMIC ISLAND (Sticky Top Center) */}
+      {/* DYNAMIC ISLAND (Sticky Top Center) */}
       <div 
         onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
         className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
@@ -206,9 +230,15 @@ export default function PublicCard() {
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
         
-        <div className="absolute top-5 left-5 z-20 flex items-center space-x-2 bg-black/20 backdrop-blur-sm px-3 py-1.5 rounded-full border border-white/10 shadow-sm">
-          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm" />
-          <span className="text-white font-bold text-sm tracking-tight drop-shadow-sm">KinTag</span>
+        {/* 🌟 NEW: Animated Retracting Logo Pill */}
+        <div 
+          onClick={handleLogoClick}
+          className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
+        >
+          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
+          <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
+            KinTag
+          </span>
         </div>
 
         <button onClick={() => setIsImageEnlarged(true)} className="absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full hover:bg-black/50 transition z-20" title="View Full Image">
@@ -220,7 +250,6 @@ export default function PublicCard() {
         
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
-          {/* 🌟 NEW: Public View supports Mos / Yrs dynamically */}
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
             {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
           </p>
