@@ -3,7 +3,7 @@ import { db } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
-import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing } from 'lucide-react';
+import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info } from 'lucide-react';
 
 export default function Admin() {
   const [title, setTitle] = useState('');
@@ -12,21 +12,27 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
+  // 🌟 NEW: Custom Modals
+  const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
+  const [messageToDelete, setMessageToDelete] = useState(null);
+  
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 SECURITY LOCK: Change this to your exact email address!
-  const ADMIN_EMAIL = "shovith2@gmail.com"; 
+  const ADMIN_EMAIL = "YOUR_EMAIL@gmail.com"; // Keep your exact admin email here!
+
+  const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
+    setCustomAlert({ isOpen: true, title: alertTitle, message: alertMessage, type, onClose });
+  };
 
   useEffect(() => {
-    // Kick out anyone who isn't logged in, or isn't the Admin
     if (!currentUser) {
       navigate('/login');
       return;
     }
+    // Kicks out non-admins using our beautiful new alert instead of window.alert!
     if (currentUser.email !== ADMIN_EMAIL) {
-      alert("Unauthorized: You do not have admin access.");
-      navigate('/');
+      showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/'));
       return;
     }
 
@@ -48,50 +54,49 @@ export default function Admin() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!title || !body) return alert("Please fill out both fields.");
+    if (!title || !body) return showMessage("Missing Fields", "Please fill out both the title and body fields.", "warning");
     setSending(true);
 
     try {
-      // 1. Save permanently to the Firestore Database
       await addDoc(collection(db, "systemMessages"), {
         title,
         body,
-        timestamp: serverTimestamp() // Uses Google's exact server time!
+        timestamp: serverTimestamp() 
       });
 
-      // 2. Trigger the Vercel Broadcast to buzz everyone's phones
       await fetch('/api/broadcast', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, body })
       });
 
-      alert("Campaign successfully broadcasted and saved!");
+      showMessage("Broadcast Sent!", "Campaign successfully broadcasted and saved to the database.", "success");
       setTitle('');
       setBody('');
       fetchMessages(); 
     } catch (error) {
-      console.error(error);
-      alert("Error sending campaign.");
+      showMessage("Error", "Failed to send the campaign.", "error");
     } finally {
       setSending(false);
     }
   };
 
-  const handleDelete = async (id) => {
-    if (!window.confirm("Delete this system message permanently? It will be removed from everyone's app.")) return;
+  const confirmDeleteMessage = async () => {
+    if (!messageToDelete) return;
     try {
-      await deleteDoc(doc(db, "systemMessages", id));
-      setMessages(messages.filter(m => m.id !== id));
+      await deleteDoc(doc(db, "systemMessages", messageToDelete));
+      setMessages(messages.filter(m => m.id !== messageToDelete));
     } catch (error) {
-      alert("Failed to delete.");
+      showMessage("Error", "Failed to delete the message.", "error");
+    } finally {
+      setMessageToDelete(null);
     }
   };
 
   if (loading) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center"><Loader2 className="animate-spin text-brandDark" size={40}/></div>;
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
+    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
       <div className="max-w-2xl mx-auto space-y-8">
         
         {/* Header */}
@@ -158,12 +163,13 @@ export default function Admin() {
                     <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-1">{msg.title}</h3>
                     <p className="text-sm text-zinc-600 font-medium leading-relaxed mb-3">{msg.body}</p>
                     <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
-                      {/* Safely handle Timestamps */}
                       {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleString() : new Date(msg.timestamp).toLocaleString()}
                     </span>
                   </div>
+                  
+                  {/* 🌟 OPEN DELETE MODAL */}
                   <button 
-                    onClick={() => handleDelete(msg.id)} 
+                    onClick={() => setMessageToDelete(msg.id)} 
                     className="p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all"
                     title="Delete Message"
                   >
@@ -174,8 +180,60 @@ export default function Admin() {
             </div>
           )}
         </div>
-
       </div>
+
+      {/* 🌟 GENERIC CUSTOM ALERT MODAL */}
+      {customAlert.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
+            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${
+              customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-500' :
+              customAlert.type === 'error' ? 'bg-red-50 text-red-600' :
+              customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500' :
+              'bg-brandMuted text-brandDark'
+            }`}>
+              {customAlert.type === 'success' && <CheckCircle2 size={32} />}
+              {customAlert.type === 'error' && <AlertOctagon size={32} />}
+              {customAlert.type === 'warning' && <AlertTriangle size={32} />}
+              {customAlert.type === 'info' && <Info size={32} />}
+            </div>
+            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">{customAlert.title}</h2>
+            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">{customAlert.message}</p>
+            <button 
+              onClick={() => {
+                if(customAlert.onClose) customAlert.onClose();
+                setCustomAlert({ ...customAlert, isOpen: false });
+              }} 
+              className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors"
+            >
+              Okay
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* 🌟 CUSTOM DELETE CONFIRMATION MODAL */}
+      {messageToDelete && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
+              <AlertOctagon size={32} />
+            </div>
+            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Message?</h2>
+            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">This action cannot be undone. This broadcast will be permanently removed from all users' inboxes.</p>
+            
+            <div className="flex gap-3">
+              <button onClick={() => setMessageToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
+                Cancel
+              </button>
+              <button onClick={confirmDeleteMessage} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
+                Yes, Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
