@@ -12,15 +12,17 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
-  // 🌟 NEW: Custom Modals
+  // 🌟 NEW: Custom Modals for the Admin Page
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
   const [messageToDelete, setMessageToDelete] = useState(null);
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  const ADMIN_EMAIL = "YOUR_EMAIL@gmail.com"; // Keep your exact admin email here!
+  // 🔒 SECURITY LOCK: Change this to your exact email address!
+  const ADMIN_EMAIL = "shovith2@gmail.com"; 
 
+  // Helper function to show beautiful modals instead of ugly browser alerts
   const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title: alertTitle, message: alertMessage, type, onClose });
   };
@@ -30,7 +32,7 @@ export default function Admin() {
       navigate('/login');
       return;
     }
-    // Kicks out non-admins using our beautiful new alert instead of window.alert!
+    // Kick out non-admins using our custom modal
     if (currentUser.email !== ADMIN_EMAIL) {
       showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/'));
       return;
@@ -54,7 +56,12 @@ export default function Admin() {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!title || !body) return showMessage("Missing Fields", "Please fill out both the title and body fields.", "warning");
+    
+    // Custom warning modal for missing fields
+    if (!title || !body) {
+      return showMessage("Missing Fields", "Please fill out both the Notification Title and Message Body fields.", "warning");
+    }
+    
     setSending(true);
 
     try {
@@ -70,12 +77,14 @@ export default function Admin() {
         body: JSON.stringify({ title, body })
       });
 
-      showMessage("Broadcast Sent!", "Campaign successfully broadcasted and saved to the database.", "success");
+      // Custom success modal instead of browser alert
+      showMessage("Broadcast Sent! 🚀", "Your campaign was successfully saved and broadcasted to all users.", "success");
       setTitle('');
       setBody('');
       fetchMessages(); 
     } catch (error) {
-      showMessage("Error", "Failed to send the campaign.", "error");
+      // Custom error modal
+      showMessage("Error", "Failed to send the campaign. Please check your connection and try again.", "error");
     } finally {
       setSending(false);
     }
@@ -89,7 +98,7 @@ export default function Admin() {
     } catch (error) {
       showMessage("Error", "Failed to delete the message.", "error");
     } finally {
-      setMessageToDelete(null);
+      setMessageToDelete(null); // Closes the modal
     }
   };
 
@@ -167,7 +176,7 @@ export default function Admin() {
                     </span>
                   </div>
                   
-                  {/* 🌟 OPEN DELETE MODAL */}
+                  {/* 🌟 OPEN CUSTOM DELETE MODAL */}
                   <button 
                     onClick={() => setMessageToDelete(msg.id)} 
                     className="p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all"
@@ -182,7 +191,7 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* 🌟 GENERIC CUSTOM ALERT MODAL */}
+      {/* 🌟 GENERIC CUSTOM ALERT MODAL (Success/Error/Info) */}
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
