@@ -18,6 +18,10 @@ const QR_STYLES = {
   sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200', hexBorder: '#fde68a' },
 };
 
+// 🌟 NEW: Helper to securely handle both Strings and Firestore Timestamps for perfect sorting
+const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
+const getISO = (ts) => ts?.toDate ? ts.toDate().toISOString() : new Date(ts || 0).toISOString();
+
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
@@ -36,15 +40,17 @@ export default function Dashboard() {
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
-  // 🌟 NEW: Global Custom Alert State
+  // Global Custom Alert State
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
 
-  const [lastViewedTime, setLastViewedTime] = useState(null);
+  // 🌟 NEW: Split read receipts so Personal and System track their own unread counts independently
+  const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
+  const [lastViewedSystem, setLastViewedSystem] = useState(null);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🌟 NEW: Helper function to trigger custom alerts instead of window.alert
+  // Helper function to trigger custom alerts instead of window.alert
   const showMessage = (title, message, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title, message, type, onClose });
   };
@@ -63,25 +69,28 @@ export default function Dashboard() {
         const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const profileSnap = await getDocs(qProfiles);
         const fetchedProfiles = profileSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedProfiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
         setProfiles(fetchedProfiles);
 
         const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const scanSnap = await getDocs(qScans);
         const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        fetchedScans.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
         setScans(fetchedScans);
 
         const qSys = query(collection(db, "systemMessages"));
         const sysSnap = await getDocs(qSys);
         const fetchedSys = sysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedSys.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        fetchedSys.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
         setSystemMessages(fetchedSys);
 
+        // 🌟 NEW: Fetch Both Independent Cloud-Synced Timestamps
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userDocRef);
-        if (userDoc.exists() && userDoc.data().lastViewedNotifications) {
-          setLastViewedTime(userDoc.data().lastViewedNotifications);
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          if (data.lastViewedPersonal) setLastViewedPersonal(data.lastViewedPersonal);
+          if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
         }
 
       } catch (error) {
@@ -93,16 +102,29 @@ export default function Dashboard() {
     fetchData();
   }, [currentUser]);
 
+  // 🌟 NEW: Intelligently mark individual tabs as read only when they are actively viewed
   useEffect(() => {
-    if (showNotifCenter && scans.length > 0 && currentUser) {
-      const latestTimestamp = scans[0].timestamp;
-      setLastViewedTime(latestTimestamp); 
-      
-      setDoc(doc(db, "users", currentUser.uid), {
-        lastViewedNotifications: latestTimestamp
-      }, { merge: true }).catch(err => console.error("Failed to sync read status:", err));
-    }
-  }, [showNotifCenter, scans, currentUser]);
+    const markAsRead = async () => {
+      if (!currentUser || !showNotifCenter) return;
+
+      if (notifTab === 'personal' && scans.length > 0) {
+        const latestTimestamp = getISO(scans[0].timestamp);
+        if (lastViewedPersonal !== latestTimestamp) {
+          setLastViewedPersonal(latestTimestamp);
+          await setDoc(doc(db, "users", currentUser.uid), { lastViewedPersonal: latestTimestamp }, { merge: true });
+        }
+      }
+
+      if (notifTab === 'system' && systemMessages.length > 0) {
+        const latestTimestamp = getISO(systemMessages[0].timestamp);
+        if (lastViewedSystem !== latestTimestamp) {
+          setLastViewedSystem(latestTimestamp);
+          await setDoc(doc(db, "users", currentUser.uid), { lastViewedSystem: latestTimestamp }, { merge: true });
+        }
+      }
+    };
+    markAsRead();
+  }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -364,13 +386,21 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
-  const unreadCount = lastViewedTime 
-    ? scans.filter(scan => new Date(scan.timestamp) > new Date(lastViewedTime)).length 
+  // 🌟 NEW: Calculate unread counts specifically for each tab
+  const unreadPersonalCount = lastViewedPersonal 
+    ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length 
     : scans.length;
+
+  const unreadSystemCount = lastViewedSystem 
+    ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length 
+    : systemMessages.length;
+
+  // 🌟 NEW: Main button checker
+  const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0;
 
   const groupedScans = [];
   scans.forEach(scan => {
-    const dateObj = new Date(scan.timestamp);
+    const dateObj = new Date(getTime(scan.timestamp));
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
@@ -422,10 +452,9 @@ export default function Dashboard() {
           <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
             <Bell size={18} />
             <span>Notifications</span>
-            {unreadCount > 0 && (
-              <span className="absolute top-2 right-2 bg-red-500 text-white text-[10px] w-5 h-5 flex items-center justify-center rounded-full shadow-sm animate-pulse">
-                {unreadCount}
-              </span>
+            {/* 🌟 NEW: Pulsating red dot indicator ONLY */}
+            {hasAnyUnread && (
+              <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm animate-pulse border border-white"></span>
             )}
           </button>
         </div>
@@ -498,7 +527,7 @@ export default function Dashboard() {
         <Plus size={32} strokeWidth={3} />
       </Link>
 
-      {/* 🌟 GENERIC CUSTOM ALERT MODAL */}
+      {/* GENERIC CUSTOM ALERT MODAL */}
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
@@ -556,11 +585,18 @@ export default function Dashboard() {
             </div>
 
             <div className="flex border-b border-zinc-200 shrink-0">
-              <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
+              {/* 🌟 NEW: Tabs display their individual independent counters inline */}
+              <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
                 Personal Scans
+                {unreadPersonalCount > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadPersonalCount}</span>
+                )}
               </button>
-              <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
+              <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
                 System Updates
+                {unreadSystemCount > 0 && (
+                  <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadSystemCount}</span>
+                )}
               </button>
             </div>
 
@@ -593,7 +629,7 @@ export default function Dashboard() {
 
                             <div className="flex items-center justify-between mb-2 pr-10">
                               <span className="font-extrabold text-brandDark truncate">{scan.profileName} Scanned</span>
-                              <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             
                             {scan.type === 'active' ? (
@@ -628,7 +664,7 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
                           <span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span>
                           <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
-                            {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleDateString() : new Date(msg.timestamp).toLocaleDateString()}
+                            {new Date(getTime(msg.timestamp)).toLocaleDateString()}
                           </span>
                         </div>
                         <p className="text-sm text-white/80 font-medium leading-relaxed">{msg.body}</p>
