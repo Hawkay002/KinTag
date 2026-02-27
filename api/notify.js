@@ -1,10 +1,12 @@
 import admin from 'firebase-admin';
 
+// Initialize the Firebase Admin SDK securely
 if (!admin.apps.length) {
   try {
     const cleanPrivateKey = process.env.FIREBASE_PRIVATE_KEY
       ? process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n').replace(/^"|"$/g, '')
       : '';
+
     admin.initializeApp({
       credential: admin.credential.cert({
         projectId: process.env.FIREBASE_PROJECT_ID,
@@ -13,16 +15,18 @@ if (!admin.apps.length) {
       }),
     });
   } catch (error) {
-    console.log('Firebase admin init error:', error.stack);
+    console.log('Firebase admin initialization error:', error.stack);
   }
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+  
   const { ownerId, title, body } = req.body;
 
   try {
     const db = admin.firestore();
+    
     const userDoc = await db.collection('users').doc(ownerId).get();
     if (!userDoc.exists) return res.status(404).json({ error: "Owner not found" });
     
@@ -33,11 +37,10 @@ export default async function handler(req, res) {
       notification: { title, body },
       webpush: {
         notification: {
-          icon: "https://kintag.vercel.app/kintag-logo.png",
-          data: { url: "https://kintag.vercel.app/#/?view=notifications" } // Fallback for Service Worker
+          icon: "https://kintag.vercel.app/kintag-logo.png"
         },
         fcmOptions: {
-          link: "https://kintag.vercel.app/#/?view=notifications" // Native OS Link
+          link: "https://kintag.vercel.app/#/?view=notifications"
         }
       },
       token: fcmToken,
@@ -45,7 +48,19 @@ export default async function handler(req, res) {
 
     await admin.messaging().send(message);
     res.status(200).json({ success: true });
+    
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Push Error Details:", error);
+    
+    // 🌟 THE FIX: If the token is dead because the user cleared their cache, silently delete it so it stops crashing!
+    if (error.code === 'messaging/registration-token-not-registered') {
+        const db = admin.firestore();
+        await db.collection('users').doc(ownerId).update({
+            fcmToken: admin.firestore.FieldValue.delete()
+        });
+        return res.status(200).json({ success: true, message: "Dead token cleaned up automatically." });
+    }
+
+    res.status(500).json({ error: error.message, code: error.code });
   }
 }
