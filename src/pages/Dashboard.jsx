@@ -1,12 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc } from 'firebase/firestore'; 
+// 🌟 NEW: Added onSnapshot for real-time database streaming
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-// 🌟 Added CheckCircle2 and AlertTriangle for the custom alerts
 import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
 
 const QR_STYLES = {
@@ -18,7 +18,6 @@ const QR_STYLES = {
   sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200', hexBorder: '#fde68a' },
 };
 
-// 🌟 NEW: Helper to securely handle both Strings and Firestore Timestamps for perfect sorting
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
 const getISO = (ts) => ts?.toDate ? ts.toDate().toISOString() : new Date(ts || 0).toISOString();
 
@@ -32,7 +31,6 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
-  // State to track which notification the user wants to delete
   const [scanToDelete, setScanToDelete] = useState(null);
   
   const [isEnablingPush, setIsEnablingPush] = useState(false);
@@ -40,17 +38,27 @@ export default function Dashboard() {
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
-  // Global Custom Alert State
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
 
-  // 🌟 NEW: Split read receipts so Personal and System track their own unread counts independently
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
   const [lastViewedSystem, setLastViewedSystem] = useState(null);
+
+  // 🌟 NEW: Track initial loads so we don't play the chime for old notifications on refresh
+  const isInitialScansLoad = useRef(true);
+  const isInitialSysLoad = useRef(true);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // Helper function to trigger custom alerts instead of window.alert
+  // 🌟 NEW: The Audio Player for new notifications
+  const playChime = () => {
+    try {
+      const audio = new Audio('/chime.mp3');
+      // Catches errors if user hasn't clicked on the page yet (browser interaction rules) or file is missing
+      audio.play().catch(e => console.log("Audio prevented by browser or file missing:", e));
+    } catch (err) {}
+  };
+
   const showMessage = (title, message, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title, message, type, onClose });
   };
@@ -62,29 +70,15 @@ export default function Dashboard() {
     }
   }, []);
 
+  // 🌟 FIXED: Swapped static `getDocs` for real-time streaming `onSnapshot` listeners
   useEffect(() => {
-    const fetchData = async () => {
-      if (!currentUser) return;
+    if (!currentUser) return;
+
+    let unsubProfiles, unsubScans, unsubSys;
+
+    const setupListeners = async () => {
       try {
-        const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
-        const profileSnap = await getDocs(qProfiles);
-        const fetchedProfiles = profileSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
-        setProfiles(fetchedProfiles);
-
-        const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
-        const scanSnap = await getDocs(qScans);
-        const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedScans.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
-        setScans(fetchedScans);
-
-        const qSys = query(collection(db, "systemMessages"));
-        const sysSnap = await getDocs(qSys);
-        const fetchedSys = sysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        fetchedSys.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
-        setSystemMessages(fetchedSys);
-
-        // 🌟 NEW: Fetch Both Independent Cloud-Synced Timestamps
+        // Fetch Cloud-Synced Timestamps once on load
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
@@ -93,16 +87,59 @@ export default function Dashboard() {
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
         }
 
+        // Real-Time Profiles Listener
+        const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
+        unsubProfiles = onSnapshot(qProfiles, (snap) => {
+          const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
+          setProfiles(fetchedProfiles);
+        });
+
+        // Real-Time Scans Listener
+        const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
+        unsubScans = onSnapshot(qScans, (snap) => {
+          if (!isInitialScansLoad.current) {
+            let hasNew = false;
+            snap.docChanges().forEach(change => { if (change.type === 'added') hasNew = true; });
+            if (hasNew) playChime();
+          }
+          const fetchedScans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          fetchedScans.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
+          setScans(fetchedScans);
+          isInitialScansLoad.current = false;
+        });
+
+        // Real-Time System Messages Listener
+        const qSys = query(collection(db, "systemMessages"));
+        unsubSys = onSnapshot(qSys, (snap) => {
+          if (!isInitialSysLoad.current) {
+            let hasNew = false;
+            snap.docChanges().forEach(change => { if (change.type === 'added') hasNew = true; });
+            if (hasNew) playChime();
+          }
+          const fetchedSys = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+          fetchedSys.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
+          setSystemMessages(fetchedSys);
+          isInitialSysLoad.current = false;
+        });
+
+        setLoading(false);
       } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
+        console.error("Error setting up live listeners:", error);
         setLoading(false);
       }
     };
-    fetchData();
+
+    setupListeners();
+
+    // Clean up the active connections when you navigate away from the Dashboard
+    return () => {
+      if (unsubProfiles) unsubProfiles();
+      if (unsubScans) unsubScans();
+      if (unsubSys) unsubSys();
+    };
   }, [currentUser]);
 
-  // 🌟 NEW: Intelligently mark individual tabs as read only when they are actively viewed
   useEffect(() => {
     const markAsRead = async () => {
       if (!currentUser || !showNotifCenter) return;
@@ -188,6 +225,7 @@ export default function Dashboard() {
         });
       }
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
+      // Profiles are real-time now, so they'll auto-update, but we can manually clean state immediately for speed
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
     } catch (error) {
       showMessage("Error", "Failed to delete profile.", "error");
@@ -205,7 +243,7 @@ export default function Dashboard() {
       console.error(error);
       showMessage("Error", "Failed to delete notification.", "error");
     } finally {
-      setScanToDelete(null); // Close the modal
+      setScanToDelete(null); 
     }
   };
 
@@ -386,7 +424,6 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
-  // 🌟 NEW: Calculate unread counts specifically for each tab
   const unreadPersonalCount = lastViewedPersonal 
     ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length 
     : scans.length;
@@ -395,7 +432,6 @@ export default function Dashboard() {
     ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length 
     : systemMessages.length;
 
-  // 🌟 NEW: Main button checker
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0;
 
   const groupedScans = [];
@@ -452,7 +488,6 @@ export default function Dashboard() {
           <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
             <Bell size={18} />
             <span>Notifications</span>
-            {/* 🌟 NEW: Pulsating red dot indicator ONLY */}
             {hasAnyUnread && (
               <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm animate-pulse border border-white"></span>
             )}
@@ -585,7 +620,6 @@ export default function Dashboard() {
             </div>
 
             <div className="flex border-b border-zinc-200 shrink-0">
-              {/* 🌟 NEW: Tabs display their individual independent counters inline */}
               <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
                 Personal Scans
                 {unreadPersonalCount > 0 && (
