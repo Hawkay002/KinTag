@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-import { collection, query, where, getDocs, doc, deleteDoc, setDoc } from 'firebase/firestore'; 
+// 🌟 NEW: Added getDoc to the imports so we can fetch the user's cloud-synced read status
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
@@ -20,10 +21,7 @@ const QR_STYLES = {
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
-  
-  // 🌟 NEW: State to hold our system broadcast messages
   const [systemMessages, setSystemMessages] = useState([]);
-  
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
@@ -35,7 +33,8 @@ export default function Dashboard() {
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
 
-  const [lastViewedTime, setLastViewedTime] = useState(localStorage.getItem('kintag_last_read') || null);
+  // 🌟 FIXED: Removed localStorage. We now start as null and let the database tell us when we last read!
+  const [lastViewedTime, setLastViewedTime] = useState(null);
 
   const { currentUser } = useAuth();
   const navigate = useNavigate();
@@ -51,24 +50,33 @@ export default function Dashboard() {
     const fetchData = async () => {
       if (!currentUser) return;
       try {
+        // Fetch Profiles
         const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
         const profileSnap = await getDocs(qProfiles);
         const fetchedProfiles = profileSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedProfiles.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
         setProfiles(fetchedProfiles);
 
+        // Fetch Scans
         const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
         const scanSnap = await getDocs(qScans);
         const fetchedScans = scanSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedScans.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setScans(fetchedScans);
 
-        // 🌟 NEW: Fetching System Messages
+        // Fetch System Messages
         const qSys = query(collection(db, "systemMessages"));
         const sysSnap = await getDocs(qSys);
         const fetchedSys = sysSnap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         fetchedSys.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
         setSystemMessages(fetchedSys);
+
+        // 🌟 NEW: Fetch Cloud-Synced Notification Counter Status
+        const userDocRef = doc(db, "users", currentUser.uid);
+        const userDoc = await getDoc(userDocRef);
+        if (userDoc.exists() && userDoc.data().lastViewedNotifications) {
+          setLastViewedTime(userDoc.data().lastViewedNotifications);
+        }
 
       } catch (error) {
         console.error("Error fetching data:", error);
@@ -79,13 +87,17 @@ export default function Dashboard() {
     fetchData();
   }, [currentUser]);
 
+  // 🌟 FIXED: Now saves the read receipt directly to your Firestore Database so it syncs across devices!
   useEffect(() => {
-    if (showNotifCenter && scans.length > 0) {
+    if (showNotifCenter && scans.length > 0 && currentUser) {
       const latestTimestamp = scans[0].timestamp;
-      localStorage.setItem('kintag_last_read', latestTimestamp);
-      setLastViewedTime(latestTimestamp);
+      setLastViewedTime(latestTimestamp); // Update UI instantly
+      
+      setDoc(doc(db, "users", currentUser.uid), {
+        lastViewedNotifications: latestTimestamp
+      }, { merge: true }).catch(err => console.error("Failed to sync read status:", err));
     }
-  }, [showNotifCenter, scans]);
+  }, [showNotifCenter, scans, currentUser]);
 
   const handleLogout = async () => {
     await signOut(auth);
@@ -154,6 +166,18 @@ export default function Dashboard() {
       alert("Failed to delete profile.");
     } finally {
       setProfileToDelete(null); 
+    }
+  };
+
+  // 🌟 NEW: The function to delete a specific scan from the database permanently
+  const handleDeleteScan = async (scanId) => {
+    if (!window.confirm("Permanently delete this notification log?")) return;
+    try {
+      await deleteDoc(doc(db, "scans", scanId));
+      setScans(scans.filter(s => s.id !== scanId)); // Instantly removes it from the UI!
+    } catch (error) {
+      console.error(error);
+      alert("Failed to delete notification.");
     }
   };
 
@@ -334,6 +358,7 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
+  // Unread count dynamically relies on our Cloud-Synced lastViewedTime
   const unreadCount = lastViewedTime 
     ? scans.filter(scan => new Date(scan.timestamp) > new Date(lastViewedTime)).length 
     : scans.length;
@@ -521,21 +546,31 @@ export default function Dashboard() {
                       
                       <div className="space-y-3">
                         {group.items.map(scan => (
-                          <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100">
-                            <div className="flex items-center justify-between mb-2">
-                              <span className="font-extrabold text-brandDark">{scan.profileName} Scanned</span>
-                              <span className="text-[10px] text-zinc-400 font-bold uppercase">{new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                          <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
+                            
+                            {/* 🌟 NEW: Delete Scan Button */}
+                            <button 
+                              onClick={() => handleDeleteScan(scan.id)}
+                              className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
+                              title="Delete Scan Record"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+
+                            <div className="flex items-center justify-between mb-2 pr-10">
+                              <span className="font-extrabold text-brandDark truncate">{scan.profileName} Scanned</span>
+                              <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(scan.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                             </div>
                             
                             {scan.type === 'active' ? (
-                              <div className="bg-red-50 p-3 rounded-xl border border-red-100">
+                              <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
                                 <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
                                 <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm">
                                   <MapPin size={16}/> Open in Google Maps
                                 </a>
                               </div>
                             ) : (
-                              <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
+                              <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 mt-2"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p>
                             )}
                           </div>
                         ))}
@@ -545,7 +580,7 @@ export default function Dashboard() {
                 )
               )}
 
-              {/* 🌟 NEW: SYSTEM UPDATES TAB */}
+              {/* SYSTEM UPDATES TAB */}
               {notifTab === 'system' && (
                 systemMessages.length === 0 ? (
                   <div className="text-center mt-10">
@@ -559,11 +594,8 @@ export default function Dashboard() {
                         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
                           <span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span>
                           <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
-  {msg.timestamp?.toDate 
-    ? msg.timestamp.toDate().toLocaleDateString() 
-    : new Date(msg.timestamp).toLocaleDateString()
-  }
-</span>
+                            {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleDateString() : new Date(msg.timestamp).toLocaleDateString()}
+                          </span>
                         </div>
                         <p className="text-sm text-white/80 font-medium leading-relaxed">{msg.body}</p>
                       </div>
