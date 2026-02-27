@@ -94,7 +94,6 @@ export default function PublicCard() {
         try {
           const { latitude, longitude } = position.coords;
           
-          // 🌟 FIXED URL: Clean, official Google Maps coordinates link
           const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
           
           await addDoc(collection(db, "scans"), {
@@ -146,7 +145,6 @@ export default function PublicCard() {
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
   
-  // 🌟 FIXED URL: Official Google Maps Search string
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
   
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
@@ -222,8 +220,9 @@ export default function PublicCard() {
         
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
+          {/* 🌟 NEW: Public View supports Mos / Yrs dynamically */}
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
-            {profile.age} Yrs • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
+            {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
           </p>
         </div>
 
