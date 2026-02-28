@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
+// 🌟 NEW: Added onSnapshot for real-time database streaming
 import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
@@ -181,7 +182,6 @@ export default function Dashboard() {
       if (permission === 'granted') {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
         
-        // 🌟 THE FIX: Explicitly force the app to wait until the Service Worker is fully active before asking for the token
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
           swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
@@ -726,9 +726,19 @@ export default function Dashboard() {
           </button>
 
           <div className="max-w-sm w-full relative m-auto py-8">
-            <div className="text-center mb-5">
-               <h2 className="text-2xl font-extrabold text-white tracking-tight">Mobile ID</h2>
-               <p className="text-white/60 text-xs font-medium mt-1">Download this card to save to your photos.</p>
+            <div className="flex items-center justify-between gap-3 mb-5">
+              <div className="text-left">
+                 <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">Mobile ID</h2>
+                 <p className="text-white/60 text-[10px] sm:text-xs font-medium mt-0.5 leading-snug">Download this card to save to your photos.</p>
+              </div>
+              <button 
+                onClick={() => downloadFullPass(qrModalProfile)} 
+                disabled={downloading}
+                className="shrink-0 flex items-center justify-center space-x-1.5 bg-white text-brandDark px-4 py-2.5 rounded-xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50 text-sm"
+              >
+                {downloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
+                <span>{downloading ? 'Wait...' : 'Download ID'}</span>
+              </button>
             </div>
 
             <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
@@ -798,17 +808,6 @@ export default function Dashboard() {
                    ID: {qrModalProfile.id.slice(0,8).toUpperCase()}
                 </div>
               </div>
-            </div>
-
-            <div className="mt-6 mb-8">
-              <button 
-                onClick={() => downloadFullPass(qrModalProfile)} 
-                disabled={downloading}
-                className="w-full flex items-center justify-center space-x-2 bg-white text-brandDark p-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50"
-              >
-                {downloading ? <Loader2 className="animate-spin" size={20} /> : <Download size={20} />}
-                <span>{downloading ? 'Generating High-Res ID...' : 'Download Full Mobile ID'}</span>
-              </button>
             </div>
 
           </div>
