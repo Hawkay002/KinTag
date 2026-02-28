@@ -29,8 +29,8 @@ export default function EditCard() {
   const [primaryContactId, setPrimaryContactId] = useState('');
 
   const [formData, setFormData] = useState({
-    // 🌟 NEW: Added ageUnit to default state
-    name: '', age: 5, ageUnit: 'Years', gender: 'Male', 
+    // 🌟 NEW: Using DOB instead of static age
+    name: '', dob: '', gender: 'Male', 
     heightUnit: 'ft', heightMain: '', heightSub: '', 
     weightUnit: 'kg', weightMain: '', 
     bloodGroup: 'A+', typeSpecific: '', nationality: '', 
@@ -49,8 +49,8 @@ export default function EditCard() {
           setType(data.type);
           setCurrentImageUrl(data.imageUrl);
           setFormData({
-            // 🌟 NEW: Safely initialize ageUnit from database (defaulting to 'Years')
-            name: data.name || '', age: data.age || 5, ageUnit: data.ageUnit || 'Years', gender: data.gender || 'Male',
+            // 🌟 NEW: Falls back gracefully if an old profile doesn't have a DOB yet
+            name: data.name || '', dob: data.dob || '', gender: data.gender || 'Male',
             heightUnit: data.heightUnit || 'ft', heightMain: data.heightMain || '', heightSub: data.heightSub || '',
             weightUnit: data.weightUnit || 'kg', weightMain: data.weightMain || '', 
             bloodGroup: data.bloodGroup || 'A+', typeSpecific: data.typeSpecific || '', 
@@ -229,41 +229,19 @@ export default function EditCard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div><label className={labelStyles}>Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles} /></div>
               
-              {/* 🌟 NEW: Age UI with Unit Toggle for Pets */}
+              {/* 🌟 NEW: Auto-Calculating Date of Birth Picker */}
               <div>
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="text-sm font-bold text-brandDark">Age</label>
-                  <div className="flex items-center space-x-2">
-                    {type === 'pet' && (
-                      <select 
-                        name="ageUnit" 
-                        value={formData.ageUnit || 'Years'} 
-                        onChange={(e) => {
-                          const newUnit = e.target.value;
-                          let newAge = formData.age;
-                          if (newUnit === 'Months' && newAge > 12) newAge = 12;
-                          setFormData(prev => ({ ...prev, ageUnit: newUnit, age: newAge }));
-                        }} 
-                        className="p-1 text-xs bg-brandMuted border border-zinc-200 rounded-md font-bold text-brandDark outline-none cursor-pointer"
-                      >
-                        <option value="Years">Years</option>
-                        <option value="Months">Months</option>
-                      </select>
-                    )}
-                    <span className="text-brandGold font-extrabold">
-                      {formData.age} {type === 'pet' && formData.ageUnit === 'Months' ? (formData.age == 1 ? 'Month' : 'Months') : (formData.age == 1 ? 'Year' : 'Years')}
-                    </span>
-                  </div>
-                </div>
+                <label className={labelStyles}>Date of Birth</label>
                 <input 
-                  type="range" 
-                  name="age" 
-                  min="1" 
-                  max={type === 'pet' && formData.ageUnit === 'Months' ? "12" : "50"} 
-                  value={formData.age} 
+                  type="date" 
+                  name="dob" 
+                  value={formData.dob} 
                   onChange={handleInputChange} 
-                  className="w-full h-2 bg-zinc-200 rounded-lg appearance-none cursor-pointer accent-brandDark mt-3" 
+                  required 
+                  max={new Date().toISOString().split("T")[0]} 
+                  className={inputStyles} 
                 />
+                {!formData.dob && <p className="text-[10px] text-amber-600 font-bold mt-1.5 uppercase tracking-wide">Please select DOB for automatic updates.</p>}
               </div>
 
               <div>
@@ -295,7 +273,6 @@ export default function EditCard() {
                 </div>
               </div>
 
-              {/* DYNAMIC: Hide Blood Group for Pets */}
               {type === 'kid' && (
                 <div>
                   <label className={labelStyles}>Blood Group</label>
