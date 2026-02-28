@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2 } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake } from 'lucide-react';
 
 // 🌟 NEW: Math engine to perfectly convert DOB into a clean text label
 const getComputedAge = (profile) => {
@@ -296,7 +296,7 @@ export default function PublicCard() {
         {/* 🌟 NEW: Beautiful Date of Birth block that explicitly shows vets or responders their birthday */}
         {profile.dob && (
            <div className="bg-sky-50 border border-sky-100 p-4 rounded-2xl flex items-start space-x-3">
-             <span className="text-sky-500 shrink-0 text-xl mt-0.5 drop-shadow-sm">🎂</span>
+             <Cake className="text-sky-500 shrink-0 mt-0.5 drop-shadow-sm" size={24} />
              <div>
                <h3 className="text-sky-800 font-extrabold text-xs uppercase tracking-widest mb-1">Date of Birth</h3>
                <p className="text-sky-950 font-bold text-sm">
