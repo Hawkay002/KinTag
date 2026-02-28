@@ -4,16 +4,35 @@ import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2 } from 'lucide-react';
 
+// 🌟 NEW: Math engine to perfectly convert DOB into a clean text label
+const getComputedAge = (profile) => {
+  if (profile.dob) {
+    const dob = new Date(profile.dob);
+    const today = new Date();
+    let months = (today.getFullYear() - dob.getFullYear()) * 12 + (today.getMonth() - dob.getMonth());
+    if (today.getDate() < dob.getDate()) months--;
+    if (months < 0) months = 0;
+    
+    if (months < 12) {
+      return { value: months === 0 ? 1 : months, label: 'Mos' };
+    } else {
+      return { value: Math.floor(months / 12), label: 'Yrs' };
+    }
+  }
+  // Safe Fallback for legacy profiles without a DOB yet
+  return { 
+    value: profile.age || 'Unknown', 
+    label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs' 
+  };
+};
+
 export default function PublicCard() {
   const { profileId } = useParams();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  // DYNAMIC ISLAND STATE
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
-  
-  // 🌟 NEW: Top Left Logo Pill State
   const [isLogoExpanded, setIsLogoExpanded] = useState(true);
   const logoTimeoutRef = useRef(null);
 
@@ -22,7 +41,6 @@ export default function PublicCard() {
   const [activeAlertSent, setActiveAlertSent] = useState(false);
   const [gpsError, setGpsError] = useState('');
 
-  // 🌟 NEW: Logo Auto-Collapse Timer
   const startLogoTimer = () => {
     if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
     logoTimeoutRef.current = setTimeout(() => {
@@ -42,7 +60,6 @@ export default function PublicCard() {
         console.error("Error fetching public profile:", error);
       } finally {
         setLoading(false);
-        // Start the 3-second timer as soon as the card finishes loading
         startLogoTimer();
       }
     };
@@ -151,7 +168,6 @@ export default function PublicCard() {
     );
   };
 
-  // 🌟 NEW: Handles tapping the logo to expand it again
   const handleLogoClick = (e) => {
     e.stopPropagation();
     setIsLogoExpanded(true);
@@ -181,6 +197,9 @@ export default function PublicCard() {
   const displayWeight = profile.weightMain 
     ? `${profile.weightMain} ${profile.weightUnit}` 
     : profile.weight;
+
+  // Calculate the age using the helper
+  const computedAge = getComputedAge(profile);
 
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
@@ -230,7 +249,6 @@ export default function PublicCard() {
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
         
-        {/* 🌟 NEW: Animated Retracting Logo Pill */}
         <div 
           onClick={handleLogoClick}
           className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
@@ -251,7 +269,7 @@ export default function PublicCard() {
         <div className="text-center border-b border-zinc-100 pb-6">
           <h1 className="text-4xl font-extrabold text-brandDark mb-1.5 tracking-tight">{profile.name}</h1>
           <p className="text-sm text-brandGold font-bold uppercase tracking-widest">
-            {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
+            {computedAge.value} {computedAge.label} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
           </p>
         </div>
 
@@ -271,6 +289,19 @@ export default function PublicCard() {
              <div>
                <h3 className="text-violet-700 font-extrabold text-xs uppercase tracking-widest mb-1">Behavioral / Special Needs</h3>
                <p className="text-violet-900 font-bold text-sm">{profile.specialNeeds}</p>
+             </div>
+           </div>
+        )}
+
+        {/* 🌟 NEW: Beautiful Date of Birth block that explicitly shows vets or responders their birthday */}
+        {profile.dob && (
+           <div className="bg-sky-50 border border-sky-100 p-4 rounded-2xl flex items-start space-x-3">
+             <span className="text-sky-500 shrink-0 text-xl mt-0.5 drop-shadow-sm">🎂</span>
+             <div>
+               <h3 className="text-sky-800 font-extrabold text-xs uppercase tracking-widest mb-1">Date of Birth</h3>
+               <p className="text-sky-950 font-bold text-sm">
+                 {new Date(profile.dob).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+               </p>
              </div>
            </div>
         )}
