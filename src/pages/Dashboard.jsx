@@ -20,6 +20,29 @@ const QR_STYLES = {
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
 const getISO = (ts) => ts?.toDate ? ts.toDate().toISOString() : new Date(ts || 0).toISOString();
 
+// 🌟 NEW: The background math engine that perfectly converts DOB into dynamic age!
+const getComputedAge = (profile) => {
+  if (profile.dob) {
+    const dob = new Date(profile.dob);
+    const today = new Date();
+    let months = (today.getFullYear() - dob.getFullYear()) * 12 + (today.getMonth() - dob.getMonth());
+    if (today.getDate() < dob.getDate()) months--;
+    if (months < 0) months = 0;
+    
+    if (months < 12) {
+      return { value: months === 0 ? 1 : months, label: 'Mos', fullLabel: 'MOS' };
+    } else {
+      return { value: Math.floor(months / 12), label: 'Yrs', fullLabel: 'YRS' };
+    }
+  }
+  // Safe Fallback for legacy profiles that haven't set a DOB yet
+  return { 
+    value: profile.age || 'Unknown', 
+    label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs', 
+    fullLabel: profile.ageUnit === 'Months' ? 'MOS' : 'YRS' 
+  };
+};
+
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
   const [scans, setScans] = useState([]);
@@ -327,7 +350,10 @@ export default function Dashboard() {
 
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
-      const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${profile.age} ${profile.ageUnit === 'Months' ? 'MOS' : 'YRS'}`;
+      
+      // 🌟 NEW: Compute dynamic age just before drawing the canvas
+      const ageInfo = getComputedAge(profile);
+      const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
 
       if (profile.type === 'pet') {
@@ -520,39 +546,42 @@ export default function Dashboard() {
           <div className="text-center py-12 text-zinc-500 font-medium">No profiles match your search.</div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProfiles.map(profile => (
-              <div key={profile.id} className="bg-white rounded-3xl overflow-hidden shadow-premium border border-zinc-100 transition-all hover:-translate-y-1 flex flex-col">
-                <div className="relative h-48 shrink-0">
-                  <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
-                  <div className="absolute bottom-4 left-4 right-4 text-white">
-                    <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
-                    <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
-                      {profile.type === 'kid' ? <User size={12} /> : <PawPrint size={12} />}
-                      {profile.type} • {profile.age} {profile.ageUnit === 'Months' ? 'Mos' : 'Yrs'} • {profile.gender}
-                    </p>
+            {filteredProfiles.map(profile => {
+              const ageInfo = getComputedAge(profile);
+              return (
+                <div key={profile.id} className="bg-white rounded-3xl overflow-hidden shadow-premium border border-zinc-100 transition-all hover:-translate-y-1 flex flex-col">
+                  <div className="relative h-48 shrink-0">
+                    <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+                    <div className="absolute bottom-4 left-4 right-4 text-white">
+                      <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
+                      <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
+                        {profile.type === 'kid' ? <User size={12} /> : <PawPrint size={12} />}
+                        {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-white flex-1 flex flex-col justify-end">
+                    <div className="flex gap-2">
+                      <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-1.5 bg-brandMuted hover:bg-zinc-200 text-brandDark py-2.5 rounded-xl font-bold text-sm transition-colors" title="View Public Card">
+                        <Eye size={16} />
+                        <span>View</span>
+                      </Link>
+                      <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="Mobile ID & QR">
+                        <Smartphone size={18} />
+                      </button>
+                      <Link to={`/edit/${profile.id}`} className="bg-brandMuted hover:bg-zinc-200 text-brandDark p-2.5 rounded-xl transition-colors" title="Edit Profile">
+                        <Edit size={18} />
+                      </Link>
+                      <button onClick={() => setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl })} className="bg-red-50 hover:bg-red-100 text-red-600 p-2.5 rounded-xl transition-colors" title="Delete Profile">
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="p-4 bg-white flex-1 flex flex-col justify-end">
-                  <div className="flex gap-2">
-                    <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-1.5 bg-brandMuted hover:bg-zinc-200 text-brandDark py-2.5 rounded-xl font-bold text-sm transition-colors" title="View Public Card">
-                      <Eye size={16} />
-                      <span>View</span>
-                    </Link>
-                    <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="Mobile ID & QR">
-                      <Smartphone size={18} />
-                    </button>
-                    <Link to={`/edit/${profile.id}`} className="bg-brandMuted hover:bg-zinc-200 text-brandDark p-2.5 rounded-xl transition-colors" title="Edit Profile">
-                      <Edit size={18} />
-                    </Link>
-                    <button onClick={() => setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl })} className="bg-red-50 hover:bg-red-100 text-red-600 p-2.5 rounded-xl transition-colors" title="Delete Profile">
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -756,7 +785,7 @@ export default function Dashboard() {
                      <span>{qrModalProfile.typeSpecific}</span>
                      <span>•</span>
                      {/* 🌟 NEW: Handles UI Age unit in Mobile View */}
-                     <span>{qrModalProfile.age} {qrModalProfile.ageUnit === 'Months' ? 'Mos' : 'Yrs'}</span>
+                     <span>{getComputedAge(qrModalProfile).value} {getComputedAge(qrModalProfile).label}</span>
                   </div>
                   
                   {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
