@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { auth } from '../firebase';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail } from 'firebase/auth';
+// 🌟 NEW: Added getAdditionalUserInfo to check for new Google users
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 
@@ -24,7 +25,18 @@ export default function Login() {
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
-        await createUserWithEmailAndPassword(auth, email, password);
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const user = userCredential.user;
+
+        // 🔥 NEW: Trigger Welcome Email silently in the background
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: user.email,
+            userName: '' // Email/Password doesn't collect name, backend falls back to "there"
+          })
+        }).catch(err => console.log("Welcome email failed:", err));
       }
       navigate('/'); 
     } catch (err) {
@@ -41,7 +53,24 @@ export default function Login() {
     const provider = new GoogleAuthProvider();
     
     try {
-      await signInWithPopup(auth, provider);
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // 🔥 NEW: Check if they are actually a brand new user!
+      const details = getAdditionalUserInfo(result);
+
+      if (details && details.isNewUser) {
+        // Only send the email if it's their very first time logging in
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userEmail: user.email,
+            userName: user.displayName // Google automatically provides their name!
+          })
+        }).catch(err => console.log("Welcome email failed:", err));
+      }
+
       navigate('/'); 
     } catch (err) {
       setError("Google sign-in failed. Please try again.");
@@ -69,7 +98,6 @@ export default function Login() {
     <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
         <div className="text-center mb-8">
-          {/* NEW: Logo and Heading Container */}
           <div className="flex items-center justify-center space-x-3 mb-4">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl shadow-sm" />
             <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
