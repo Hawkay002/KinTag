@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-// 🌟 NEW: Added onSnapshot for real-time database streaming
 import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
 import { signOut } from 'firebase/auth';
@@ -720,12 +719,12 @@ export default function Dashboard() {
           
           <button 
             onClick={() => setQrModalProfile(null)} 
-            className="fixed top-6 right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-lg backdrop-blur-md"
+            className="absolute top-4 right-4 md:fixed md:top-6 md:right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 md:p-3 rounded-full transition shadow-lg backdrop-blur-md"
           >
             <X size={24} />
           </button>
 
-          <div className="max-w-sm w-full relative m-auto py-8">
+          <div className="max-w-sm w-full relative m-auto pt-16 pb-8 md:py-8">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="text-left">
                  <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">Mobile ID</h2>
