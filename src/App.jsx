@@ -1,5 +1,6 @@
-import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { useEffect } from 'react';
 
 import Home from './pages/Home'; 
 import Dashboard from './pages/Dashboard';
@@ -7,8 +8,11 @@ import CreateCard from './pages/CreateCard';
 import EditCard from './pages/EditCard';
 import PublicCard from './pages/PublicCard';
 import Login from './pages/Login';
-import Signup from './pages/Signup'; // 🌟 Ensure this is imported!
+import Signup from './pages/Signup'; 
 import Admin from './pages/Admin'; 
+
+// 🌟 NEW: Checks if the user hard-refreshed directly onto the login or signup page
+let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
@@ -18,12 +22,20 @@ const ProtectedRoute = ({ children }) => {
 
 function AppRoutes() {
   const { currentUser } = useAuth(); 
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    // 🌟 NEW: If it was a hard refresh on auth pages, boot them to Home
+    if (isAuthRefresh) {
+      isAuthRefresh = false; // Reset it immediately so normal navigation works perfectly
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
   return (
     <Routes>
       <Route path="/" element={currentUser ? <Dashboard /> : <Home />} />
       
-      {/* 🌟 Split routing for Login vs Signup */}
       <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
       
