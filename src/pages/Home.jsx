@@ -34,7 +34,6 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-4">
-            {/* 🌟 FIXED: Pointing directly to distinct routes */}
             <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
             <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
               Get Started
@@ -65,7 +64,6 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            {/* 🌟 FIXED: Pointing directly to /signup */}
             <Link to="/signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
@@ -75,43 +73,44 @@ export default function Home() {
             </button>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-16">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-4">
             <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-500"/> 100% Free Forever</span>
             <span className="flex items-center gap-1.5"><Lock size={14} className="text-brandGold"/> Secure & Encrypted</span>
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 3D Phone Mockup */}
-          <div className="relative max-w-[280px] md:max-w-xs mx-auto perspective-[1000px]">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[90%] bg-gradient-to-tr from-brandGold/40 to-emerald-400/30 blur-3xl -z-10 rounded-full animate-pulse"></div>
-            <div className="relative rounded-[3rem] border-[10px] border-zinc-900 bg-white aspect-[9/19] shadow-2xl overflow-hidden transform rotate-y-[-10deg] rotate-x-[5deg] hover:rotate-y-0 hover:rotate-x-0 transition-transform duration-700 ease-out group">
-              <div className="absolute top-0 inset-x-0 h-6 bg-zinc-900 rounded-b-2xl w-36 mx-auto z-20"></div>
-              <div className="h-[45%] bg-zinc-800 relative overflow-hidden">
-                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="Dog Hero" />
-                <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-transparent to-transparent"></div>
-                <div className="absolute bottom-4 left-5 right-5">
-                   <div className="h-6 w-3/4 bg-white/90 rounded mb-2 backdrop-blur-sm"></div>
-                   <div className="h-3 w-1/2 bg-brandGold rounded backdrop-blur-sm"></div>
-                </div>
+          {/* 🌟 NEW: Dual 3D Phone Mockups (iPhone 17 Pro Max & Google Pixel 10) */}
+          <div className="relative mx-auto mt-16 md:mt-24 flex justify-center items-center perspective-[1200px] h-[450px] sm:h-[550px] md:h-[700px] w-full max-w-4xl">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-gradient-to-tr from-brandGold/20 via-emerald-400/20 to-blue-500/10 blur-3xl -z-10 rounded-full animate-pulse"></div>
+
+            {/* iPhone 17 Pro Max Mockup */}
+            <div className="absolute left-[45%] md:left-[40%] top-0 -translate-x-1/2 w-[180px] sm:w-[240px] md:w-[320px] aspect-[9/19.5] rounded-[2.5rem] md:rounded-[3.5rem] border-[6px] md:border-[12px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform rotate-y-[-12deg] rotate-x-[5deg] z-20 hover:rotate-y-[-5deg] hover:scale-[1.02] transition-all duration-700 ease-out group">
+              {/* Dynamic Island */}
+              <div className="absolute top-2 md:top-3 left-1/2 -translate-x-1/2 w-16 md:w-24 h-5 md:h-7 bg-black rounded-full z-20 flex justify-end items-center pr-1.5 md:pr-2 shadow-[inset_0_-1px_2px_rgba(255,255,255,0.15)]">
+                <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-indigo-900/50"></div>
               </div>
-              <div className="p-5 space-y-4 bg-white relative z-10 -mt-6 rounded-t-3xl h-full flex flex-col shadow-[0_-10px_20px_rgba(0,0,0,0.1)]">
-                 <div className="flex gap-3">
-                   <div className="flex-1 h-16 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-center"><Heart size={20} className="text-zinc-300"/></div>
-                   <div className="flex-1 h-16 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-center"><Activity size={20} className="text-zinc-300"/></div>
-                 </div>
-                 <div className="h-20 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center px-4 gap-3">
-                    <div className="w-10 h-10 rounded-full bg-zinc-200"></div>
-                    <div className="space-y-1.5 flex-1">
-                      <div className="h-3 w-full bg-zinc-200 rounded"></div>
-                      <div className="h-2 w-2/3 bg-zinc-200 rounded"></div>
-                    </div>
-                 </div>
-                 <div className="mt-auto h-12 bg-brandDark rounded-xl w-full flex items-center justify-center gap-2">
-                    <MapPin size={16} className="text-white"/>
-                    <div className="h-3 w-24 bg-white/50 rounded"></div>
-                 </div>
+              {/* Screenshot Image */}
+              <div className="relative w-full h-full bg-zinc-100 flex items-center justify-center">
+                 <img src="/iphone-screenshot.png" alt="iPhone 17 Pro Max Profile View" className="absolute inset-0 w-full h-full object-cover opacity-100 z-10" />
+                 <span className="text-zinc-400 text-[10px] md:text-sm font-bold px-4 text-center z-0">
+                   Upload <br/><code className="text-brandDark">iphone-screenshot.png</code><br/> to public folder
+                 </span>
               </div>
             </div>
+
+            {/* Google Pixel 10 Mockup */}
+            <div className="absolute left-[55%] md:left-[60%] top-[8%] md:top-[6%] -translate-x-1/2 w-[180px] sm:w-[240px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[3rem] border-[6px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform rotate-y-[12deg] rotate-x-[5deg] z-10 hover:rotate-y-[5deg] hover:scale-[1.02] hover:z-30 transition-all duration-700 ease-out group">
+              {/* Hole Punch Camera */}
+              <div className="absolute top-3 md:top-4 left-1/2 -translate-x-1/2 w-3 h-3 md:w-4 md:h-4 bg-black rounded-full z-20 shadow-[inset_0_1px_2px_rgba(255,255,255,0.15)]"></div>
+              {/* Screenshot Image */}
+              <div className="relative w-full h-full bg-zinc-100 flex items-center justify-center">
+                 <img src="/pixel-screenshot.png" alt="Google Pixel 10 Profile View" className="absolute inset-0 w-full h-full object-cover opacity-100 z-10" />
+                 <span className="text-zinc-400 text-[10px] md:text-sm font-bold px-4 text-center z-0">
+                   Upload <br/><code className="text-brandDark">pixel-screenshot.png</code><br/> to public folder
+                 </span>
+              </div>
+            </div>
+
           </div>
 
         </div>
