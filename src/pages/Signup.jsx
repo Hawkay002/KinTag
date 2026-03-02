@@ -1,0 +1,182 @@
+import { useState, useEffect } from 'react';
+import { auth } from '../firebase';
+import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
+import { useNavigate, Link } from 'react-router-dom';
+import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
+
+export default function Signup() {
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  // Reload Protection: Send to Home if refreshed
+  useEffect(() => {
+    const isReload = (window.performance.navigation && window.performance.navigation.type === 1) ||
+      window.performance.getEntriesByType('navigation').map((nav) => nav.type).includes('reload');
+    if (isReload) navigate('/', { replace: true });
+  }, [navigate]);
+
+  const handleEmailSignup = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    if (password.length < 8) {
+      setError("Please ensure your password is at least 8 characters long.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+      fetch('/api/welcome', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userEmail: user.email, userName: '' })
+      }).catch(err => console.log("Welcome email failed:", err));
+      
+      navigate('/'); 
+    } catch (err) {
+      setError(err.message.replace('Firebase: ', ''));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleSignup = async () => {
+    setError('');
+    setLoading(true);
+    const provider = new GoogleAuthProvider();
+    
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+      const details = getAdditionalUserInfo(result);
+
+      if (details && details.isNewUser) {
+        fetch('/api/welcome', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userEmail: user.email, userName: user.displayName })
+        }).catch(err => console.log("Welcome email failed:", err));
+      }
+      navigate('/'); 
+    } catch (err) {
+      setError("Google sign-up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const criteria = {
+    length: password.length >= 8,
+    uppercase: /[A-Z]/.test(password),
+    lowercase: /[a-z]/.test(password),
+    number: /[0-9]/.test(password),
+    special: /[^A-Za-z0-9]/.test(password),
+  };
+  const strengthScore = Object.values(criteria).filter(Boolean).length;
+  const strengthColors = ['bg-zinc-200', 'bg-red-400', 'bg-amber-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
+  const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
+
+  const CriteriaItem = ({ met, text }) => (
+    <li className={`flex items-center gap-2 text-xs font-bold transition-all duration-300 ${met ? 'text-zinc-400 line-through' : 'text-zinc-600'}`}>
+      {met ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <Circle size={14} className="text-zinc-300 shrink-0" />}
+      <span>{text}</span>
+    </li>
+  );
+
+  return (
+    <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center space-x-3 mb-4">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl shadow-sm" />
+            <h1 className="text-4xl font-extrabold text-brandDark tracking-tight">KinTag</h1>
+          </div>
+          <p className="text-zinc-500 mt-2 font-medium">Create an account to secure your family.</p>
+        </div>
+
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm text-center border border-red-100">{error}</div>}
+
+        <form onSubmit={handleEmailSignup} className="space-y-4 mb-6">
+          <input 
+            type="email" 
+            placeholder="Email Address" 
+            required 
+            value={email} 
+            onChange={(e) => setEmail(e.target.value)} 
+            className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
+          />
+          
+          <div className="relative">
+            <input 
+              type={showPassword ? "text" : "password"} 
+              placeholder="Create a Password (max 16)" 
+              required 
+              maxLength={16}
+              value={password} 
+              onChange={(e) => setPassword(e.target.value)} 
+              onFocus={() => setIsPasswordFocused(true)}
+              onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
+              className="w-full p-3.5 pr-12 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
+            />
+            <button 
+              type="button" 
+              onMouseDown={(e) => e.preventDefault()} 
+              onClick={() => setShowPassword(!showPassword)} 
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors"
+            >
+              {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
+          </div>
+
+          <div className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${isPasswordFocused ? 'max-h-[300px] opacity-100 mt-2' : 'max-h-0 opacity-0 mt-0'}`}>
+            <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-200">
+              <div className="flex justify-between items-center mb-2.5">
+                <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Password Strength</span>
+                <span className={`text-[10px] font-extrabold uppercase tracking-widest ${strengthScore >= 4 ? 'text-emerald-600' : strengthScore >= 2 ? 'text-amber-600' : 'text-red-600'}`}>
+                  {password.length === 0 ? 'None' : strengthLabels[strengthScore]}
+                </span>
+              </div>
+              <div className="flex gap-1 mb-4">
+                {[1, 2, 3, 4, 5].map((level) => (
+                  <div key={level} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${password.length > 0 && strengthScore >= level ? strengthColors[strengthScore] : 'bg-zinc-200'}`}></div>
+                ))}
+              </div>
+              <ul className="space-y-2">
+                <CriteriaItem met={criteria.length} text="At least 8 characters long" />
+                <CriteriaItem met={criteria.uppercase} text="Contains an uppercase letter" />
+                <CriteriaItem met={criteria.lowercase} text="Contains a lowercase letter" />
+                <CriteriaItem met={criteria.number} text="Contains a number" />
+                <CriteriaItem met={criteria.special} text="Contains a special character (@, $, !, etc)" />
+              </ul>
+            </div>
+          </div>
+          
+          <button type="submit" disabled={loading || password.length < 8} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
+            {loading ? 'Processing...' : 'Create Account'}
+          </button>
+        </form>
+
+        <div className="relative flex items-center justify-center mb-6">
+          <hr className="w-full border-zinc-200" />
+          <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 tracking-wider">OR</span>
+        </div>
+
+        <button onClick={handleGoogleSignup} disabled={loading} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm">
+          <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+          <span>Sign up with Google</span>
+        </button>
+
+        <p className="text-center mt-8 text-sm text-zinc-600 font-medium">
+          Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
+        </p>
+      </div>
+    </div>
+  );
+}
