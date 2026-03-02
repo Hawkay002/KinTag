@@ -83,10 +83,17 @@ export default function Home() {
           <div className="relative mx-auto mt-16 md:mt-24 flex flex-col md:block items-center gap-16 md:gap-0 perspective-[1200px] md:h-[750px] w-full max-w-4xl pb-10 md:pb-0">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-gradient-to-tr from-brandGold/20 via-emerald-400/20 to-blue-500/10 blur-3xl -z-10 rounded-full animate-pulse"></div>
 
+            {/* 🌟 NEW: Live Preview Notice Badge */}
+            <div className="md:absolute md:-top-14 md:left-1/2 md:-translate-x-1/2 z-40 flex items-center gap-2.5 bg-zinc-900/90 backdrop-blur-md border border-zinc-700 text-white px-5 py-2.5 rounded-full shadow-2xl -mb-6 md:mb-0">
+              <Info size={16} className="text-brandGold shrink-0" />
+              <span className="text-xs md:text-sm font-bold tracking-wide">
+                Live Preview: Action buttons disabled to prevent spam.
+              </span>
+            </div>
+
             {/* iPhone Mockup (Live Kid Profile) */}
             <div className="relative md:absolute md:left-[40%] md:top-0 md:-translate-x-1/2 w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.5rem] md:rounded-[3.5rem] border-[6px] md:border-[12px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[-12deg] md:rotate-x-[5deg] z-20 md:hover:rotate-y-[-5deg] hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
-                 {/* 🌟 FIXED: Added ?preview=true to securely lock the buttons inside the iframe */}
                  <iframe 
                    src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
                    className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left scale-[0.747] md:scale-[0.854] border-0 z-10" 
@@ -98,7 +105,6 @@ export default function Home() {
             {/* Google Pixel Mockup (Live Pet Profile) */}
             <div className="relative md:absolute md:left-[60%] md:top-[6%] md:-translate-x-1/2 w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[3rem] border-[6px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[12deg] md:rotate-x-[5deg] z-10 md:hover:rotate-y-[5deg] hover:scale-[1.02] md:hover:z-30 transition-all duration-700 ease-out group shrink-0">
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.2rem]">
-                 {/* 🌟 FIXED: Added ?preview=true to securely lock the buttons inside the iframe */}
                  <iframe 
                    src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
                    className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left scale-[0.747] md:scale-[0.827] border-0 z-10" 
@@ -267,6 +273,9 @@ export default function Home() {
               <br/><br/>
               KinTag is my answer. A labor of love crafted with an obsessive focus on speed, privacy, and reliability. No corporate bloat. No hidden fees. Just a lightning-fast, beautiful digital safety net for the ones you cherish most.
             </p>
+            <Link to="/signup" className="inline-flex items-center justify-center bg-white text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-105">
+              Create Your Free Account
+            </Link>
           </div>
         </div>
       </section>
