@@ -5,6 +5,26 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { Send, Trash2, ShieldAlert, Loader2, ChevronLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info } from 'lucide-react';
 
+// 🌟 NEW: Lightweight Markdown Parser for Admin Preview
+const renderFormattedText = (text) => {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    const isBullet = line.trim().startsWith('-');
+    let content = isBullet ? line.substring(line.indexOf('-') + 1).trim() : line;
+    
+    // Safely escapes HTML and replaces markdown tags
+    let htmlContent = content
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-brandDark">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-brandDark/80">$1</em>');
+      
+    if (isBullet) {
+      return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+    }
+    return <p key={i} className="mb-2 last:mb-0 min-h-[1rem]" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+  });
+};
+
 export default function Admin() {
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
@@ -12,17 +32,15 @@ export default function Admin() {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   
-  // 🌟 NEW: Custom Modals for the Admin Page
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
   const [messageToDelete, setMessageToDelete] = useState(null);
   
   const { currentUser } = useAuth();
   const navigate = useNavigate();
 
-  // 🔒 SECURITY LOCK: Change this to your exact email address!
+  // SECURITY LOCK: Change this to your exact email address!
   const ADMIN_EMAIL = "shovith2@gmail.com"; 
 
-  // Helper function to show beautiful modals instead of ugly browser alerts
   const showMessage = (alertTitle, alertMessage, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title: alertTitle, message: alertMessage, type, onClose });
   };
@@ -32,7 +50,6 @@ export default function Admin() {
       navigate('/login');
       return;
     }
-    // Kick out non-admins using our custom modal
     if (currentUser.email !== ADMIN_EMAIL) {
       showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/'));
       return;
@@ -57,7 +74,6 @@ export default function Admin() {
   const handleSend = async (e) => {
     e.preventDefault();
     
-    // Custom warning modal for missing fields
     if (!title || !body) {
       return showMessage("Missing Fields", "Please fill out both the Notification Title and Message Body fields.", "warning");
     }
@@ -77,13 +93,11 @@ export default function Admin() {
         body: JSON.stringify({ title, body })
       });
 
-      // Custom success modal instead of browser alert
       showMessage("Broadcast Sent! 🚀", "Your campaign was successfully saved and broadcasted to all users.", "success");
       setTitle('');
       setBody('');
       fetchMessages(); 
     } catch (error) {
-      // Custom error modal
       showMessage("Error", "Failed to send the campaign. Please check your connection and try again.", "error");
     } finally {
       setSending(false);
@@ -98,7 +112,7 @@ export default function Admin() {
     } catch (error) {
       showMessage("Error", "Failed to delete the message.", "error");
     } finally {
-      setMessageToDelete(null); // Closes the modal
+      setMessageToDelete(null); 
     }
   };
 
@@ -143,14 +157,21 @@ export default function Admin() {
                 value={body} 
                 onChange={(e) => setBody(e.target.value)} 
                 placeholder="What do you want to tell your users?"
-                rows="3"
+                rows="4"
                 className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl focus:border-brandDark outline-none font-medium resize-none"
               ></textarea>
+              {/* 🌟 NEW: Markdown Cheat Sheet */}
+              <div className="flex flex-wrap gap-4 mt-2 px-1 text-[11px] text-zinc-400 font-semibold tracking-wide uppercase">
+                 <span><b className="text-brandDark">**Bold**</b></span>
+                 <span><i className="text-brandDark">*Italic*</i></span>
+                 <span>- Bullet Point</span>
+                 <span>(Enter) New Line</span>
+              </div>
             </div>
             <button 
               type="submit" 
               disabled={sending}
-              className="w-full flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-2xl font-bold hover:bg-amber-500 transition-all shadow-md disabled:opacity-50"
+              className="w-full flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-2xl font-bold hover:bg-amber-500 transition-all shadow-md disabled:opacity-50 mt-2"
             >
               {sending ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
               <span>{sending ? 'Broadcasting to all phones...' : 'Send Campaign Now'}</span>
@@ -168,18 +189,20 @@ export default function Admin() {
             <div className="space-y-4">
               {messages.map((msg) => (
                 <div key={msg.id} className="bg-zinc-50 p-5 rounded-2xl border border-zinc-200 flex justify-between items-start gap-4">
-                  <div>
-                    <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-1">{msg.title}</h3>
-                    <p className="text-sm text-zinc-600 font-medium leading-relaxed mb-3">{msg.body}</p>
+                  <div className="w-full overflow-hidden">
+                    <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2">{msg.title}</h3>
+                    {/* 🌟 NEW: Passes the message through the rendering engine for accurate preview */}
+                    <div className="text-sm text-zinc-600 font-medium leading-relaxed mb-4">
+                      {renderFormattedText(msg.body)}
+                    </div>
                     <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider">
                       {msg.timestamp?.toDate ? msg.timestamp.toDate().toLocaleString() : new Date(msg.timestamp).toLocaleString()}
                     </span>
                   </div>
                   
-                  {/* 🌟 OPEN CUSTOM DELETE MODAL */}
                   <button 
                     onClick={() => setMessageToDelete(msg.id)} 
-                    className="p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all"
+                    className="p-2 text-zinc-400 hover:text-red-500 bg-white border border-zinc-200 hover:border-red-200 hover:bg-red-50 rounded-xl transition-all shrink-0"
                     title="Delete Message"
                   >
                     <Trash2 size={18} />
@@ -191,7 +214,6 @@ export default function Admin() {
         </div>
       </div>
 
-      {/* 🌟 GENERIC CUSTOM ALERT MODAL (Success/Error/Info) */}
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
@@ -221,7 +243,6 @@ export default function Admin() {
         </div>
       )}
 
-      {/* 🌟 CUSTOM DELETE CONFIRMATION MODAL */}
       {messageToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
