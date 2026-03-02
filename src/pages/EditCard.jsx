@@ -3,6 +3,8 @@ import { db, auth } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, X, MapPin, Loader2, Check } from 'lucide-react';
+// 🌟 NEW: Importing our optimized country codes list!
+import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -29,7 +31,6 @@ export default function EditCard() {
   const [primaryContactId, setPrimaryContactId] = useState('');
 
   const [formData, setFormData] = useState({
-    // 🌟 NEW: Using DOB instead of static age
     name: '', dob: '', gender: 'Male', 
     heightUnit: 'ft', heightMain: '', heightSub: '', 
     weightUnit: 'kg', weightMain: '', 
@@ -49,7 +50,6 @@ export default function EditCard() {
           setType(data.type);
           setCurrentImageUrl(data.imageUrl);
           setFormData({
-            // 🌟 NEW: Falls back gracefully if an old profile doesn't have a DOB yet
             name: data.name || '', dob: data.dob || '', gender: data.gender || 'Male',
             heightUnit: data.heightUnit || 'ft', heightMain: data.heightMain || '', heightSub: data.heightSub || '',
             weightUnit: data.weightUnit || 'kg', weightMain: data.weightMain || '', 
@@ -61,15 +61,20 @@ export default function EditCard() {
             temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
 
+          // 🌟 NEW: Graceful default fallback for profiles created before the country code update
           if (data.contacts && data.contacts.length > 0) {
-            setContacts(data.contacts);
+            setContacts(data.contacts.map(c => ({
+              ...c,
+              countryCode: c.countryCode || '+1',
+              countryIso: c.countryIso || 'us'
+            })));
             setPrimaryContactId(data.primaryContactId || data.contacts[0].id);
           } else {
             let legacyContacts = [];
             let p1Id = Date.now().toString();
-            legacyContacts.push({ id: p1Id, name: data.parent1Name || '', phone: data.parent1Phone || '', tag: 'Mother', customTag: '' });
+            legacyContacts.push({ id: p1Id, name: data.parent1Name || '', phone: data.parent1Phone || '', countryCode: '+1', countryIso: 'us', tag: 'Mother', customTag: '' });
             if (data.parent2Name) {
-              legacyContacts.push({ id: (Date.now() + 1).toString(), name: data.parent2Name, phone: data.parent2Phone || '', tag: 'Father', customTag: '' });
+              legacyContacts.push({ id: (Date.now() + 1).toString(), name: data.parent2Name, phone: data.parent2Phone || '', countryCode: '+1', countryIso: 'us', tag: 'Father', customTag: '' });
             }
             setContacts(legacyContacts);
             setPrimaryContactId(p1Id);
@@ -96,7 +101,8 @@ export default function EditCard() {
   };
 
   const addContact = () => {
-    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', tag: 'Other', customTag: '' }]);
+    // 🌟 NEW: Appends the default flag when a user adds a new secondary contact
+    setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', countryCode: '+1', countryIso: 'us', tag: 'Other', customTag: '' }]);
   };
 
   const removeContact = (id) => {
@@ -229,7 +235,6 @@ export default function EditCard() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div><label className={labelStyles}>Name</label><input type="text" name="name" value={formData.name} onChange={handleInputChange} required className={inputStyles} /></div>
               
-              {/* 🌟 NEW: Auto-Calculating Date of Birth Picker */}
               <div>
                 <label className={labelStyles}>Date of Birth</label>
                 <input 
@@ -369,7 +374,31 @@ export default function EditCard() {
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
-                    <input type="tel" placeholder="Phone Number with Country Code i.e. +91 or +351" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
+                    
+                    {/* 🌟 NEW: Premium invisible FlagCDN Dropdown Row */}
+                    <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
+                      <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
+                        <img src={`https://flagcdn.com/w20/${contact.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
+                        <span className="ml-2 text-sm font-bold text-brandDark">{contact.countryCode || '+1'}</span>
+                        <select
+                          value={`${contact.countryCode || '+1'}|${contact.countryIso || 'us'}`}
+                          onChange={(e) => {
+                            const [code, iso] = e.target.value.split('|');
+                            handleContactChange(contact.id, 'countryCode', code);
+                            handleContactChange(contact.id, 'countryIso', iso);
+                          }}
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        >
+                          {sortedCountryCodes.map((c, i) => (
+                            <option key={`${c.iso}-${i}`} value={`${c.code}|${c.iso}`}>
+                              {c.country} ({c.code})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <input type="tel" placeholder="Phone Number" value={contact.phone} onChange={(e) => handleContactChange(contact.id, 'phone', e.target.value)} required className="flex-1 p-3 outline-none w-full bg-transparent" />
+                    </div>
+
                     <select value={contact.tag} onChange={(e) => handleContactChange(contact.id, 'tag', e.target.value)} className="w-full p-3 border border-zinc-200 rounded-xl bg-white outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium">
                       <option value="Father">Father</option>
                       <option value="Mother">Mother</option>
