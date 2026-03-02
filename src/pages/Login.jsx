@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
 
 export default function Login() {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 🌟 NEW: Check state from Home page links. If isSignUp is true, show "Create Account" by default. Otherwise, show "Log In".
+  const [isLogin, setIsLogin] = useState(location.state?.isSignUp ? false : true);
+  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -13,14 +18,25 @@ export default function Login() {
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
+
+  // 🌟 NEW: Reload Protection Logic. If the user refreshes their browser while on the Auth screen, send them Home.
+  useEffect(() => {
+    const isReload = (window.performance.navigation && window.performance.navigation.type === 1) ||
+      window.performance
+        .getEntriesByType('navigation')
+        .map((nav) => nav.type)
+        .includes('reload');
+
+    if (isReload) {
+      navigate('/', { replace: true });
+    }
+  }, [navigate]);
 
   const handleEmailAuth = async (e) => {
     e.preventDefault();
     setError('');
     setResetMessage('');
     
-    // Prevent weak passwords from being submitted during sign up
     if (!isLogin && password.length < 8) {
       setError("Please ensure your password is at least 8 characters long.");
       return;
@@ -98,7 +114,6 @@ export default function Login() {
     }
   };
 
-  // Live Password Validation Logic
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -110,7 +125,6 @@ export default function Login() {
   const strengthColors = ['bg-zinc-200', 'bg-red-400', 'bg-amber-400', 'bg-amber-400', 'bg-emerald-400', 'bg-emerald-500'];
   const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
 
-  // Helper component for the checklist items
   const CriteriaItem = ({ met, text }) => (
     <li className={`flex items-center gap-2 text-xs font-bold transition-all duration-300 ${met ? 'text-zinc-400 line-through' : 'text-zinc-600'}`}>
       {met ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <Circle size={14} className="text-zinc-300 shrink-0" />}
@@ -164,7 +178,6 @@ export default function Login() {
             </button>
           </div>
 
-          {/* Animated Password Strength Indicator Block */}
           {!isLogin && (
             <div 
               className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
@@ -179,14 +192,12 @@ export default function Login() {
                   </span>
                 </div>
                 
-                {/* Colored Strength Bars */}
                 <div className="flex gap-1 mb-4">
                   {[1, 2, 3, 4, 5].map((level) => (
                     <div key={level} className={`h-1.5 flex-1 rounded-full transition-colors duration-300 ${password.length > 0 && strengthScore >= level ? strengthColors[strengthScore] : 'bg-zinc-200'}`}></div>
                   ))}
                 </div>
                 
-                {/* Checklist */}
                 <ul className="space-y-2">
                   <CriteriaItem met={criteria.length} text="At least 8 characters long" />
                   <CriteriaItem met={criteria.uppercase} text="Contains an uppercase letter" />
