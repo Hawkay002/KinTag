@@ -20,7 +20,6 @@ const QR_STYLES = {
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
 const getISO = (ts) => ts?.toDate ? ts.toDate().toISOString() : new Date(ts || 0).toISOString();
 
-// 🌟 NEW: The background math engine that perfectly converts DOB into dynamic age!
 const getComputedAge = (profile) => {
   if (profile.dob) {
     const dob = new Date(profile.dob);
@@ -35,12 +34,30 @@ const getComputedAge = (profile) => {
       return { value: Math.floor(months / 12), label: 'Yrs', fullLabel: 'YRS' };
     }
   }
-  // Safe Fallback for legacy profiles that haven't set a DOB yet
   return { 
     value: profile.age || 'Unknown', 
     label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs', 
     fullLabel: profile.ageUnit === 'Months' ? 'MOS' : 'YRS' 
   };
+};
+
+// 🌟 NEW: Dashboard specific Markdown parser (Uses white text styling for the dark mode cards)
+const renderFormattedTextDark = (text) => {
+  if (!text) return null;
+  return text.split('\n').map((line, i) => {
+    const isBullet = line.trim().startsWith('-');
+    let content = isBullet ? line.substring(line.indexOf('-') + 1).trim() : line;
+    
+    let htmlContent = content
+      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
+      
+    if (isBullet) {
+      return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+    }
+    return <p key={i} className="mb-2 last:mb-0 min-h-[1rem]" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
+  });
 };
 
 export default function Dashboard() {
@@ -351,7 +368,6 @@ export default function Dashboard() {
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
       
-      // 🌟 NEW: Compute dynamic age just before drawing the canvas
       const ageInfo = getComputedAge(profile);
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
@@ -731,7 +747,10 @@ export default function Dashboard() {
                             {new Date(getTime(msg.timestamp)).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-sm text-white/80 font-medium leading-relaxed">{msg.body}</p>
+                        {/* 🌟 NEW: Renders the beautiful formatted text */}
+                        <div className="text-sm text-white/80 font-medium leading-relaxed">
+                          {renderFormattedTextDark(msg.body)}
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -784,7 +803,6 @@ export default function Dashboard() {
                   <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
                      <span>{qrModalProfile.typeSpecific}</span>
                      <span>•</span>
-                     {/* 🌟 NEW: Handles UI Age unit in Mobile View */}
                      <span>{getComputedAge(qrModalProfile).value} {getComputedAge(qrModalProfile).label}</span>
                   </div>
                   
