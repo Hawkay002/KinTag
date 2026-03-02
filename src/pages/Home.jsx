@@ -23,11 +23,6 @@ export default function Home() {
     setTimeout(() => setShowGithubTooltip(false), 2500);
   };
 
-  // 🌟 FOOLPROOF FIX: Saves exact tab choice to memory before navigating
-  const setAuthMode = (mode) => {
-    localStorage.setItem('authMode', mode);
-  };
-
   return (
     <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white">
       
@@ -39,8 +34,9 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/login" onClick={() => setAuthMode('login')} className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-            <Link to="/login" onClick={() => setAuthMode('signup')} className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
+            {/* 🌟 FIXED: Pointing directly to distinct routes */}
+            <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
+            <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
               Get Started
             </Link>
           </div>
@@ -69,7 +65,8 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-            <Link to="/login" onClick={() => setAuthMode('signup')} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
+            {/* 🌟 FIXED: Pointing directly to /signup */}
+            <Link to="/signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
             </Link>
@@ -338,7 +335,7 @@ export default function Home() {
       <section className="py-24 bg-zinc-50 text-center px-4">
         <h2 className="text-3xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure your loved ones?</h2>
         <p className="text-zinc-500 font-medium text-lg mb-8">Join the platform and create your first tag in under 2 minutes.</p>
-        <Link to="/login" onClick={() => setAuthMode('signup')} className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
+        <Link to="/signup" className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
           <span>Get Started for Free</span>
           <ArrowRight size={20} />
         </Link>
