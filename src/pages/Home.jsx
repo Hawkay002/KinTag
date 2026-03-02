@@ -79,17 +79,17 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 NEW: Responsive, Stacked & Scaled Phone Mockups */}
+          {/* Responsive, Stacked & Scaled Phone Mockups */}
           <div className="relative mx-auto mt-16 md:mt-24 flex flex-col md:block items-center gap-16 md:gap-0 perspective-[1200px] md:h-[750px] w-full max-w-4xl pb-10 md:pb-0">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[100%] h-[100%] bg-gradient-to-tr from-brandGold/20 via-emerald-400/20 to-blue-500/10 blur-3xl -z-10 rounded-full animate-pulse"></div>
 
             {/* iPhone Mockup (Live Kid Profile) */}
             <div className="relative md:absolute md:left-[40%] md:top-0 md:-translate-x-1/2 w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.5rem] md:rounded-[3.5rem] border-[6px] md:border-[12px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[-12deg] md:rotate-x-[5deg] z-20 md:hover:rotate-y-[-5deg] hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[2rem] md:rounded-[2.5rem]">
-                 {/* Iframe rendered at fixed size, visually scaled to prevent layout squishing */}
+                 {/* 🌟 FIXED: Added ?preview=true to securely lock the buttons inside the iframe */}
                  <iframe 
-                   src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3" 
-                   className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left scale-[0.747] md:scale-[0.854] border-0 pointer-events-none z-10" 
+                   src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
+                   className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left scale-[0.747] md:scale-[0.854] border-0 z-10" 
                    title="Live Kid Profile View"
                  />
               </div>
@@ -98,10 +98,10 @@ export default function Home() {
             {/* Google Pixel Mockup (Live Pet Profile) */}
             <div className="relative md:absolute md:left-[60%] md:top-[6%] md:-translate-x-1/2 w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[3rem] border-[6px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[12deg] md:rotate-x-[5deg] z-10 md:hover:rotate-y-[5deg] hover:scale-[1.02] md:hover:z-30 transition-all duration-700 ease-out group shrink-0">
               <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.2rem]">
-                 {/* Iframe rendered at fixed size, visually scaled to prevent layout squishing */}
+                 {/* 🌟 FIXED: Added ?preview=true to securely lock the buttons inside the iframe */}
                  <iframe 
-                   src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr" 
-                   className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left scale-[0.747] md:scale-[0.827] border-0 pointer-events-none z-10" 
+                   src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
+                   className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left scale-[0.747] md:scale-[0.827] border-0 z-10" 
                    title="Live Pet Profile View"
                  />
               </div>
