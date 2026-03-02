@@ -1,5 +1,5 @@
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider, useAuth } from './context/AuthContext'; 
+import { AuthProvider, useAuth } from './context/AuthContext';
 
 import Home from './pages/Home'; 
 import Dashboard from './pages/Dashboard';
@@ -7,7 +7,7 @@ import CreateCard from './pages/CreateCard';
 import EditCard from './pages/EditCard';
 import PublicCard from './pages/PublicCard';
 import Login from './pages/Login';
-import Signup from './pages/Signup'; // 🌟 NEW: Import Signup
+import Signup from './pages/Signup'; // 🌟 Ensure this is imported!
 import Admin from './pages/Admin'; 
 
 const ProtectedRoute = ({ children }) => {
@@ -23,7 +23,7 @@ function AppRoutes() {
     <Routes>
       <Route path="/" element={currentUser ? <Dashboard /> : <Home />} />
       
-      {/* 🌟 NEW: Split routing for Login vs Signup */}
+      {/* 🌟 Split routing for Login vs Signup */}
       <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
       <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
       
