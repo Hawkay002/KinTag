@@ -34,8 +34,10 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-4">
-            <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-            <Link to="/login" className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
+            {/* 🌟 NEW: Passes isSignUp: false */}
+            <Link to="/login" state={{ isSignUp: false }} className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
+            {/* 🌟 NEW: Passes isSignUp: true */}
+            <Link to="/login" state={{ isSignUp: true }} className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
               Get Started
             </Link>
           </div>
@@ -63,8 +65,9 @@ export default function Home() {
             Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
-            <Link to="/login" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+            {/* 🌟 NEW: Passes isSignUp: true */}
+            <Link to="/login" state={{ isSignUp: true }} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
             </Link>
@@ -73,12 +76,51 @@ export default function Home() {
             </button>
           </div>
 
-          {/* 🌟 NEW: Trust Signals Banner */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest">
+          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-16">
             <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-500"/> 100% Free Forever</span>
             <span className="flex items-center gap-1.5"><Lock size={14} className="text-brandGold"/> Secure & Encrypted</span>
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
+
+          {/* 🌟 THE MISSING PIECE: Stunning 3D Phone Mockup */}
+          <div className="relative max-w-[280px] md:max-w-xs mx-auto perspective-[1000px]">
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[140%] h-[90%] bg-gradient-to-tr from-brandGold/40 to-emerald-400/30 blur-3xl -z-10 rounded-full animate-pulse"></div>
+            
+            <div className="relative rounded-[3rem] border-[10px] border-zinc-900 bg-white aspect-[9/19] shadow-2xl overflow-hidden transform rotate-y-[-10deg] rotate-x-[5deg] hover:rotate-y-0 hover:rotate-x-0 transition-transform duration-700 ease-out group">
+              {/* Fake Phone Notch */}
+              <div className="absolute top-0 inset-x-0 h-6 bg-zinc-900 rounded-b-2xl w-36 mx-auto z-20"></div>
+              
+              {/* Fake UI: Hero Image */}
+              <div className="h-[45%] bg-zinc-800 relative overflow-hidden">
+                <img src="https://images.unsplash.com/photo-1543466835-00a7907e9de1?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover opacity-90 group-hover:scale-105 transition-transform duration-1000" alt="Dog Hero" />
+                <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-transparent to-transparent"></div>
+                <div className="absolute bottom-4 left-5 right-5">
+                   <div className="h-6 w-3/4 bg-white/90 rounded mb-2 backdrop-blur-sm"></div>
+                   <div className="h-3 w-1/2 bg-brandGold rounded backdrop-blur-sm"></div>
+                </div>
+              </div>
+              
+              {/* Fake UI: Details Card */}
+              <div className="p-5 space-y-4 bg-white relative z-10 -mt-6 rounded-t-3xl h-full flex flex-col shadow-[0_-10px_20px_rgba(0,0,0,0.1)]">
+                 <div className="flex gap-3">
+                   <div className="flex-1 h-16 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-center"><Heart size={20} className="text-zinc-300"/></div>
+                   <div className="flex-1 h-16 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center justify-center"><Activity size={20} className="text-zinc-300"/></div>
+                 </div>
+                 <div className="h-20 bg-zinc-50 rounded-2xl border border-zinc-100 flex items-center px-4 gap-3">
+                    <div className="w-10 h-10 rounded-full bg-zinc-200"></div>
+                    <div className="space-y-1.5 flex-1">
+                      <div className="h-3 w-full bg-zinc-200 rounded"></div>
+                      <div className="h-2 w-2/3 bg-zinc-200 rounded"></div>
+                    </div>
+                 </div>
+                 <div className="mt-auto h-12 bg-brandDark rounded-xl w-full flex items-center justify-center gap-2">
+                    <MapPin size={16} className="text-white"/>
+                    <div className="h-3 w-24 bg-white/50 rounded"></div>
+                 </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </section>
 
@@ -94,7 +136,7 @@ export default function Home() {
             <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-zinc-100 z-0"></div>
             
             <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
                 <span className="text-3xl font-extrabold text-brandDark">1</span>
               </div>
               <h3 className="text-xl font-extrabold text-brandDark mb-3">Create a Profile</h3>
@@ -102,7 +144,7 @@ export default function Home() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
                 <span className="text-3xl font-extrabold text-brandDark">2</span>
               </div>
               <h3 className="text-xl font-extrabold text-brandDark mb-3">Generate & Attach</h3>
@@ -110,7 +152,7 @@ export default function Home() {
             </div>
 
             <div className="relative z-10 flex flex-col items-center text-center">
-              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6">
+              <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
                 <span className="text-3xl font-extrabold text-brandDark">3</span>
               </div>
               <h3 className="text-xl font-extrabold text-brandDark mb-3">Get Scanned</h3>
@@ -170,7 +212,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: SOCIAL PROOF / TESTIMONIALS */}
+      {/* SOCIAL PROOF / TESTIMONIALS */}
       <section className="py-24 bg-zinc-50 border-b border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -198,7 +240,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: ACCORDION FAQ SECTION */}
+      {/* ACCORDION FAQ SECTION */}
       <section className="py-24 bg-white border-b border-zinc-100">
         <div className="max-w-3xl mx-auto px-4 md:px-8">
           <div className="text-center mb-12">
@@ -207,51 +249,21 @@ export default function Home() {
           </div>
           
           <div className="space-y-3">
-            <FAQItem 
-              question="Is there a monthly subscription fee?" 
-              answer="No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." 
-            />
-            <FAQItem 
-              question="Does the finder need to download an app?" 
-              answer="No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." 
-            />
-            <FAQItem 
-              question="Do I have to buy special tags directly from you?" 
-              answer="Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself." 
-            />
-            <FAQItem 
-              question="What happens if the finder denies GPS access?" 
-              answer="KinTag uses a dual-layer alert system. Even if the finder taps 'No' to sharing their exact GPS coordinates, our system performs a 'Passive Scan' which grabs their general IP-based city/region and sends you an instant push notification anyway." 
-            />
-            <FAQItem 
-              question="What if I move or change my phone number?" 
-              answer="Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved!" 
-            />
-            <FAQItem 
-              question="Does the tag have a battery I need to charge?" 
-              answer="No. Unlike bulky, heavy GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." 
-            />
-            <FAQItem 
-              question="Can I create profiles for multiple pets or kids?" 
-              answer="Yes! Your single KinTag dashboard can hold multiple profiles. You can create unique cards and QR codes for every child, dog, or cat in your household." 
-            />
-            <FAQItem 
-              question="What is an NFC tag and how do I use it?" 
-              answer="NFC (Near Field Communication) is the same technology used for Apple Pay. You can buy blank NFC stickers online, and use free apps to program your unique KinTag URL onto them. Anyone who taps their phone to the sticker will instantly open your profile." 
-            />
-            <FAQItem 
-              question="Is my medical and contact data kept private?" 
-              answer="Your data is only accessible to someone who physically scans your unique, randomly generated tag. It is not listed in a public directory or searchable on Google. You can also delete a profile at any time to instantly destroy the link." 
-            />
-            <FAQItem 
-              question="Can I temporarily disable a tag?" 
-              answer="Currently, the safest way to disable a tag is to edit the profile and remove sensitive information, or delete the profile entirely. We are working on a 'Pause' feature for a future update!" 
-            />
+            <FAQItem question="Is there a monthly subscription fee?" answer="No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." />
+            <FAQItem question="Does the finder need to download an app?" answer="No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." />
+            <FAQItem question="Do I have to buy special tags directly from you?" answer="Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself." />
+            <FAQItem question="What happens if the finder denies GPS access?" answer="KinTag uses a dual-layer alert system. Even if the finder taps 'No' to sharing their exact GPS coordinates, our system performs a 'Passive Scan' which grabs their general IP-based city/region and sends you an instant push notification anyway." />
+            <FAQItem question="What if I move or change my phone number?" answer="Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved!" />
+            <FAQItem question="Does the tag have a battery I need to charge?" answer="No. Unlike bulky, heavy GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
+            <FAQItem question="Can I create profiles for multiple pets or kids?" answer="Yes! Your single KinTag dashboard can hold multiple profiles. You can create unique cards and QR codes for every child, dog, or cat in your household." />
+            <FAQItem question="What is an NFC tag and how do I use it?" answer="NFC (Near Field Communication) is the same technology used for Apple Pay. You can buy blank NFC stickers online, and use free apps to program your unique KinTag URL onto them. Anyone who taps their phone to the sticker will instantly open your profile." />
+            <FAQItem question="Is my medical and contact data kept private?" answer="Your data is only accessible to someone who physically scans your unique, randomly generated tag. It is not listed in a public directory or searchable on Google. You can also delete a profile at any time to instantly destroy the link." />
+            <FAQItem question="Can I temporarily disable a tag?" answer="Currently, the safest way to disable a tag is to edit the profile and remove sensitive information, or delete the profile entirely. We are working on a 'Pause' feature for a future update!" />
           </div>
         </div>
       </section>
 
-      {/* SOLO DEV & PARENT STORY */}
+      {/* 🌟 REWRITTEN: SOLO DEV & PARENT STORY */}
       <section className="py-24 px-4 relative bg-zinc-50">
         <div className="max-w-4xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 text-center shadow-2xl relative overflow-hidden">
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
@@ -259,11 +271,13 @@ export default function Home() {
           
           <div className="relative z-10">
             <Heart size={40} className="text-brandGold mx-auto mb-6" />
-            <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight mb-6">Built by a single developer.<br/> Designed for parents.</h2>
+            <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight mb-6">
+              Created by a solo developer.<br/> Driven by a single mission.
+            </h2>
             <p className="text-lg text-white/80 font-medium leading-relaxed max-w-2xl mx-auto mb-10">
-              I built KinTag because existing tracking solutions were either too expensive, incredibly clunky, or required costly monthly subscription fees just to keep basic data active. 
+              When I looked for a way to secure my own family, I found an industry plagued by bulky hardware, clunky apps, and predatory monthly subscriptions. Safety shouldn't be locked behind a paywall.
               <br/><br/>
-              KinTag is a labor of love. It is lean, lightning-fast, and built strictly to do one thing perfectly: give parents and pet owners genuine peace of mind without the corporate bloat.
+              KinTag is my answer. A labor of love crafted with an obsessive focus on speed, privacy, and reliability. No corporate bloat. No hidden fees. Just a lightning-fast, beautiful digital safety net for the ones you cherish most.
             </p>
           </div>
         </div>
@@ -324,11 +338,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: FINAL CALL TO ACTION */}
+      {/* FINAL CALL TO ACTION */}
       <section className="py-24 bg-zinc-50 text-center px-4">
         <h2 className="text-3xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure your loved ones?</h2>
         <p className="text-zinc-500 font-medium text-lg mb-8">Join the platform and create your first tag in under 2 minutes.</p>
-        <Link to="/login" className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
+        {/* 🌟 NEW: Passes isSignUp: true */}
+        <Link to="/login" state={{ isSignUp: true }} className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
           <span>Get Started for Free</span>
           <ArrowRight size={20} />
         </Link>
@@ -346,7 +361,6 @@ export default function Home() {
   );
 }
 
-// Sub-components for cleaner code
 function FeatureCard({ icon, title, desc }) {
   return (
     <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 hover:border-brandDark/20 transition-all hover:bg-white hover:shadow-md">
@@ -378,7 +392,6 @@ function TestimonialCard({ quote, author, role }) {
   );
 }
 
-// 🌟 NEW: Interactive Accordion FAQ Component
 function FAQItem({ question, answer }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
