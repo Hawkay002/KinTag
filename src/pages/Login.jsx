@@ -1,19 +1,16 @@
 import { useState, useEffect } from 'react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, sendPasswordResetEmail, getAdditionalUserInfo } from 'firebase/auth';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
 
 export default function Login() {
-  const location = useLocation();
   const navigate = useNavigate();
 
-  // 🌟 FIXED: Parse URL Query Params directly (e.g. ?mode=signup) to bypass HashRouter state drops
-  const queryParams = new URLSearchParams(location.search);
-  const urlMode = queryParams.get('mode');
-
-  // If urlMode is exactly 'signup', default to Create Account. Otherwise, default to Log In.
-  const [isLogin, setIsLogin] = useState(urlMode === 'signup' ? false : true);
+  // 🌟 FOOLPROOF FIX: Instantly reads the exact button choice from memory
+  const [isLogin, setIsLogin] = useState(() => {
+    return localStorage.getItem('authMode') === 'signup' ? false : true;
+  });
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,22 +20,18 @@ export default function Login() {
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
 
-  // 🌟 FIXED: Ensures that if the URL changes while staying on the page, the tab updates too
+  // 🌟 NEW: Advanced Reload Protection. Sends user Home if they refresh this page.
   useEffect(() => {
-    if (urlMode === 'signup') {
-      setIsLogin(false);
-    } else if (urlMode === 'login') {
-      setIsLogin(true);
+    const perfEntries = window.performance?.getEntriesByType("navigation");
+    let isReload = false;
+    
+    if (perfEntries && perfEntries.length > 0) {
+      if (perfEntries[0].type === "reload") {
+        isReload = true;
+      }
+    } else if (window.performance?.navigation?.type === 1) {
+      isReload = true;
     }
-  }, [urlMode]);
-
-  // 🌟 FIXED: Reload Protection - Kicks user to Home page if they refresh the auth screen
-  useEffect(() => {
-    const isReload = (window.performance.navigation && window.performance.navigation.type === 1) ||
-      window.performance
-        .getEntriesByType('navigation')
-        .map((nav) => nav.type)
-        .includes('reload');
 
     if (isReload) {
       navigate('/', { replace: true });
@@ -125,6 +118,12 @@ export default function Login() {
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
     }
+  };
+
+  const toggleMode = () => {
+    const newMode = !isLogin;
+    setIsLogin(newMode);
+    localStorage.setItem('authMode', newMode ? 'login' : 'signup');
   };
 
   const criteria = {
@@ -247,7 +246,7 @@ export default function Login() {
 
         <p className="text-center mt-8 text-sm text-zinc-600 font-medium">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-brandDark font-bold hover:text-brandGold transition-colors">
+          <button type="button" onClick={toggleMode} className="text-brandDark font-bold hover:text-brandGold transition-colors">
             {isLogin ? 'Create Account' : 'Log In'}
           </button>
         </p>
