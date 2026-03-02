@@ -20,6 +20,7 @@ const QR_STYLES = {
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
 const getISO = (ts) => ts?.toDate ? ts.toDate().toISOString() : new Date(ts || 0).toISOString();
 
+// 🌟 NEW: The background math engine that perfectly converts DOB into dynamic age!
 const getComputedAge = (profile) => {
   if (profile.dob) {
     const dob = new Date(profile.dob);
@@ -34,6 +35,7 @@ const getComputedAge = (profile) => {
       return { value: Math.floor(months / 12), label: 'Yrs', fullLabel: 'YRS' };
     }
   }
+  // Safe Fallback for legacy profiles that haven't set a DOB yet
   return { 
     value: profile.age || 'Unknown', 
     label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs', 
@@ -79,38 +81,6 @@ export default function Dashboard() {
   const showMessage = (title, message, type = 'info', onClose = null) => {
     setCustomAlert({ isOpen: true, title, message, type, onClose });
   };
-
-  // 🌟 NEW: Injects Tawk.to Customer Service Widget
-  useEffect(() => {
-    window.Tawk_API = window.Tawk_API || {};
-    window.Tawk_LoadStart = new Date();
-    
-    const existingScript = document.getElementById('tawk-script');
-    
-    if (!existingScript) {
-      const s1 = document.createElement("script");
-      const s0 = document.getElementsByTagName("script")[0];
-      s1.async = true;
-      s1.src = 'https://embed.tawk.to/69a52099b326341c3a98af7b/1jimgeo39';
-      s1.charset = 'UTF-8';
-      s1.setAttribute('crossorigin', '*');
-      s1.id = 'tawk-script';
-      if (s0 && s0.parentNode) {
-        s0.parentNode.insertBefore(s1, s0);
-      } else {
-        document.head.appendChild(s1);
-      }
-    } else if (window.Tawk_API.showWidget) {
-      window.Tawk_API.showWidget();
-    }
-
-    // Cleanup: Hide widget when leaving this page so it doesn't show on Public Cards
-    return () => {
-      if (window.Tawk_API && window.Tawk_API.hideWidget) {
-        window.Tawk_API.hideWidget();
-      }
-    };
-  }, []);
 
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
@@ -381,6 +351,7 @@ export default function Dashboard() {
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
       
+      // 🌟 NEW: Compute dynamic age just before drawing the canvas
       const ageInfo = getComputedAge(profile);
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
