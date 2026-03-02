@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useLocation } from 'react-router-dom'; // 🌟 NEW: Added useLocation
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake } from 'lucide-react';
@@ -26,6 +26,11 @@ const getComputedAge = (profile) => {
 
 export default function PublicCard() {
   const { profileId } = useParams();
+  const location = useLocation(); // 🌟 NEW: Read the URL
+  
+  // 🌟 NEW: Check if the card is embedded on the Home page preview
+  const isPreview = new URLSearchParams(location.search).get('preview') === 'true';
+
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
@@ -68,9 +73,10 @@ export default function PublicCard() {
     };
   }, [profileId]);
 
+  // 🌟 SECURITY FIX: Block passive analytics tracking if in Preview Mode!
   useEffect(() => {
     const sendPassiveAlert = async () => {
-      if (!profile || passiveAlertSent.current) return;
+      if (!profile || passiveAlertSent.current || isPreview) return; 
       passiveAlertSent.current = true; 
       
       try {
@@ -109,10 +115,13 @@ export default function PublicCard() {
     }, 1500);
 
     return () => clearTimeout(timer);
-  }, [profile, profileId]);
+  }, [profile, profileId, isPreview]);
 
+  // 🌟 SECURITY FIX: Block Active GPS sending in Preview Mode
   const handleActiveAlert = (e) => {
     e.stopPropagation(); 
+    if (isPreview) return;
+
     setIsSendingAlert(true);
     setGpsError('');
 
@@ -159,8 +168,7 @@ export default function PublicCard() {
         }
       },
       (error) => {
-        // 🌟 NEW: Dynamic error text based on profile type
-        setGpsError(`Please allow location access so the ${profile.type === 'kid' ? 'parent' : 'owner'} can find you.`);
+        setGpsError("Please allow location access so the owner can find you.");
         setIsSendingAlert(false);
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
@@ -169,6 +177,7 @@ export default function PublicCard() {
 
   const handleLogoClick = (e) => {
     e.stopPropagation();
+    if (isPreview) return; // Disable logo clicks in preview
     setIsLogoExpanded(true);
     startLogoTimer();
   };
@@ -202,7 +211,7 @@ export default function PublicCard() {
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
-      {/* DYNAMIC ISLAND (Sticky Top Center) */}
+      {/* DYNAMIC ISLAND (Only Interactive Part in Preview!) */}
       <div 
         onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
         className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
@@ -221,25 +230,22 @@ export default function PublicCard() {
             
             {!activeAlertSent ? (
               <>
-                {/* 🌟 NEW: Dynamic "parent's" or "owner's" text */}
-                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">
-                  Tap below to securely send your exact GPS location directly to the {profile.type === 'kid' ? "parent's" : "owner's"} phone.
-                </p>
+                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
+                {/* 🌟 DISABLED: Share Location button locked in Preview */}
                 <button 
                   onClick={handleActiveAlert} 
-                  disabled={isSendingAlert}
-                  className="w-full bg-red-600 hover:bg-red-500 text-white font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70"
+                  disabled={isSendingAlert || isPreview}
+                  className={`w-full font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70 ${isPreview ? 'bg-zinc-500 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white'}`}
                 >
                   {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <MapPin size={20} />}
-                  <span>{isSendingAlert ? "Locating..." : `Share My Location`}</span>
+                  <span>{isPreview ? "Disabled in Preview" : (isSendingAlert ? "Locating..." : `Share My Location`)}</span>
                 </button>
                 {gpsError && <p className="text-red-400 text-xs font-bold mt-3 text-center">{gpsError}</p>}
               </>
             ) : (
               <div className="flex flex-col items-center justify-center py-4 space-y-2">
                 <CheckCircle2 size={40} className="text-emerald-400" />
-                {/* 🌟 NEW: Dynamic "Parent" or "Owner" Success message */}
-                <h3 className="font-extrabold text-emerald-400 text-xl">{profile.type === 'kid' ? 'Parent' : 'Owner'} Notified!</h3>
+                <h3 className="font-extrabold text-emerald-400 text-xl">Owner Notified!</h3>
                 <p className="text-white/70 text-sm text-center">Your exact location has been sent to their phone. Please stay nearby.</p>
               </div>
             )}
@@ -248,31 +254,22 @@ export default function PublicCard() {
       </div>
 
       <div className="relative h-[45vh] w-full shrink-0">
-        <img 
-          src={profile.imageUrl} 
-          alt={profile.name} 
-          className="w-full h-full object-cover select-none" 
-          draggable="false"
-          style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
-        />
+        <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent pointer-events-none"></div>
         
         <div 
           onClick={handleLogoClick}
-          className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm cursor-pointer transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
+          className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
         >
-          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0 select-none" draggable="false" />
+          <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
           <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
             KinTag
           </span>
         </div>
 
-        <button 
-          onClick={() => setIsImageEnlarged(true)} 
-          className="absolute top-5 right-5 z-20 w-[36px] h-[36px] flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white rounded-full hover:bg-black/40 transition shadow-sm" 
-          title="View Full Image"
-        >
-          <Maximize2 size={16} />
+        {/* 🌟 DISABLED: Image Maximize in Preview */}
+        <button onClick={() => { if(!isPreview) setIsImageEnlarged(true); }} className={`absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full transition z-20 ${isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/50'}`} title="View Full Image">
+          <Maximize2 size={18} />
         </button>
       </div>
       
@@ -400,62 +397,95 @@ export default function PublicCard() {
                       {contact.tag === 'Other' ? contact.customTag : contact.tag}
                     </span>
                   </div>
-                  <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">
-                    {contact.countryCode ? `${contact.countryCode} ` : ''}{contact.phone}
-                  </p>
+                  <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">{contact.phone}</p>
                 </div>
-                <a href={`tel:${contact.countryCode || ''}${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
-                  <Phone size={16} fill="currentColor" />
-                </a>
+                {/* 🌟 DISABLED: Contact Phone Links in Preview */}
+                {isPreview ? (
+                  <div className="bg-brandDark text-white p-3 rounded-full opacity-50 cursor-not-allowed shadow-sm">
+                    <Phone size={16} fill="currentColor" />
+                  </div>
+                ) : (
+                  <a href={`tel:${contact.countryCode || ''}${contact.phone}`} className="bg-brandDark text-white p-3 rounded-full hover:bg-brandAccent transition shadow-sm">
+                    <Phone size={16} fill="currentColor" />
+                  </a>
+                )}
               </div>
             ))}
           </div>
         </div>
 
         <div className="flex justify-center pb-6">
-          <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-zinc-200/50 px-4 py-2 rounded-full shadow-sm hover:bg-white transition-all group">
-            <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider group-hover:text-brandGold transition-colors">Secured by</span>
-            <div className="flex items-center space-x-1.5">
-              <img src="/kintag-logo.png" className="w-4 h-4 rounded" alt="Logo" />
-              <span className="text-brandDark font-extrabold text-xs tracking-tight">KinTag</span>
+          {/* 🌟 DISABLED: Logo link in Preview */}
+          {isPreview ? (
+            <div className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-zinc-200/50 px-4 py-2 rounded-full shadow-sm opacity-70 cursor-not-allowed">
+              <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Secured by</span>
+              <div className="flex items-center space-x-1.5">
+                <img src="/kintag-logo.png" className="w-4 h-4 rounded" alt="Logo" />
+                <span className="text-brandDark font-extrabold text-xs tracking-tight">KinTag</span>
+              </div>
             </div>
-          </a>
+          ) : (
+            <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-zinc-200/50 px-4 py-2 rounded-full shadow-sm hover:bg-white transition-all group">
+              <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider group-hover:text-brandGold transition-colors">Secured by</span>
+              <div className="flex items-center space-x-1.5">
+                <img src="/kintag-logo.png" className="w-4 h-4 rounded" alt="Logo" />
+                <span className="text-brandDark font-extrabold text-xs tracking-tight">KinTag</span>
+              </div>
+            </a>
+          )}
         </div>
 
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
-        <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
-          <Phone size={20} />
-          <span className="truncate">Call {primaryContact.name} (Emergency)</span>
-        </a>
+        {/* 🌟 DISABLED: Primary Emergency Phone in Preview */}
+        {isPreview ? (
+          <div className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg opacity-50 cursor-not-allowed">
+            <Phone size={20} />
+            <span className="truncate">Call {primaryContact.name} (Emergency)</span>
+          </div>
+        ) : (
+          <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg hover:bg-brandAccent transition-colors">
+            <Phone size={20} />
+            <span className="truncate">Call {primaryContact.name} (Emergency)</span>
+          </a>
+        )}
+
         <div className="flex gap-2">
-          <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-1.5 bg-zinc-100 text-brandDark py-3 px-3 rounded-2xl font-extrabold shadow-sm border border-zinc-200 hover:bg-zinc-200 transition-colors">
-            <MapPin size={16} className="shrink-0" />
-            <span className="text-xs truncate tracking-tight">Navigate Home</span>
-          </a>
-          <a href={`tel:${helplineNumber}`} className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/10 text-brandGold py-1.5 px-2 rounded-2xl font-bold border border-brandGold/20 hover:bg-brandGold/20 transition-colors">
-            <AlertTriangle size={16} className="mb-0.5" />
-            <span className="text-[9px] text-center leading-tight tracking-wider uppercase">{helplineText}</span>
-          </a>
+          {/* 🌟 DISABLED: Google Maps link in Preview */}
+          {isPreview ? (
+            <div className="flex-1 flex items-center justify-center space-x-1.5 bg-zinc-100 text-brandDark py-3 px-3 rounded-2xl font-extrabold shadow-sm border border-zinc-200 opacity-50 cursor-not-allowed">
+              <MapPin size={16} className="shrink-0" />
+              <span className="text-xs truncate tracking-tight">Navigate Home</span>
+            </div>
+          ) : (
+            <a href={googleMapsUrl} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center space-x-1.5 bg-zinc-100 text-brandDark py-3 px-3 rounded-2xl font-extrabold shadow-sm border border-zinc-200 hover:bg-zinc-200 transition-colors">
+              <MapPin size={16} className="shrink-0" />
+              <span className="text-xs truncate tracking-tight">Navigate Home</span>
+            </a>
+          )}
+
+          {/* 🌟 DISABLED: Helpline link in Preview */}
+          {isPreview ? (
+            <div className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/10 text-brandGold py-1.5 px-2 rounded-2xl font-bold border border-brandGold/20 opacity-50 cursor-not-allowed">
+              <AlertTriangle size={16} className="mb-0.5" />
+              <span className="text-[9px] text-center leading-tight tracking-wider uppercase">{helplineText}</span>
+            </div>
+          ) : (
+            <a href={`tel:${helplineNumber}`} className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/10 text-brandGold py-1.5 px-2 rounded-2xl font-bold border border-brandGold/20 hover:bg-brandGold/20 transition-colors">
+              <AlertTriangle size={16} className="mb-0.5" />
+              <span className="text-[9px] text-center leading-tight tracking-wider uppercase">{helplineText}</span>
+            </a>
+          )}
         </div>
       </div>
 
-      {isImageEnlarged && (
+      {isImageEnlarged && !isPreview && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 flex items-center justify-center p-4 backdrop-blur-lg">
-          <button 
-            onClick={() => setIsImageEnlarged(false)} 
-            className="absolute top-5 right-5 z-[110] w-[36px] h-[36px] flex items-center justify-center bg-black/20 backdrop-blur-sm border border-white/10 text-white rounded-full hover:bg-black/40 transition shadow-sm"
-          >
-            <X size={20} />
+          <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 rounded-full transition">
+            <X size={24} />
           </button>
-          <img 
-            src={profile.imageUrl} 
-            alt={profile.name} 
-            className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl select-none pointer-events-none" 
-            draggable="false"
-            style={{ WebkitTouchCallout: 'none', WebkitUserSelect: 'none' }}
-          />
+          <img src={profile.imageUrl} alt={profile.name} className="max-w-full max-h-[90vh] object-contain rounded-2xl shadow-2xl" />
         </div>
       )}
     </div>
