@@ -9,7 +9,6 @@ export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  // 🌟 NEW: Track if the user is currently typing in the password field
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState(''); 
@@ -99,7 +98,7 @@ export default function Login() {
     }
   };
 
-  // 🌟 NEW: Live Password Validation Logic
+  // Live Password Validation Logic
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -120,7 +119,7 @@ export default function Login() {
   );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-50 p-4">
+    <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-50 p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-premium p-8 border border-zinc-100">
         <div className="text-center mb-8">
           <div className="flex items-center justify-center space-x-3 mb-4">
@@ -148,17 +147,16 @@ export default function Login() {
               type={showPassword ? "text" : "password"} 
               placeholder={isLogin ? "Password" : "Create a Password (max 16)"} 
               required 
-              maxLength={16} // 🌟 NEW: Restricts input to 16 characters
+              maxLength={16}
               value={password} 
               onChange={(e) => setPassword(e.target.value)} 
               onFocus={() => setIsPasswordFocused(true)}
-              // 🌟 NEW: 200ms delay on blur allows the "Create Account" button click to register before it slides up!
               onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
               className="w-full p-3.5 pr-12 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" 
             />
             <button 
               type="button" 
-              onMouseDown={(e) => e.preventDefault()} // Prevents the input from blurring when clicking the eye icon!
+              onMouseDown={(e) => e.preventDefault()} 
               onClick={() => setShowPassword(!showPassword)} 
               className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors"
             >
@@ -166,7 +164,7 @@ export default function Login() {
             </button>
           </div>
 
-          {/* 🌟 NEW: Animated Password Strength Indicator Block */}
+          {/* Animated Password Strength Indicator Block */}
           {!isLogin && (
             <div 
               className={`overflow-hidden transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)] ${
@@ -225,7 +223,7 @@ export default function Login() {
 
         <p className="text-center mt-8 text-sm text-zinc-600 font-medium">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
-          <button onClick={() => setIsLogin(!isLogin)} className="text-brandDark font-bold hover:text-brandGold transition-colors">
+          <button type="button" onClick={() => setIsLogin(!isLogin)} className="text-brandDark font-bold hover:text-brandGold transition-colors">
             {isLogin ? 'Sign Up' : 'Log In'}
           </button>
         </p>
