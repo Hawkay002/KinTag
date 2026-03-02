@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, CheckCircle2, PawPrint, User, Activity, Info } from 'lucide-react';
+import { Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud } from 'lucide-react';
 
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
@@ -115,21 +115,21 @@ export default function Home() {
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Who is KinTag for?</h2>
-            <p className="text-zinc-500 font-medium text-lg">Designed for the most vulnerable members of your family.</p>
+            <p className="text-zinc-500 font-medium text-lg">Designed specifically for the most vulnerable members of your family.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1">
               <PawPrint size={32} className="text-amber-500 mb-5" />
               <h3 className="text-xl font-extrabold text-brandDark mb-2">Pets & Animals</h3>
               <p className="text-zinc-500 font-medium mb-4">Easily share their microchip number, temperament, and diet restrictions instantly if they escape the yard.</p>
             </div>
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1">
               <User size={32} className="text-blue-500 mb-5" />
               <h3 className="text-xl font-extrabold text-brandDark mb-2">Children</h3>
-              <p className="text-zinc-500 font-medium mb-4">Perfect for amusement parks or field trips. Alert finders to non-verbal behaviors or severe allergies.</p>
+              <p className="text-zinc-500 font-medium mb-4">Perfect for amusement parks, crowded malls, or field trips. Alert finders to non-verbal behaviors or severe allergies.</p>
             </div>
-            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200">
+            <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1">
               <Activity size={32} className="text-pink-500 mb-5" />
               <h3 className="text-xl font-extrabold text-brandDark mb-2">Seniors & Medical</h3>
               <p className="text-zinc-500 font-medium mb-4">A critical safety net for elderly family members prone to wandering, detailing their medical conditions and primary caregivers.</p>
@@ -139,11 +139,11 @@ export default function Home() {
       </section>
 
       {/* FEATURES GRID */}
-      <section className="py-20 bg-white border-y border-zinc-100">
+      <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
             <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Smarter than a standard ID tag.</h2>
-            <p className="text-zinc-500 font-medium text-lg">Everything you need to bring them home safely, built right in.</p>
+            <p className="text-zinc-500 font-medium text-lg">Every feature is designed to bring them home safely and quickly.</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -163,6 +163,16 @@ export default function Home() {
               desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found."
             />
             <FeatureCard 
+              icon={<RefreshCw size={24} className="text-teal-500" />}
+              title="Dynamic Updates"
+              desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag."
+            />
+            <FeatureCard 
+              icon={<Battery size={24} className="text-orange-500" />}
+              title="Zero Battery Required"
+              desc="Unlike bulky GPS collars that constantly need charging, KinTag never dies. It utilizes the smartphone power of the finder."
+            />
+            <FeatureCard 
               icon={<Heart size={24} className="text-pink-500" />}
               title="Critical Medical Info"
               desc="Display crucial allergies, behavioral needs, temperament, and microchip IDs instantly to whoever finds them."
@@ -171,6 +181,11 @@ export default function Home() {
               icon={<QrCode size={24} className="text-purple-500" />}
               title="Custom Mobile IDs"
               desc="Generate beautiful, printable QR codes or program your own blank NFC tags using your KinTag dashboard."
+            />
+            <FeatureCard 
+              icon={<Cloud size={24} className="text-sky-500" />}
+              title="Cloud Synced"
+              desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device."
             />
             <FeatureCard 
               icon={<Shield size={24} className="text-zinc-700" />}
@@ -195,7 +210,7 @@ export default function Home() {
               <br/><br/>
               KinTag is a labor of love. It is lean, lightning-fast, and built strictly to do one thing perfectly: give parents and pet owners genuine peace of mind without the corporate bloat.
             </p>
-            <Link to="/login" className="inline-flex items-center justify-center bg-white text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 transition-all shadow-lg">
+            <Link to="/login" className="inline-flex items-center justify-center bg-white text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-105">
               Create Your Free Account
             </Link>
           </div>
@@ -203,32 +218,49 @@ export default function Home() {
       </section>
 
       {/* FAQ SECTION */}
-      <section className="py-20 bg-zinc-50 border-t border-zinc-100">
-        <div className="max-w-4xl mx-auto px-4 md:px-8">
-          <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-10 text-center">Frequently Asked Questions</h2>
+      <section className="py-24 bg-zinc-50 border-t border-zinc-100">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
+          <div className="text-center mb-16">
+            <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Frequently Asked Questions</h2>
+            <p className="text-zinc-500 font-medium text-lg">Everything you need to know about securing your family.</p>
+          </div>
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
-              <h4 className="font-extrabold text-brandDark mb-2">Does the finder need the app?</h4>
-              <p className="text-zinc-500 text-sm font-medium leading-relaxed">No! That is the magic of KinTag. The finder simply opens their standard phone camera, points it at the QR code, and it opens a standard webpage.</p>
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">Is there a monthly subscription fee?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to.</p>
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
-              <h4 className="font-extrabold text-brandDark mb-2">Can it track them in real-time?</h4>
-              <p className="text-zinc-500 text-sm font-medium leading-relaxed">KinTag is not a battery-powered GPS collar (which are heavy and require charging). It uses the GPS of the *finder's* phone to securely send you the location when scanned.</p>
+            
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">Does the finder need to download an app?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly.</p>
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
-              <h4 className="font-extrabold text-brandDark mb-2">Is my data secure?</h4>
-              <p className="text-zinc-500 text-sm font-medium leading-relaxed">Absolutely. Your account is secured by Google Firebase authentication, and you have complete control to edit or delete your profiles instantly.</p>
+            
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">Do I have to buy special tags directly from you?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself.</p>
             </div>
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-200">
-              <h4 className="font-extrabold text-brandDark mb-2">Can I print the tags myself?</h4>
-              <p className="text-zinc-500 text-sm font-medium leading-relaxed">Yes! You can download your high-resolution QR code directly from your dashboard and print it, or link it to blank NFC tags bought online.</p>
+            
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">What happens if the finder denies GPS access?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">KinTag uses a dual-layer alert system. Even if the finder taps "No" to sharing their exact GPS coordinates, our system performs a "Passive Scan" which grabs their general IP-based city/region and sends you an instant push notification anyway.</p>
+            </div>
+
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">What if I move or change my phone number?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved!</p>
+            </div>
+
+            <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md">
+              <h4 className="text-lg font-extrabold text-brandDark mb-3">Does the tag have a battery I need to charge?</h4>
+              <p className="text-zinc-500 font-medium leading-relaxed">No. Unlike bulky, heavy GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power.</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* SELF-HOST GUIDE */}
-      <section className="py-20 bg-white border-t border-zinc-100">
+      <section className="py-24 bg-white border-t border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center gap-10">
           <div className="flex-1 relative">
             <h2 className="text-3xl font-extrabold text-brandDark tracking-tight mb-4 flex items-center gap-3">
@@ -243,7 +275,7 @@ export default function Home() {
               <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Free to modify for personal use</li>
             </ul>
             
-            {/* 🌟 FIXED: Disabled Button + Animated Tooltip */}
+            {/* Disabled Button + Animated Tooltip */}
             <div className="relative inline-block">
               <button 
                 onClick={handleGithubClick}
@@ -256,7 +288,6 @@ export default function Home() {
                 <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in zoom-in-95 duration-200 flex items-center gap-1.5 whitespace-nowrap z-10">
                   <Info size={14} className="text-brandGold"/>
                   Source code coming soon!
-                  {/* Small pointer triangle pointing down */}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0 border-l-[6px] border-l-transparent border-r-[6px] border-r-transparent border-t-[6px] border-t-brandDark"></div>
                 </div>
               )}
@@ -299,7 +330,7 @@ export default function Home() {
 
 function FeatureCard({ icon, title, desc }) {
   return (
-    <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 hover:border-brandDark/20 transition-colors">
+    <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 hover:border-brandDark/20 transition-all hover:bg-white hover:shadow-md">
       <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm mb-5 border border-zinc-100">
         {icon}
       </div>
