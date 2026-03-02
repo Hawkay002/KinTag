@@ -3,7 +3,6 @@ import { db, auth } from '../firebase';
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Plus, X, MapPin, Loader2, Check } from 'lucide-react';
-// 🌟 NEW: Importing our optimized country codes list!
 import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
@@ -61,7 +60,6 @@ export default function EditCard() {
             temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
 
-          // 🌟 NEW: Graceful default fallback for profiles created before the country code update
           if (data.contacts && data.contacts.length > 0) {
             setContacts(data.contacts.map(c => ({
               ...c,
@@ -101,7 +99,6 @@ export default function EditCard() {
   };
 
   const addContact = () => {
-    // 🌟 NEW: Appends the default flag when a user adds a new secondary contact
     setContacts([...contacts, { id: Date.now().toString(), name: '', phone: '', countryCode: '+1', countryIso: 'us', tag: 'Other', customTag: '' }]);
   };
 
@@ -375,7 +372,7 @@ export default function EditCard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
                     
-                    {/* 🌟 NEW: Premium invisible FlagCDN Dropdown Row */}
+                    {/* 🌟 THE FIX: Single synchronized state update */}
                     <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
                       <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
                         <img src={`https://flagcdn.com/w20/${contact.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
@@ -384,8 +381,9 @@ export default function EditCard() {
                           value={`${contact.countryCode || '+1'}|${contact.countryIso || 'us'}`}
                           onChange={(e) => {
                             const [code, iso] = e.target.value.split('|');
-                            handleContactChange(contact.id, 'countryCode', code);
-                            handleContactChange(contact.id, 'countryIso', iso);
+                            setContacts(prevContacts => prevContacts.map(c => 
+                              c.id === contact.id ? { ...c, countryCode: code, countryIso: iso } : c
+                            ));
                           }}
                           className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                         >
