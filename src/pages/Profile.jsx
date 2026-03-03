@@ -3,7 +3,8 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon } from 'lucide-react';
+// 🌟 FIXED: Added the missing 'X' icon import that was crashing the page!
+import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X } from 'lucide-react';
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -31,14 +32,20 @@ export default function Profile() {
       if (!auth.currentUser) return;
       try {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
+        // 🌟 FIXED: Fallback to the user's UID if familyId doesn't exist yet (prevents invite bug)
+        let activeFamilyId = auth.currentUser.uid; 
+
         if (userDoc.exists()) {
           const data = userDoc.data();
-          setUserData(data);
-          
-          const familyQuery = query(collection(db, "users"), where("familyId", "==", data.familyId));
-          const familySnaps = await getDocs(familyQuery);
-          setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+          activeFamilyId = data.familyId || auth.currentUser.uid;
+          setUserData({ ...data, familyId: activeFamilyId });
+        } else {
+          setUserData({ name: '', familyId: activeFamilyId });
         }
+        
+        const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
+        const familySnaps = await getDocs(familyQuery);
+        setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
       } catch (err) {
         console.error(err);
       } finally {
@@ -69,18 +76,21 @@ export default function Profile() {
     setError('');
     setSuccess('');
     
-    // Primary User + Max 5 Invites = 6 total members
-    const invitedCount = familyMembers.filter(m => m.id !== userData.familyId).length;
+    // 🌟 FIXED: Ensure we always have an ID to use
+    const currentFamilyId = userData?.familyId || auth.currentUser.uid;
+    
+    const invitedCount = familyMembers.filter(m => m.id !== currentFamilyId).length;
     if (invitedCount >= 5) {
       return setError("You have reached the maximum of 5 co-guardians.");
     }
-    if (!inviteEmail || !userData?.familyId) return;
+    
+    if (!inviteEmail) return;
 
     setInviteLoading(true);
     try {
       await setDoc(doc(db, "invites", inviteEmail.toLowerCase()), {
-        familyId: userData.familyId,
-        invitedBy: userData.name || auth.currentUser.email,
+        familyId: currentFamilyId,
+        invitedBy: userData?.name || auth.currentUser.email,
         inviteEmail: inviteEmail.toLowerCase(),
         inviterUid: auth.currentUser.uid,
         status: 'pending',
@@ -89,18 +99,20 @@ export default function Profile() {
 
       const link = `${window.location.origin}/#/signup?email=${encodeURIComponent(inviteEmail.toLowerCase())}`;
       
-      // 🌟 Native OS Sharing Logic
       if (navigator.share) {
         try {
           await navigator.share({
             title: 'KinTag Co-Guardian Invite',
-            text: `${userData.name || 'A family member'} invited you to co-manage their KinTag profiles.`,
+            text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`,
             url: link
           });
           setSuccess("Invite sent successfully!");
         } catch (shareErr) {
-          navigator.clipboard.writeText(link);
-          setSuccess("Invite link copied to clipboard!");
+          // If the user cancels the share sheet, just copy it instead of throwing an error
+          if (shareErr.name !== 'AbortError') {
+             navigator.clipboard.writeText(link);
+             setSuccess("Invite link copied to clipboard!");
+          }
         }
       } else {
         navigator.clipboard.writeText(link);
@@ -110,6 +122,7 @@ export default function Profile() {
       setInviteEmail('');
     } catch (err) {
       setError("Failed to send invite. Please try again.");
+      console.error(err);
     } finally {
       setInviteLoading(false);
     }
@@ -146,7 +159,8 @@ export default function Profile() {
 
   if (loading) return <div className="min-h-screen bg-zinc-50 flex items-center justify-center font-bold text-zinc-500">Loading Profile...</div>;
 
-  const invitedGuardians = familyMembers.filter(m => m.id !== userData?.familyId);
+  const currentFamilyId = userData?.familyId || auth.currentUser?.uid;
+  const invitedGuardians = familyMembers.filter(m => m.id !== currentFamilyId);
 
   return (
     <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative">
@@ -157,10 +171,9 @@ export default function Profile() {
           <span>Back to Dashboard</span>
         </button>
 
-        {/* 🌟 Profile Card */}
+        {/* Profile Card */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 mb-8 text-center relative">
           
-          {/* 🌟 FIXED: Moved Logout to Top Right */}
           <button 
             onClick={handleLogout} 
             className="absolute top-6 right-6 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-colors shadow-sm"
@@ -183,13 +196,14 @@ export default function Profile() {
                   className="px-3 py-1.5 border border-zinc-300 rounded-lg outline-none focus:border-brandDark text-lg font-bold text-center"
                   autoFocus
                 />
-                <button onClick={handleSaveName} className="bg-brandDark text-white px-3 py-1.5 rounded-lg font-bold text-sm">Save</button>
-                <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600"><X size={18}/></button>
+                <button onClick={handleSaveName} className="bg-brandDark text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-brandAccent transition">Save</button>
+                {/* 🌟 This is the X that was causing the crash! */}
+                <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-100 p-1.5 rounded-lg transition"><X size={18}/></button>
               </div>
             ) : (
               <>
                 <h1 className="text-3xl font-extrabold text-brandDark tracking-tight">{userData?.name || 'Guardian'}</h1>
-                <button onClick={() => { setEditNameValue(userData?.name || ''); setIsEditingName(true); }} className="text-zinc-400 hover:text-brandGold transition-colors">
+                <button onClick={() => { setEditNameValue(userData?.name || ''); setIsEditingName(true); }} className="text-zinc-400 hover:text-brandGold transition-colors" title="Edit Name">
                   <Edit2 size={16} />
                 </button>
               </>
@@ -246,7 +260,7 @@ export default function Profile() {
                     <p className="text-xs text-zinc-500 font-medium">{member.email}</p>
                   </div>
                 </div>
-                {member.id === userData?.familyId && (
+                {member.id === currentFamilyId && (
                   <span className="text-[10px] font-extrabold bg-brandGold/20 text-brandGold px-2 py-1 rounded-md uppercase tracking-widest">Primary</span>
                 )}
               </div>
@@ -254,7 +268,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* 🌟 NEW: Danger Zone for Account Deletion */}
+        {/* Danger Zone for Account Deletion */}
         <div className="bg-red-50/50 rounded-3xl border border-red-100 p-8">
           <div className="flex items-center gap-3 mb-2">
             <AlertOctagon size={24} className="text-red-500" />
