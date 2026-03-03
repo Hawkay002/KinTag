@@ -3,7 +3,6 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
-// 🌟 FIXED: Added the missing 'X' icon import that was crashing the page!
 import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X } from 'lucide-react';
 
 export default function Profile() {
@@ -32,7 +31,6 @@ export default function Profile() {
       if (!auth.currentUser) return;
       try {
         const userDoc = await getDoc(doc(db, "users", auth.currentUser.uid));
-        // 🌟 FIXED: Fallback to the user's UID if familyId doesn't exist yet (prevents invite bug)
         let activeFamilyId = auth.currentUser.uid; 
 
         if (userDoc.exists()) {
@@ -76,18 +74,17 @@ export default function Profile() {
     setError('');
     setSuccess('');
     
-    // 🌟 FIXED: Ensure we always have an ID to use
     const currentFamilyId = userData?.familyId || auth.currentUser.uid;
-    
     const invitedCount = familyMembers.filter(m => m.id !== currentFamilyId).length;
+    
     if (invitedCount >= 5) {
       return setError("You have reached the maximum of 5 co-guardians.");
     }
-    
     if (!inviteEmail) return;
 
     setInviteLoading(true);
     try {
+      // 1. Save Invite to Database
       await setDoc(doc(db, "invites", inviteEmail.toLowerCase()), {
         familyId: currentFamilyId,
         invitedBy: userData?.name || auth.currentUser.email,
@@ -98,7 +95,9 @@ export default function Profile() {
       });
 
       const link = `${window.location.origin}/#/signup?email=${encodeURIComponent(inviteEmail.toLowerCase())}`;
+      let sharedNative = false;
       
+      // 2. Try Native Phone Sharing (WhatsApp, Messages, etc)
       if (navigator.share) {
         try {
           await navigator.share({
@@ -106,23 +105,32 @@ export default function Profile() {
             text: `${userData?.name || 'A family member'} invited you to co-manage their KinTag profiles.`,
             url: link
           });
+          sharedNative = true;
           setSuccess("Invite sent successfully!");
         } catch (shareErr) {
-          // If the user cancels the share sheet, just copy it instead of throwing an error
-          if (shareErr.name !== 'AbortError') {
-             navigator.clipboard.writeText(link);
-             setSuccess("Invite link copied to clipboard!");
-          }
+          // If user cancels the share sheet, we ignore the error and move to clipboard
         }
-      } else {
-        navigator.clipboard.writeText(link);
-        setSuccess("Invite link copied to clipboard!");
+      } 
+      
+      // 3. Fallback to Clipboard Copy
+      if (!sharedNative) {
+        try {
+          await navigator.clipboard.writeText(link);
+          setSuccess("Invite link copied to clipboard!");
+        } catch (clipErr) {
+          setSuccess("Invite saved! Ask them to sign up with that exact email.");
+        }
       }
       
       setInviteEmail('');
     } catch (err) {
-      setError("Failed to send invite. Please try again.");
-      console.error(err);
+      console.error("Invite Error: ", err);
+      // 🌟 Expose Firebase Rules error directly to the user
+      if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
+        setError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
+      } else {
+        setError(err.message || "Failed to send invite. Please try again.");
+      }
     } finally {
       setInviteLoading(false);
     }
@@ -134,16 +142,12 @@ export default function Profile() {
     setError('');
 
     try {
-      // 1. Delete all profiles owned by this user
       const qProfiles = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
       const snaps = await getDocs(qProfiles);
       for (const d of snaps.docs) {
         await deleteDoc(d.ref);
       }
-      // 2. Delete user document
       await deleteDoc(doc(db, "users", auth.currentUser.uid));
-      
-      // 3. Delete Auth Account
       await auth.currentUser.delete();
       navigate('/login');
 
@@ -197,7 +201,6 @@ export default function Profile() {
                   autoFocus
                 />
                 <button onClick={handleSaveName} className="bg-brandDark text-white px-3 py-1.5 rounded-lg font-bold text-sm hover:bg-brandAccent transition">Save</button>
-                {/* 🌟 This is the X that was causing the crash! */}
                 <button onClick={() => setIsEditingName(false)} className="text-zinc-400 hover:text-zinc-600 bg-zinc-100 p-1.5 rounded-lg transition"><X size={18}/></button>
               </div>
             ) : (
@@ -224,8 +227,8 @@ export default function Profile() {
           </p>
 
           {error && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{error}</div>}
-          {success && <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center gap-2">
-            <CheckCircle2 size={18} /> {success}
+          {success && <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2"><CheckCircle2 size={18} /> {success}</span>
           </div>}
 
           {invitedGuardians.length < 5 && (
