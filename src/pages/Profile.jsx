@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; // 🌟 Added addDoc
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X } from 'lucide-react';
+// 🌟 Added Trash2 icon to remove users
+import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2 } from 'lucide-react'; 
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -84,7 +85,6 @@ export default function Profile() {
 
     setInviteLoading(true);
     try {
-      // 1. Save Invite to Database
       await setDoc(doc(db, "invites", inviteEmail.toLowerCase()), {
         familyId: currentFamilyId,
         invitedBy: userData?.name || auth.currentUser.email,
@@ -97,7 +97,6 @@ export default function Profile() {
       const link = `${window.location.origin}/#/signup?email=${encodeURIComponent(inviteEmail.toLowerCase())}`;
       let sharedNative = false;
       
-      // 2. Try Native Phone Sharing (WhatsApp, Messages, etc)
       if (navigator.share) {
         try {
           await navigator.share({
@@ -108,11 +107,10 @@ export default function Profile() {
           sharedNative = true;
           setSuccess("Invite sent successfully!");
         } catch (shareErr) {
-          // If user cancels the share sheet, we ignore the error and move to clipboard
+          // If user cancels the share sheet, we ignore the error
         }
       } 
       
-      // 3. Fallback to Clipboard Copy
       if (!sharedNative) {
         try {
           await navigator.clipboard.writeText(link);
@@ -125,7 +123,6 @@ export default function Profile() {
       setInviteEmail('');
     } catch (err) {
       console.error("Invite Error: ", err);
-      // 🌟 Expose Firebase Rules error directly to the user
       if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
         setError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
       } else {
@@ -133,6 +130,34 @@ export default function Profile() {
       }
     } finally {
       setInviteLoading(false);
+    }
+  };
+
+  // 🌟 NEW: Securely Remove a Co-Guardian
+  const handleRemoveGuardian = async (member) => {
+    if (!window.confirm(`Are you sure you want to remove ${member.name || member.email} as a Co-Guardian? They will lose access to all your profiles instantly.`)) return;
+    
+    try {
+      // 1. Reset their database connection so they no longer fetch your cards
+      await updateDoc(doc(db, "users", member.id), { familyId: member.id });
+
+      // 2. Delete their original invite document to prevent weird looping bugs
+      await deleteDoc(doc(db, "invites", member.email.toLowerCase()));
+
+      // 3. Drop a notification for yourself so you have a record
+      await addDoc(collection(db, "scans"), {
+        familyId: userData?.familyId || auth.currentUser.uid,
+        type: 'invite_response',
+        profileName: 'Family Update',
+        message: `${member.name || member.email} was securely removed from your family dashboard.`,
+        timestamp: new Date().toISOString()
+      });
+
+      // 4. Update the screen visually!
+      setFamilyMembers(prev => prev.filter(m => m.id !== member.id));
+      setSuccess(`${member.name || member.email} was removed successfully.`);
+    } catch (err) {
+      setError("Failed to remove guardian: " + err.message);
     }
   };
 
@@ -255,16 +280,25 @@ export default function Profile() {
             {familyMembers.map((member) => (
               <div key={member.id} className="flex items-center justify-between bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-200 text-zinc-500 shadow-sm">
+                  <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center border border-zinc-200 text-zinc-500 shadow-sm shrink-0">
                     <User size={18} />
                   </div>
                   <div>
-                    <p className="font-bold text-brandDark">{member.name || 'Guardian'}</p>
-                    <p className="text-xs text-zinc-500 font-medium">{member.email}</p>
+                    <p className="font-bold text-brandDark truncate">{member.name || 'Guardian'}</p>
+                    <p className="text-xs text-zinc-500 font-medium truncate">{member.email}</p>
                   </div>
                 </div>
-                {member.id === currentFamilyId && (
-                  <span className="text-[10px] font-extrabold bg-brandGold/20 text-brandGold px-2 py-1 rounded-md uppercase tracking-widest">Primary</span>
+                
+                {member.id === currentFamilyId ? (
+                  <span className="text-[10px] font-extrabold bg-brandGold/20 text-brandGold px-2 py-1 rounded-md uppercase tracking-widest shrink-0">Primary</span>
+                ) : (
+                  auth.currentUser?.uid === currentFamilyId ? (
+                     <button onClick={() => handleRemoveGuardian(member)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0" title="Remove Guardian">
+                        <Trash2 size={16} />
+                     </button>
+                  ) : (
+                     <span className="text-[10px] font-extrabold bg-zinc-200 text-zinc-500 px-2 py-1 rounded-md uppercase tracking-widest shrink-0">Co-Guardian</span>
+                  )
                 )}
               </div>
             ))}
