@@ -1,12 +1,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { db, auth, messaging } from '../firebase'; 
-import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot } from 'firebase/firestore'; 
+import { collection, query, where, getDocs, getDoc, doc, deleteDoc, setDoc, onSnapshot, updateDoc } from 'firebase/firestore'; 
 import { getToken } from 'firebase/messaging'; 
-import { signOut } from 'firebase/auth';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
-import { Plus, LogOut, QrCode, User, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff } from 'lucide-react';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -41,21 +40,13 @@ const getComputedAge = (profile) => {
   };
 };
 
-// 🌟 NEW: Dashboard specific Markdown parser (Uses white text styling for the dark mode cards)
 const renderFormattedTextDark = (text) => {
   if (!text) return null;
   return text.split('\n').map((line, i) => {
     const isBullet = line.trim().startsWith('-');
     let content = isBullet ? line.substring(line.indexOf('-') + 1).trim() : line;
-    
-    let htmlContent = content
-      .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-      .replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
-      
-    if (isBullet) {
-      return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
-    }
+    let htmlContent = content.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\*\*(.*?)\*\*/g, '<strong class="font-extrabold text-white">$1</strong>').replace(/\*(.*?)\*/g, '<em class="italic text-white/90">$1</em>');
+    if (isBullet) return <li key={i} className="ml-5 list-disc marker:text-brandGold pl-1 mb-1" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
     return <p key={i} className="mb-2 last:mb-0 min-h-[1rem]" dangerouslySetInnerHTML={{ __html: htmlContent }} />;
   });
 };
@@ -69,18 +60,17 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
-  
   const [scanToDelete, setScanToDelete] = useState(null);
   
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [showSoftAskModal, setShowSoftAskModal] = useState(false);
   const [showNotifCenter, setShowNotifCenter] = useState(false);
   const [notifTab, setNotifTab] = useState('personal'); 
-
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
-
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
   const [lastViewedSystem, setLastViewedSystem] = useState(null);
+
+  const [userFamilyId, setUserFamilyId] = useState(null);
 
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad = useRef(true);
@@ -91,7 +81,7 @@ export default function Dashboard() {
   const playChime = () => {
     try {
       const audio = new Audio('/chime.mp3');
-      audio.play().catch(e => console.log("Audio prevented by browser or file missing:", e));
+      audio.play().catch(e => console.log("Audio prevented:", e));
     } catch (err) {}
   };
 
@@ -106,6 +96,7 @@ export default function Dashboard() {
     }
   }, []);
 
+  // 🌟 Auto-Migration & Setup Listeners
   useEffect(() => {
     if (!currentUser) return;
 
@@ -115,20 +106,46 @@ export default function Dashboard() {
       try {
         const userDocRef = doc(db, "users", currentUser.uid);
         const userDoc = await getDoc(userDocRef);
+        let currentFamilyId = currentUser.uid;
+
         if (userDoc.exists()) {
           const data = userDoc.data();
           if (data.lastViewedPersonal) setLastViewedPersonal(data.lastViewedPersonal);
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
+          currentFamilyId = data.familyId || currentUser.uid;
+        } else {
+          // Fallback legacy user creation
+          await setDoc(userDocRef, { email: currentUser.email, familyId: currentUser.uid }, { merge: true });
         }
+        
+        setUserFamilyId(currentFamilyId);
 
-        const qProfiles = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
+        // 🌟 Auto-Migrate Legacy Profiles to Family Sharing
+        const legacyProfilesQuery = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
+        const legacySnaps = await getDocs(legacyProfilesQuery);
+        legacySnaps.forEach(async (d) => {
+           const data = d.data();
+           if (!data.familyId || data.isActive === undefined) {
+             await updateDoc(doc(db, "profiles", d.id), { familyId: currentFamilyId, isActive: data.isActive !== undefined ? data.isActive : true });
+           }
+        });
+
+        // 🌟 Auto-Migrate Legacy Scans
+        const legacyScansQuery = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
+        const legacyScanSnaps = await getDocs(legacyScansQuery);
+        legacyScanSnaps.forEach(async (d) => {
+           if (!d.data().familyId) await updateDoc(doc(db, "scans", d.id), { familyId: currentFamilyId });
+        });
+
+        // LIVE LISTENERS BY FAMILY ID
+        const qProfiles = query(collection(db, "profiles"), where("familyId", "==", currentFamilyId));
         unsubProfiles = onSnapshot(qProfiles, (snap) => {
           const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
           setProfiles(fetchedProfiles);
         });
 
-        const qScans = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
+        const qScans = query(collection(db, "scans"), where("familyId", "==", currentFamilyId));
         unsubScans = onSnapshot(qScans, (snap) => {
           if (!isInitialScansLoad.current) {
             let hasNew = false;
@@ -156,7 +173,7 @@ export default function Dashboard() {
 
         setLoading(false);
       } catch (error) {
-        console.error("Error setting up live listeners:", error);
+        console.error("Error setting up listeners:", error);
         setLoading(false);
       }
     };
@@ -173,7 +190,6 @@ export default function Dashboard() {
   useEffect(() => {
     const markAsRead = async () => {
       if (!currentUser || !showNotifCenter) return;
-
       if (notifTab === 'personal' && scans.length > 0) {
         const latestTimestamp = getISO(scans[0].timestamp);
         if (lastViewedPersonal !== latestTimestamp) {
@@ -181,7 +197,6 @@ export default function Dashboard() {
           await setDoc(doc(db, "users", currentUser.uid), { lastViewedPersonal: latestTimestamp }, { merge: true });
         }
       }
-
       if (notifTab === 'system' && systemMessages.length > 0) {
         const latestTimestamp = getISO(systemMessages[0].timestamp);
         if (lastViewedSystem !== latestTimestamp) {
@@ -193,17 +208,11 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    navigate('/login');
-  };
-
   const handleEnableAlertsClick = () => {
     if (!('Notification' in window)) {
       showMessage("Not Supported", "Your browser does not support notifications.", "error");
       return;
     }
-    
     if (Notification.permission === 'granted') {
       processNotificationPermission();
     } else if (Notification.permission === 'denied') {
@@ -220,22 +229,14 @@ export default function Dashboard() {
       const permission = await Notification.requestPermission();
       if (permission === 'granted') {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
-        
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
           swRegistration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
           swRegistration = await navigator.serviceWorker.ready; 
         }
-
-        const currentToken = await getToken(messaging, { 
-          vapidKey,
-          serviceWorkerRegistration: swRegistration 
-        });
-
+        const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swRegistration });
         if (currentToken) {
-          await setDoc(doc(db, "users", currentUser.uid), {
-            fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString()
-          }, { merge: true }); 
+          await setDoc(doc(db, "users", currentUser.uid), { fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString() }, { merge: true }); 
           showMessage("Connected!", "Your device is now securely connected to Emergency Alerts.", "success");
         }
       } else {
@@ -248,23 +249,12 @@ export default function Dashboard() {
     }
   };
 
-  const extractPublicId = (url) => {
-    if (!url || url.includes('placehold.co')) return null;
-    const regex = /\/v\d+\/([^\.]+)/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-  };
-
   const confirmDelete = async () => {
     if (!profileToDelete) return;
     try {
-      const publicId = extractPublicId(profileToDelete.imageUrl);
-      if (publicId) {
-        await fetch('/api/delete-image', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ publicId }),
-        });
+      if (profileToDelete.imageUrl && !profileToDelete.imageUrl.includes('placehold.co')) {
+        const match = profileToDelete.imageUrl.match(/\/v\d+\/([^\.]+)/);
+        if (match) await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicId: match[1] }) });
       }
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
@@ -281,10 +271,18 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "scans", scanToDelete));
       setScans(scans.filter(s => s.id !== scanToDelete)); 
     } catch (error) {
-      console.error(error);
       showMessage("Error", "Failed to delete notification.", "error");
     } finally {
       setScanToDelete(null); 
+    }
+  };
+
+  // 🌟 NEW: Toggle Profile Active/Inactive
+  const toggleProfileStatus = async (profileId, currentStatus) => {
+    try {
+      await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
+    } catch (error) {
+      showMessage("Error", "Failed to change profile status.", "error");
     }
   };
 
@@ -300,9 +298,7 @@ export default function Dashboard() {
 
       canvas.width = W * pixelScale;
       canvas.height = H * pixelScale; 
-      
       ctx.scale(pixelScale, pixelScale);
-      
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = 'high';
 
@@ -367,7 +363,6 @@ export default function Dashboard() {
 
       ctx.fillStyle = '#fbbf24'; 
       ctx.font = 'bold 28px sans-serif';
-      
       const ageInfo = getComputedAge(profile);
       const infoText = `${profile.typeSpecific || 'Family Member'}  •  ${ageInfo.value} ${ageInfo.fullLabel}`;
       ctx.fillText(infoText.toUpperCase(), 65, textBaseY);
@@ -375,7 +370,6 @@ export default function Dashboard() {
       if (profile.type === 'pet') {
         ctx.font = 'bold 24px sans-serif';
         let lineY = textBaseY + 38;
-        
         ctx.fillStyle = 'white';
         let label = "TEMPERAMENT - ";
         ctx.fillText(label, 65, lineY);
@@ -408,27 +402,20 @@ export default function Dashboard() {
         const boxSize = 600;
         const qrBoxX = (W - boxSize) / 2;
         const qrBoxY = imgHeight + 110; 
-
         ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
         ctx.shadowBlur = 40;
         ctx.shadowOffsetY = 15;
-
         const styleTheme = QR_STYLES[profile.qrStyle || 'obsidian'];
-        
         ctx.fillStyle = styleTheme.bg; 
         ctx.beginPath();
         ctx.roundRect(qrBoxX, qrBoxY, boxSize, boxSize, 60);
         ctx.fill();
-
         ctx.shadowColor = 'transparent';
-
         ctx.strokeStyle = styleTheme.hexBorder;
         ctx.lineWidth = 14;
         ctx.stroke();
-
         const padding = 40;
         const qrSize = boxSize - (padding * 2);
-        
         ctx.imageSmoothingEnabled = false;
         ctx.drawImage(qrCanvas, qrBoxX + padding, qrBoxY + padding, qrSize, qrSize);
         ctx.imageSmoothingEnabled = true; 
@@ -436,18 +423,15 @@ export default function Dashboard() {
 
       const textY = imgHeight + 110 + 600 + 90; 
       ctx.textAlign = 'center';
-      
       ctx.fillStyle = 'white';
       ctx.font = 'bold 45px sans-serif';
       ctx.fillText("Scan (if lost) for", W / 2, textY);
-
       ctx.fillStyle = 'rgba(255, 255, 255, 0.5)';
       ctx.font = 'bold 22px sans-serif';
       ctx.letterSpacing = "3px"; 
       ctx.fillText("EMERGENCY CONTACT, MEDICAL AND LOCATION", W / 2, textY + 55);
       ctx.fillText("INFO", W / 2, textY + 90);
       ctx.letterSpacing = "0px";
-
       ctx.fillStyle = 'rgba(255, 255, 255, 0.2)';
       ctx.font = 'bold 22px monospace';
       ctx.fillText(`ID: ${profile.id.slice(0,8).toUpperCase()}`, W / 2, H - 70);
@@ -456,7 +440,6 @@ export default function Dashboard() {
       link.download = `${profile.name}-Mobile-ID.png`;
       link.href = canvas.toDataURL('image/png', 1.0);
       link.click();
-
     } catch (e) {
       showMessage("Download Failed", "Could not generate image due to device restrictions. Please take a screenshot instead.", "error");
     } finally {
@@ -467,14 +450,8 @@ export default function Dashboard() {
   const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
-  const unreadPersonalCount = lastViewedPersonal 
-    ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length 
-    : scans.length;
-
-  const unreadSystemCount = lastViewedSystem 
-    ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length 
-    : systemMessages.length;
-
+  const unreadPersonalCount = lastViewedPersonal ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length : scans.length;
+  const unreadSystemCount = lastViewedSystem ? systemMessages.filter(msg => getTime(msg.timestamp) > new Date(lastViewedSystem).getTime()).length : systemMessages.length;
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0;
 
   const groupedScans = [];
@@ -483,19 +460,11 @@ export default function Dashboard() {
     const today = new Date();
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-
     let dateStr = dateObj.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
-    if (dateObj.toDateString() === today.toDateString()) {
-      dateStr = 'Today';
-    } else if (dateObj.toDateString() === yesterday.toDateString()) {
-      dateStr = 'Yesterday';
-    }
-
+    if (dateObj.toDateString() === today.toDateString()) dateStr = 'Today';
+    else if (dateObj.toDateString() === yesterday.toDateString()) dateStr = 'Yesterday';
     let group = groupedScans.find(g => g.date === dateStr);
-    if (!group) {
-      group = { date: dateStr, items: [] };
-      groupedScans.push(group);
-    }
+    if (!group) { group = { date: dateStr, items: [] }; groupedScans.push(group); }
     group.items.push(scan);
   });
 
@@ -511,13 +480,13 @@ export default function Dashboard() {
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
             <div className="flex-1">
               <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
-              <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">{currentUser?.email}</p>
+              <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">Family Dashboard</p>
             </div>
           </div>
           
-          <button onClick={handleLogout} className="flex items-center justify-center space-x-2 text-white bg-red-600 hover:bg-red-700 p-3 md:px-4 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
-            <LogOut size={18} />
-            <span className="hidden md:inline">Log Out</span>
+          <button onClick={() => navigate('/profile')} className="flex items-center justify-center space-x-2 text-white bg-brandDark hover:bg-brandAccent p-3 md:px-5 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
+            <User size={18} />
+            <span className="hidden md:inline">Profile & Family</span>
           </button>
         </div>
 
@@ -565,10 +534,13 @@ export default function Dashboard() {
             {filteredProfiles.map(profile => {
               const ageInfo = getComputedAge(profile);
               return (
-                <div key={profile.id} className="bg-white rounded-3xl overflow-hidden shadow-premium border border-zinc-100 transition-all hover:-translate-y-1 flex flex-col">
+                <div key={profile.id} className={`bg-white rounded-3xl overflow-hidden shadow-premium border transition-all hover:-translate-y-1 flex flex-col ${profile.isActive === false ? 'border-red-200 opacity-80 grayscale-[30%]' : 'border-zinc-100'}`}>
                   <div className="relative h-48 shrink-0">
                     <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
                     <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+                    {profile.isActive === false && (
+                      <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur text-white text-[10px] font-extrabold uppercase px-2 py-1 rounded-md tracking-widest">Disabled</div>
+                    )}
                     <div className="absolute bottom-4 left-4 right-4 text-white">
                       <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
                       <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
@@ -579,11 +551,14 @@ export default function Dashboard() {
                   </div>
                   
                   <div className="p-4 bg-white flex-1 flex flex-col justify-end">
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-1.5 bg-brandMuted hover:bg-zinc-200 text-brandDark py-2.5 rounded-xl font-bold text-sm transition-colors" title="View Public Card">
                         <Eye size={16} />
                         <span>View</span>
                       </Link>
+                      <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-2.5 rounded-xl transition-colors ${profile.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
+                        {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
+                      </button>
                       <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="Mobile ID & QR">
                         <Smartphone size={18} />
                       </button>
@@ -625,13 +600,7 @@ export default function Dashboard() {
             </div>
             <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">{customAlert.title}</h2>
             <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">{customAlert.message}</p>
-            <button 
-              onClick={() => {
-                if(customAlert.onClose) customAlert.onClose();
-                setCustomAlert({ ...customAlert, isOpen: false });
-              }} 
-              className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors"
-            >
+            <button onClick={() => { if(customAlert.onClose) customAlert.onClose(); setCustomAlert({ ...customAlert, isOpen: false }); }} className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors">
               Okay
             </button>
           </div>
@@ -668,15 +637,11 @@ export default function Dashboard() {
             <div className="flex border-b border-zinc-200 shrink-0">
               <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
                 Personal Scans
-                {unreadPersonalCount > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadPersonalCount}</span>
-                )}
+                {unreadPersonalCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadPersonalCount}</span>}
               </button>
               <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
                 System Updates
-                {unreadSystemCount > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadSystemCount}</span>
-                )}
+                {unreadSystemCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadSystemCount}</span>}
               </button>
             </div>
 
@@ -698,15 +663,7 @@ export default function Dashboard() {
                       <div className="space-y-3">
                         {group.items.map(scan => (
                           <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
-                            
-                            <button 
-                              onClick={() => setScanToDelete(scan.id)}
-                              className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"
-                              title="Delete Scan Record"
-                            >
-                              <Trash2 size={16} />
-                            </button>
-
+                            <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors" title="Delete Scan Record"><Trash2 size={16} /></button>
                             <div className="flex items-center justify-between mb-2 pr-10">
                               <span className="font-extrabold text-brandDark truncate">{scan.profileName} Scanned</span>
                               <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
@@ -743,14 +700,9 @@ export default function Dashboard() {
                       <div key={msg.id} className="bg-brandDark text-white p-5 rounded-2xl shadow-md border border-brandDark">
                         <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3">
                           <span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span>
-                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">
-                            {new Date(getTime(msg.timestamp)).toLocaleDateString()}
-                          </span>
+                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">{new Date(getTime(msg.timestamp)).toLocaleDateString()}</span>
                         </div>
-                        {/* 🌟 NEW: Renders the beautiful formatted text */}
-                        <div className="text-sm text-white/80 font-medium leading-relaxed">
-                          {renderFormattedTextDark(msg.body)}
-                        </div>
+                        <div className="text-sm text-white/80 font-medium leading-relaxed">{renderFormattedTextDark(msg.body)}</div>
                       </div>
                     ))}
                   </div>
@@ -764,25 +716,14 @@ export default function Dashboard() {
       {/* QR MODAL */}
       {qrModalProfile && (
         <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
-          
-          <button 
-            onClick={() => setQrModalProfile(null)} 
-            className="absolute top-4 right-4 md:fixed md:top-6 md:right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 md:p-3 rounded-full transition shadow-lg backdrop-blur-md"
-          >
-            <X size={24} />
-          </button>
-
+          <button onClick={() => setQrModalProfile(null)} className="absolute top-4 right-4 md:fixed md:top-6 md:right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 md:p-3 rounded-full transition shadow-lg backdrop-blur-md"><X size={24} /></button>
           <div className="max-w-sm w-full relative m-auto pt-16 pb-8 md:py-8">
             <div className="flex items-center justify-between gap-3 mb-5">
               <div className="text-left">
                  <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">Mobile ID</h2>
                  <p className="text-white/60 text-[10px] sm:text-xs font-medium mt-0.5 leading-snug">Download this card to save to your photos.</p>
               </div>
-              <button 
-                onClick={() => downloadFullPass(qrModalProfile)} 
-                disabled={downloading}
-                className="shrink-0 flex items-center justify-center space-x-1.5 bg-white text-brandDark px-4 py-2.5 rounded-xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50 text-sm"
-              >
+              <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="shrink-0 flex items-center justify-center space-x-1.5 bg-white text-brandDark px-4 py-2.5 rounded-xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50 text-sm">
                 {downloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
                 <span>{downloading ? 'Wait...' : 'Download ID'}</span>
               </button>
@@ -792,113 +733,66 @@ export default function Dashboard() {
               <div className="h-[45%] w-full relative shrink-0">
                 <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
-                
                 <div className="absolute top-5 left-5 flex items-center space-x-2 bg-black/30 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/10">
                    <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded" />
                    <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
                 </div>
-
                 <div className="absolute bottom-3 left-6 right-6">
                   <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
                   <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
-                     <span>{qrModalProfile.typeSpecific}</span>
-                     <span>•</span>
+                     <span>{qrModalProfile.typeSpecific}</span><span>•</span>
                      <span>{getComputedAge(qrModalProfile).value} {getComputedAge(qrModalProfile).label}</span>
                   </div>
-                  
-                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && (
-                    <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>
-                  )}
+                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>}
                   {qrModalProfile.type === 'pet' && (
                     <div className="space-y-0.5 mt-2">
-                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">
-                         Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span>
-                       </p>
-                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">
-                         Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span>
-                       </p>
-                       {qrModalProfile.microchip && (
-                         <p className="text-white text-[10px] font-bold uppercase tracking-wider">
-                           Microchip - <span className="text-brandGold">{qrModalProfile.microchip}</span>
-                         </p>
-                       )}
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span></p>
+                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span></p>
+                       {qrModalProfile.microchip && <p className="text-white text-[10px] font-bold uppercase tracking-wider">Microchip - <span className="text-brandGold">{qrModalProfile.microchip}</span></p>}
                     </div>
                   )}
-
                 </div>
               </div>
-
               <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
                 <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
-                  <QRCodeCanvas 
-                    id="qr-canvas-modal"
-                    value={`${window.location.origin}/#/id/${qrModalProfile.id}`} 
-                    size={1024} 
-                    style={{ width: '160px', height: '160px' }}
-                    level="H" 
-                    includeMargin={false} 
-                    fgColor={activeStyle.fg} 
-                    bgColor={activeStyle.bg} 
-                    imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} 
-                  />
+                  <QRCodeCanvas id="qr-canvas-modal" value={`${window.location.origin}/#/id/${qrModalProfile.id}`} size={1024} style={{ width: '160px', height: '160px' }} level="H" includeMargin={false} fgColor={activeStyle.fg} bgColor={activeStyle.bg} imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} />
                 </div>
-                
                 <div className="mt-5 text-center px-4">
                   <p className="text-white font-bold text-lg tracking-tight mb-1">Scan (if lost) for</p>
-                  <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">
-                    Emergency Contact, Medical and Location<br/>Info
-                  </p>
+                  <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">Emergency Contact, Medical and Location<br/>Info</p>
                 </div>
-                
-                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">
-                   ID: {qrModalProfile.id.slice(0,8).toUpperCase()}
-                </div>
+                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">ID: {qrModalProfile.id.slice(0,8).toUpperCase()}</div>
               </div>
             </div>
-
           </div>
         </div>
       )}
 
-      {/* DELETE PROFILE CONFIRMATION MODAL */}
+      {/* DELETE PROFILE MODAL */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
-              <AlertOctagon size={32} />
-            </div>
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5"><AlertOctagon size={32} /></div>
             <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Profile?</h2>
             <p className="text-zinc-500 mb-8 text-sm font-medium">This action cannot be undone. This profile and its associated QR code will be permanently deactivated.</p>
-            
             <div className="flex gap-3">
-              <button onClick={() => setProfileToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
-                Cancel
-              </button>
-              <button onClick={confirmDelete} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
-                Yes, Delete
-              </button>
+              <button onClick={() => setProfileToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+              <button onClick={confirmDelete} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Delete</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* DELETE NOTIFICATION SCAN MODAL */}
+      {/* DELETE SCAN MODAL */}
       {scanToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
           <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
-              <AlertOctagon size={32} />
-            </div>
+            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5"><AlertOctagon size={32} /></div>
             <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Notification?</h2>
             <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">This action cannot be undone. This scan record will be permanently removed from your history.</p>
-            
             <div className="flex gap-3">
-              <button onClick={() => setScanToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">
-                Cancel
-              </button>
-              <button onClick={confirmDeleteScan} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">
-                Yes, Delete
-              </button>
+              <button onClick={() => setScanToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+              <button onClick={confirmDeleteScan} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Delete</button>
             </div>
           </div>
         </div>
