@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
 import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
-import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; // 🌟 Added addDoc
+import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-// 🌟 Added Trash2 icon to remove users
-import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2 } from 'lucide-react'; 
+// 🌟 Added UserMinus icon for the removal modal
+import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus } from 'lucide-react'; 
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -20,6 +20,9 @@ export default function Profile() {
   // Edit Name State
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
+
+  // Remove Guardian State (🌟 NEW Custom Modal State)
+  const [guardianToRemove, setGuardianToRemove] = useState(null);
 
   // Delete Account State
   const [showDeleteZone, setShowDeleteZone] = useState(false);
@@ -133,31 +136,33 @@ export default function Profile() {
     }
   };
 
-  // 🌟 NEW: Securely Remove a Co-Guardian
-  const handleRemoveGuardian = async (member) => {
-    if (!window.confirm(`Are you sure you want to remove ${member.name || member.email} as a Co-Guardian? They will lose access to all your profiles instantly.`)) return;
+  // 🌟 TRIGGERED BY MODAL CONFIRM BUTTON NOW
+  const confirmRemoveGuardian = async () => {
+    if (!guardianToRemove) return;
     
     try {
       // 1. Reset their database connection so they no longer fetch your cards
-      await updateDoc(doc(db, "users", member.id), { familyId: member.id });
+      await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
 
       // 2. Delete their original invite document to prevent weird looping bugs
-      await deleteDoc(doc(db, "invites", member.email.toLowerCase()));
+      await deleteDoc(doc(db, "invites", guardianToRemove.email.toLowerCase()));
 
       // 3. Drop a notification for yourself so you have a record
       await addDoc(collection(db, "scans"), {
         familyId: userData?.familyId || auth.currentUser.uid,
         type: 'invite_response',
         profileName: 'Family Update',
-        message: `${member.name || member.email} was securely removed from your family dashboard.`,
+        message: `${guardianToRemove.name || guardianToRemove.email} was securely removed from your family dashboard.`,
         timestamp: new Date().toISOString()
       });
 
-      // 4. Update the screen visually!
-      setFamilyMembers(prev => prev.filter(m => m.id !== member.id));
-      setSuccess(`${member.name || member.email} was removed successfully.`);
+      // 4. Update the screen visually
+      setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
+      setSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
     } catch (err) {
-      setError("Failed to remove guardian: " + err.message);
+      setError("Failed to remove guardian. Ensure your Firebase rules are updated.");
+    } finally {
+      setGuardianToRemove(null);
     }
   };
 
@@ -293,7 +298,7 @@ export default function Profile() {
                   <span className="text-[10px] font-extrabold bg-brandGold/20 text-brandGold px-2 py-1 rounded-md uppercase tracking-widest shrink-0">Primary</span>
                 ) : (
                   auth.currentUser?.uid === currentFamilyId ? (
-                     <button onClick={() => handleRemoveGuardian(member)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0" title="Remove Guardian">
+                     <button onClick={() => setGuardianToRemove(member)} className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0" title="Remove Guardian">
                         <Trash2 size={16} />
                      </button>
                   ) : (
@@ -349,6 +354,25 @@ export default function Profile() {
             </div>
           )}
         </div>
+
+        {/* 🌟 NEW: Custom Modal for Removing a Co-Guardian */}
+        {guardianToRemove && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5">
+                <UserMinus size={32} />
+              </div>
+              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Remove Guardian?</h2>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
+                Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard, profiles, and notifications.
+              </p>
+              <div className="flex gap-3">
+                <button onClick={() => setGuardianToRemove(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+                <button onClick={confirmRemoveGuardian} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Remove</button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>
