@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import { useParams, useLocation } from 'react-router-dom'; // 🌟 NEW: Added useLocation
+import { useParams, useLocation } from 'react-router-dom'; 
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake } from 'lucide-react';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert } from 'lucide-react';
 
 const getComputedAge = (profile) => {
   if (profile.dob) {
@@ -26,9 +26,8 @@ const getComputedAge = (profile) => {
 
 export default function PublicCard() {
   const { profileId } = useParams();
-  const location = useLocation(); // 🌟 NEW: Read the URL
+  const location = useLocation(); 
   
-  // 🌟 NEW: Check if the card is embedded on the Home page preview
   const isPreview = new URLSearchParams(location.search).get('preview') === 'true';
 
   const [profile, setProfile] = useState(null);
@@ -73,10 +72,9 @@ export default function PublicCard() {
     };
   }, [profileId]);
 
-  // 🌟 SECURITY FIX: Block passive analytics tracking if in Preview Mode!
   useEffect(() => {
     const sendPassiveAlert = async () => {
-      if (!profile || passiveAlertSent.current || isPreview) return; 
+      if (!profile || profile.isActive === false || passiveAlertSent.current || isPreview) return; 
       passiveAlertSent.current = true; 
       
       try {
@@ -87,6 +85,7 @@ export default function PublicCard() {
         await addDoc(collection(db, "scans"), {
           profileId: profileId,
           ownerId: profile.userId,
+          familyId: profile.familyId || profile.userId, // 🌟 Maps to family dashboard
           profileName: profile.name,
           type: 'passive',
           city: ipData.city || 'Unknown City',
@@ -100,6 +99,7 @@ export default function PublicCard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             ownerId: profile.userId,
+            familyId: profile.familyId || profile.userId,
             title: `👀 ${profile.name}'s Tag Scanned!`,
             body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`,
             link: `https://kintag.vercel.app/#/?view=notifications` 
@@ -117,10 +117,9 @@ export default function PublicCard() {
     return () => clearTimeout(timer);
   }, [profile, profileId, isPreview]);
 
-  // 🌟 SECURITY FIX: Block Active GPS sending in Preview Mode
   const handleActiveAlert = (e) => {
     e.stopPropagation(); 
-    if (isPreview) return;
+    if (isPreview || profile?.isActive === false) return;
 
     setIsSendingAlert(true);
     setGpsError('');
@@ -135,12 +134,12 @@ export default function PublicCard() {
       async (position) => {
         try {
           const { latitude, longitude } = position.coords;
-          
           const mapsLink = `https://www.google.com/maps?q=${latitude},${longitude}`;
           
           await addDoc(collection(db, "scans"), {
             profileId: profileId,
             ownerId: profile.userId,
+            familyId: profile.familyId || profile.userId, // 🌟 Maps to family dashboard
             profileName: profile.name,
             type: 'active',
             latitude: latitude,
@@ -154,6 +153,7 @@ export default function PublicCard() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               ownerId: profile.userId,
+              familyId: profile.familyId || profile.userId,
               title: `📍 URGENT: ${profile.name} FOUND!`,
               body: `A Good Samaritan has shared their exact GPS location. TAP HERE to open details!`,
               link: `https://kintag.vercel.app/#/?view=notifications` 
@@ -177,13 +177,34 @@ export default function PublicCard() {
 
   const handleLogoClick = (e) => {
     e.stopPropagation();
-    if (isPreview) return; // Disable logo clicks in preview
+    if (isPreview) return; 
     setIsLogoExpanded(true);
     startLogoTimer();
   };
 
   if (loading) return <PublicCardSkeleton />;
   if (!profile) return <div className="min-h-screen flex items-center justify-center bg-zinc-50 font-bold text-red-500">Identity not found.</div>;
+
+  // 🌟 SECURITY BLOCK: Profile Disabled
+  if (profile.isActive === false) {
+    return (
+      <div className="min-h-[100dvh] flex items-center justify-center bg-zinc-100 p-4">
+        <div className="bg-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-xl border border-zinc-200">
+          <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
+            <ShieldAlert size={40} />
+          </div>
+          <h2 className="text-2xl font-extrabold text-brandDark tracking-tight mb-2">Profile Disabled</h2>
+          <p className="text-zinc-500 font-medium leading-relaxed mb-6">
+            This {profile.type}'s parents have chosen to temporarily disable this public ID. Please try scanning again later.
+          </p>
+          <div className="inline-flex items-center space-x-1.5 bg-zinc-100 px-3 py-1.5 rounded-full text-zinc-400 text-[10px] font-bold uppercase tracking-widest">
+            <img src="/kintag-logo.png" className="w-4 h-4 rounded opacity-50" alt="Logo" />
+            <span>Secured by KinTag</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   let displayContacts = profile.contacts || [
     { id: '1', name: profile.parent1Name, phone: profile.parent1Phone, countryCode: '', tag: 'Mother' },
@@ -192,7 +213,6 @@ export default function PublicCard() {
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
   const encodedAddress = encodeURIComponent(profile.address);
-  
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
   
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
@@ -211,7 +231,7 @@ export default function PublicCard() {
   return (
     <div className="min-h-screen bg-zinc-100 flex flex-col max-w-md mx-auto shadow-2xl relative font-sans">
       
-      {/* DYNAMIC ISLAND (Only Interactive Part in Preview!) */}
+      {/* DYNAMIC ISLAND */}
       <div 
         onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
         className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
@@ -231,7 +251,6 @@ export default function PublicCard() {
             {!activeAlertSent ? (
               <>
                 <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
-                {/* 🌟 DISABLED: Share Location button locked in Preview */}
                 <button 
                   onClick={handleActiveAlert} 
                   disabled={isSendingAlert || isPreview}
@@ -267,7 +286,6 @@ export default function PublicCard() {
           </span>
         </div>
 
-        {/* 🌟 DISABLED: Image Maximize in Preview */}
         <button onClick={() => { if(!isPreview) setIsImageEnlarged(true); }} className={`absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full transition z-20 ${isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/50'}`} title="View Full Image">
           <Maximize2 size={18} />
         </button>
@@ -399,7 +417,6 @@ export default function PublicCard() {
                   </div>
                   <p className="text-zinc-500 text-xs font-semibold mt-1 tracking-wide">{contact.phone}</p>
                 </div>
-                {/* 🌟 DISABLED: Contact Phone Links in Preview */}
                 {isPreview ? (
                   <div className="bg-brandDark text-white p-3 rounded-full opacity-50 cursor-not-allowed shadow-sm">
                     <Phone size={16} fill="currentColor" />
@@ -415,7 +432,6 @@ export default function PublicCard() {
         </div>
 
         <div className="flex justify-center pb-6">
-          {/* 🌟 DISABLED: Logo link in Preview */}
           {isPreview ? (
             <div className="flex items-center space-x-2 bg-white/50 backdrop-blur-sm border border-zinc-200/50 px-4 py-2 rounded-full shadow-sm opacity-70 cursor-not-allowed">
               <span className="text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Secured by</span>
@@ -438,7 +454,6 @@ export default function PublicCard() {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 p-3 bg-white/85 backdrop-blur-xl border-t border-zinc-200 max-w-md mx-auto space-y-2 pb-8 shadow-[0_-15px_40px_rgba(0,0,0,0.08)] z-50">
-        {/* 🌟 DISABLED: Primary Emergency Phone in Preview */}
         {isPreview ? (
           <div className="w-full flex items-center justify-center space-x-2 bg-brandDark text-white py-3.5 px-4 rounded-2xl font-bold text-base shadow-lg opacity-50 cursor-not-allowed">
             <Phone size={20} />
@@ -452,7 +467,6 @@ export default function PublicCard() {
         )}
 
         <div className="flex gap-2">
-          {/* 🌟 DISABLED: Google Maps link in Preview */}
           {isPreview ? (
             <div className="flex-1 flex items-center justify-center space-x-1.5 bg-zinc-100 text-brandDark py-3 px-3 rounded-2xl font-extrabold shadow-sm border border-zinc-200 opacity-50 cursor-not-allowed">
               <MapPin size={16} className="shrink-0" />
@@ -465,7 +479,6 @@ export default function PublicCard() {
             </a>
           )}
 
-          {/* 🌟 DISABLED: Helpline link in Preview */}
           {isPreview ? (
             <div className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/10 text-brandGold py-1.5 px-2 rounded-2xl font-bold border border-brandGold/20 opacity-50 cursor-not-allowed">
               <AlertTriangle size={16} className="mb-0.5" />
