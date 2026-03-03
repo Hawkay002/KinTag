@@ -25,6 +25,7 @@ export default function EditCard() {
   const [isFetchingLoc, setIsFetchingLoc] = useState(false);
   const [initialFetchLoading, setInitialFetchLoading] = useState(true);
   const [error, setError] = useState('');
+  const [isActive, setIsActive] = useState(true); // 🌟 Added isActive status
 
   const [contacts, setContacts] = useState([]);
   const [primaryContactId, setPrimaryContactId] = useState('');
@@ -42,12 +43,18 @@ export default function EditCard() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        const userDocRef = await getDoc(doc(db, "users", auth.currentUser.uid));
+        const userFamilyId = userDocRef.exists() ? userDocRef.data().familyId : auth.currentUser.uid;
+
         const docRef = doc(db, "profiles", profileId);
         const docSnap = await getDoc(docRef);
-        if (docSnap.exists() && docSnap.data().userId === auth.currentUser.uid) {
+        
+        // 🌟 Ensure they are either the owner or part of the same Family ID
+        if (docSnap.exists() && (docSnap.data().familyId === userFamilyId || docSnap.data().userId === auth.currentUser.uid)) {
           const data = docSnap.data();
           setType(data.type);
           setCurrentImageUrl(data.imageUrl);
+          setIsActive(data.isActive !== false); // Default to true if undefined
           setFormData({
             name: data.name || '', dob: data.dob || '', gender: data.gender || 'Male',
             heightUnit: data.heightUnit || 'ft', heightMain: data.heightMain || '', heightSub: data.heightSub || '',
@@ -190,7 +197,7 @@ export default function EditCard() {
       }
 
       await updateDoc(doc(db, "profiles", profileId), {
-        ...formData, type, imageUrl, contacts, primaryContactId, updatedAt: new Date().toISOString()
+        ...formData, type, imageUrl, contacts, primaryContactId, isActive, updatedAt: new Date().toISOString()
       });
       navigate('/'); 
     } catch (err) {
@@ -214,11 +221,27 @@ export default function EditCard() {
         </button>
 
         <h1 className="text-3xl font-extrabold text-brandDark mb-2 tracking-tight">Update Identity</h1>
-        <p className="text-zinc-500 font-medium mb-10">Modify details for this digital contact card.</p>
+        <p className="text-zinc-500 font-medium mb-8">Modify details for this digital contact card.</p>
         
         {error && <div className="mb-8 p-4 bg-red-50 text-red-600 font-medium rounded-xl border border-red-100">{error}</div>}
 
         <form onSubmit={handleUpdate} className="space-y-8">
+
+            {/* 🌟 NEW: Active Status Toggle */}
+            <div className={`p-5 rounded-2xl border transition-colors flex items-center justify-between cursor-pointer ${isActive ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`} onClick={() => setIsActive(!isActive)}>
+              <div>
+                <h3 className={`font-extrabold text-lg ${isActive ? 'text-emerald-700' : 'text-red-700'}`}>
+                  Profile Status: {isActive ? 'Active' : 'Disabled'}
+                </h3>
+                <p className={`text-sm font-medium ${isActive ? 'text-emerald-600' : 'text-red-600'}`}>
+                  {isActive ? 'This profile is live and viewable when scanned.' : 'This profile is hidden. Scans will show a disabled message.'}
+                </p>
+              </div>
+              <div className={`w-14 h-8 rounded-full flex items-center p-1 transition-colors ${isActive ? 'bg-emerald-500' : 'bg-red-500'}`}>
+                 <div className={`w-6 h-6 bg-white rounded-full shadow-md transform transition-transform ${isActive ? 'translate-x-6' : 'translate-x-0'}`}></div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-5">
               <div><label className={labelStyles}>Profile Type</label><select value={type} onChange={(e) => setType(e.target.value)} className={inputStyles}><option value="kid">Kid</option><option value="pet">Pet</option></select></div>
               <div><label className={labelStyles}>Gender</label><select name="gender" value={formData.gender} onChange={handleInputChange} className={inputStyles}><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></div>
@@ -372,7 +395,6 @@ export default function EditCard() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
                     <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" />
                     
-                    {/* 🌟 THE FIX: Single synchronized state update */}
                     <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
                       <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
                         <img src={`https://flagcdn.com/w20/${contact.countryIso || 'us'}.png`} alt="flag" className="w-5 h-auto rounded-sm shrink-0 shadow-[0_0_2px_rgba(0,0,0,0.2)]" />
