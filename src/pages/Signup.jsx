@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore'; // 🌟 Added deleteDoc and addDoc
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Circle } from 'lucide-react';
 
@@ -26,7 +26,37 @@ export default function Signup() {
     const inviteRef = doc(db, "invites", emailLower);
     const inviteSnap = await getDoc(inviteRef);
     
-    const familyId = inviteSnap.exists() ? inviteSnap.data().familyId : user.uid;
+    let familyId = user.uid;
+
+    // 🌟 FIXED: Auto-merge invited users so they don't have to accept manually!
+    if (inviteSnap.exists()) {
+      familyId = inviteSnap.data().familyId;
+      const inviterUid = inviteSnap.data().inviterUid;
+
+      // 1. Delete the invite so it disappears from their UI entirely
+      await deleteDoc(inviteRef);
+
+      // 2. Add an update to the family dashboard
+      await addDoc(collection(db, "scans"), {
+        familyId: familyId,
+        type: 'invite_response',
+        profileName: 'Family Update',
+        message: `${displayName || emailLower} securely joined your family dashboard!`,
+        timestamp: new Date().toISOString()
+      });
+
+      // 3. Send a push notification back to the primary parent
+      await fetch('/api/notify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ownerId: inviterUid,
+          title: `🤝 Guardian Joined!`,
+          body: `${displayName || emailLower} created an account and joined your family.`,
+          link: `https://kintag.vercel.app/#/?view=notifications` 
+        })
+      }).catch(() => {});
+    }
 
     await setDoc(doc(db, "users", user.uid), {
       email: emailLower,
@@ -118,7 +148,6 @@ export default function Signup() {
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-4 text-sm text-center border border-red-100">{error}</div>}
 
         <form onSubmit={handleEmailSignup} className="space-y-4 mb-6">
-          {/* 🌟 FIXED: Stacked Vertically */}
           <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
           <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
           <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
