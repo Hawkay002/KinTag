@@ -296,15 +296,16 @@ export default function PublicCard() {
         {profile.isLost && (
           <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-4 border-red-700 relative flex items-center h-[72px] -mx-7 -mt-7 mb-6 rounded-t-[2.5rem]">
             <style>{`
-              @keyframes missingMarquee { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
-              .animate-missing-marquee { display: inline-block; white-space: nowrap; animation: missingMarquee 7s linear infinite; padding-left: 100%; }
+              @keyframes missingMarquee { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
+              .animate-missing-marquee { display: flex; width: max-content; animation: missingMarquee 10s linear infinite; }
             `}</style>
-            <div className="absolute inset-0 flex items-center whitespace-nowrap animate-missing-marquee">
-              <span className="mx-4 font-black text-[1.4rem] tracking-[0.15em] uppercase flex items-center gap-3">
-                <Siren size={30} className="animate-pulse text-white shrink-0" />
-                ⚠️ REPORTED MISSING ⚠️ PLEASE HELP ⚠️ REPORTED MISSING ⚠️ PLEASE HELP
-                <Siren size={30} className="animate-pulse text-white shrink-0 ml-3" />
-              </span>
+            <div className="animate-missing-marquee flex items-center h-full">
+              {[...Array(10)].map((_, i) => (
+                 <span key={i} className="mx-6 font-black text-[1.4rem] tracking-[0.1em] uppercase flex items-center gap-3 whitespace-nowrap">
+                   <Siren size={28} className="animate-pulse text-white shrink-0" />
+                   ⚠️ REPORTED MISSING ⚠️ PLEASE HELP 
+                 </span>
+              ))}
             </div>
           </div>
         )}
