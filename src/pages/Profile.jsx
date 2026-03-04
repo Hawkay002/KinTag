@@ -28,7 +28,7 @@ export default function Profile() {
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteConfirmationPhrase = auth.currentUser ? `i know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
+  const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -348,7 +348,7 @@ export default function Profile() {
                   disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} 
                   className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50"
                 >
-                  {isDeleting ? 'Deleting...' : 'Confirm Deletion'}
+                  {isDeleting ? 'Deleting...' : 'Confirm'}
                 </button>
               </div>
             </div>
