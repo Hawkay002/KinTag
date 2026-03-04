@@ -4,7 +4,7 @@ import {
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2
+  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket
 } from 'lucide-react';
 
 export default function Home() {
@@ -99,7 +99,7 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* 🌟 FIXED: Native Width Iframes with CSS Scrollbar Hiding */}
+          {/* Native Width Iframes with CSS Scrollbar Hiding */}
           <div className="relative mx-auto max-w-5xl">
             {/* Tiny Live Preview Badge */}
             <div className="flex justify-center mb-8 relative z-40">
@@ -234,7 +234,7 @@ export default function Home() {
             <FeatureCard icon={<Database size={24} className="text-zinc-600" />} title="Microchip Linking" desc="Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly." />
             <FeatureCard icon={<Activity size={24} className="text-sky-500" />} title="Vaccination Records" desc="Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle." />
             <FeatureCard icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
-            <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly need charging, KinTag never dies. It utilizes the smartphone power of the finder." />
+            <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
             <FeatureCard icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
             <FeatureCard icon={<Globe size={24} className="text-indigo-400" />} title="Global Compatibility" desc="Traveling abroad? KinTag works universally. As long as the finder has internet, they can access the profile from anywhere." />
             <FeatureCard icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
@@ -399,6 +399,23 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🌟 NEW: CHANGELOG SECTION */}
+      <section className="py-24 bg-zinc-50 border-b border-zinc-200">
+        <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
+          <div className="w-16 h-16 bg-white text-brandDark rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-200">
+            <Rocket size={32} />
+          </div>
+          <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-6">Constantly Evolving</h2>
+          <p className="text-zinc-600 font-medium text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+            KinTag is actively maintained and frequently updated with new features, security enhancements, and community-requested tools. See how the platform has grown since day one.
+          </p>
+          <Link to="/changelog" className="inline-flex items-center justify-center space-x-2 bg-white text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-100 transition-all shadow-sm border border-zinc-200">
+            <span>Read the Official Changelog</span>
+            <ArrowRight size={18} />
+          </Link>
+        </div>
+      </section>
+
       {/* FINAL CALL TO ACTION */}
       <section className="py-24 bg-zinc-50 text-center px-4">
         <h2 className="text-3xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure your loved ones?</h2>
@@ -415,12 +432,7 @@ export default function Home() {
           <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded grayscale" />
           <span className="font-bold text-brandDark">KinTag</span>
         </div>
-        <p className="text-xs text-zinc-400 font-bold mb-3">© {new Date().getFullYear()} KinTag. All rights reserved.</p>
-        
-        {/* 🌟 NEW: Link to Changelog */}
-        <Link to="/changelog" className="text-xs text-zinc-400 font-bold hover:text-brandGold transition-colors inline-block">
-          View Changelog & Updates
-        </Link>
+        <p className="text-xs text-zinc-400 font-bold">© {new Date().getFullYear()} KinTag. All rights reserved.</p>
       </footer>
     </div>
   );
