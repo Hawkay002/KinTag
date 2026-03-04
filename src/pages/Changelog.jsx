@@ -1,7 +1,22 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus } from 'lucide-react';
+import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren } from 'lucide-react';
 
 const updates = [
+  {
+    version: "v1.1.0",
+    title: "The Search & Rescue Update",
+    date: "March 4, 2026",
+    icon: <Siren className="text-red-500" size={24} />,
+    description: "Transforming KinTag from a passive digital ID into an active, community-driven search and rescue network.",
+    changes: [
+      { type: "ADDED", text: "Lost Mode (Panic Button): Instantly transform a profile into a high-alert distress signal with a pulsing call button and flashing missing marquee." },
+      { type: "ADDED", text: "KinAlert Community Broadcast: Send instant push notifications and dashboard popups to all KinTag users in the same Zip Code when a tag is marked lost." },
+      { type: "ADDED", text: "Safe & Sound Notification: Marking a profile as found instantly clears local dashboard alerts and notifies neighbors with a green success popup." },
+      { type: "ADDED", text: "Zip Code Geofencing: Profile page now enforces Zip Code setup with visual red-dot indicators to accurately route community KinAlerts." },
+      { type: "FIXED", text: "Seamless Marquee Engine: Re-engineered CSS animations for perfectly looping, infinite alert banners across the platform." },
+      { type: "UPDATED", text: "Admin Security: Moved the hardcoded Admin Control Center email to a secure environment variable." }
+    ]
+  },
   {
     version: "v1.0.0",
     title: "The Family Ecosystem Update",
@@ -144,7 +159,6 @@ export default function Changelog() {
           {updates.map((update, index) => (
             
             <div key={update.version} className="relative group pl-12 md:pl-16">
-              {/* 🌟 THE FIX: Moved the comment safely inside the div container! */}
               
               {/* TIMELINE DOT & ICON */}
               <div className="absolute -left-[25px] top-0 w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 z-10">
