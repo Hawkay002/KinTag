@@ -10,7 +10,8 @@ import PublicCard from './pages/PublicCard';
 import Login from './pages/Login';
 import Signup from './pages/Signup'; 
 import Admin from './pages/Admin'; 
-import Profile from './pages/Profile'; // 🌟 NEW: Profile Page
+import Profile from './pages/Profile'; 
+import Changelog from './pages/Changelog'; // 🌟 NEW: Import Changelog
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
@@ -41,11 +42,14 @@ function AppRoutes() {
       <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
       <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
       
-      {/* 🌟 NEW: Profile Route */}
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
       
       <Route path="/id/:profileId" element={<PublicCard />} />
+      
+      {/* 🌟 NEW: Added Route */}
+      <Route path="/changelog" element={<Changelog />} /> 
+      
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
