@@ -25,7 +25,6 @@ export default function Home() {
     setTimeout(() => setShowGithubTooltip(false), 2500);
   };
 
-  // 🌟 UPDATED: FAQs to include new Family Sharing & Security features
   const faqData = [
     { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." },
     { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." },
@@ -100,7 +99,7 @@ export default function Home() {
             <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
           </div>
 
-          {/* Responsive, Side-by-Side Flex Layout with Scrollbar Hide Trick */}
+          {/* 🌟 FIXED: Native Width Iframes with CSS Scrollbar Hiding */}
           <div className="relative mx-auto max-w-5xl">
             {/* Tiny Live Preview Badge */}
             <div className="flex justify-center mb-8 relative z-40">
@@ -114,37 +113,33 @@ export default function Home() {
 
             <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-16 perspective-[1200px] w-full pb-10 md:pb-0">
               
-{ /* iPhone Mockup (Live Kid Profile) */ }
-<div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-              <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
-                 {/* Standardized 375px width container */}
-                 <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)] overflow-hidden">
-                    <iframe 
-                      src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
-                      className="w-full h-full border-0" 
-                      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
-                      scrolling="no"
-                      title="Live Kid Profile View"
-                    />
-                 </div>
+              {/* iPhone Mockup (Live Kid Profile) */}
+              <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
+                <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
+                   <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]">
+                      <iframe 
+                        src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
+                        className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" 
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        title="Live Kid Profile View"
+                      />
+                   </div>
+                </div>
               </div>
-            </div>
 
-{ /* Google Pixel Mockup (Live Pet Profile) */ }
-<div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-              <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
-                 {/* Standardized 375px width container */}
-                 <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)] overflow-hidden">
-                    <iframe 
-                      src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
-                      className="w-full h-full border-0" 
-                      style={{ width: '100%', height: '100%', overflow: 'hidden' }}
-                      scrolling="no"
-                      title="Live Pet Profile View"
-                    />
-                 </div>
+              {/* Google Pixel Mockup (Live Pet Profile) */}
+              <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
+                <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
+                   <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]">
+                      <iframe 
+                        src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
+                        className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" 
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                        title="Live Pet Profile View"
+                      />
+                   </div>
+                </div>
               </div>
-            </div>
 
             </div>
           </div>
@@ -218,7 +213,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 UPDATED: 18 FEATURES GRID WITH NEW HIGHLIGHTS */}
+      {/* 18 FEATURES GRID */}
       <section className="py-24 bg-white border-y border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <div className="text-center mb-16">
@@ -230,12 +225,9 @@ export default function Home() {
             <FeatureCard icon={<Smartphone size={24} className="text-blue-500" />} title="No App Required" desc="Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install." />
             <FeatureCard icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
             <FeatureCard icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
-            
-            {/* 🌟 NEW FEATURE UPDATES */}
             <FeatureCard icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
             <FeatureCard icon={<PowerOff size={24} className="text-red-500" />} title="Instant Kill Switch" desc="Tag lost or stolen? Disable it instantly from your dashboard. Finders will be blocked by a secure 'Profile Disabled' screen." />
             <FeatureCard icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
-
             <FeatureCard icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
             <FeatureCard icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
             <FeatureCard icon={<AlertTriangle size={24} className="text-amber-500" />} title="Behavioral Alerts" desc="Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them." />
