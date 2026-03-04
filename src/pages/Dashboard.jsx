@@ -75,6 +75,7 @@ export default function Dashboard() {
   const [userFamilyId, setUserFamilyId] = useState(null);
   const [userZipCode, setUserZipCode] = useState(''); 
 
+  // State for Lost Mode and KinAlert
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
   const [allActiveAlerts, setAllActiveAlerts] = useState([]);
@@ -108,6 +109,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (!currentUser) return;
+
     let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts;
 
     const setupListeners = async () => {
@@ -185,6 +187,7 @@ export default function Dashboard() {
           isInitialSysLoad.current = false;
         });
 
+        // 🌟 Global listener for any active KinAlerts in the database
         const qAlerts = query(collection(db, "profiles"), where("kinAlertActive", "==", true));
         unsubAlerts = onSnapshot(qAlerts, (snap) => {
            setAllActiveAlerts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -192,10 +195,11 @@ export default function Dashboard() {
 
         setLoading(false);
       } catch (error) {
-        console.error(error);
+        console.error("Error setting up listeners:", error);
         setLoading(false);
       }
     };
+
     setupListeners();
 
     return () => {
@@ -207,9 +211,11 @@ export default function Dashboard() {
     };
   }, [currentUser]);
 
+  // 🌟 Extract "Found" popups from incoming scans real-time
   useEffect(() => {
     if (scans.length > 0) {
-      const recentFound = scans.filter(s => s.type === 'kinAlert_found' && (Date.now() - new Date(s.timestamp).getTime() < 3600000));
+      // Show found popups that were triggered within the last 5 minutes
+      const recentFound = scans.filter(s => s.type === 'kinAlert_found' && (Date.now() - new Date(s.timestamp).getTime() < 300000));
       setFoundPopups(recentFound);
     }
   }, [scans]);
@@ -235,6 +241,7 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
+  // --- KINALERT & LOST MODE LOGIC ---
   const getFamiliesInPincode = async (pincode, excludeFamilyId) => {
     const pQuery = query(collection(db, "profiles"), where("pincode", "==", pincode));
     const snap = await getDocs(pQuery);
@@ -263,6 +270,7 @@ export default function Dashboard() {
     const profile = broadcastModalProfile;
     setBroadcastModalProfile(null);
     try {
+      // Uses a brand new timestamp every time so the instant popup is guaranteed to fire for community users
       const newTimestamp = Date.now();
       await updateDoc(doc(db, "profiles", profile.id), { kinAlertActive: true, kinAlertTimestamp: newTimestamp });
       
@@ -616,6 +624,7 @@ export default function Dashboard() {
           </button>
         </div>
 
+        {/* 🌟 TRUE SEAMLESS MARQUEE FOR DASHBOARD */}
         {localAlerts.length > 0 && (
           <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block mb-8 overflow-hidden bg-red-600 text-white rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.4)] border-4 border-red-500 relative h-16 group cursor-pointer hover:border-red-400 transition-all">
             <style>{`
@@ -623,11 +632,16 @@ export default function Dashboard() {
               .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
             `}</style>
             <div className="animate-seamless-dash flex items-center h-full group-hover:[animation-play-state:paused]">
-               {[...Array(10)].map((_, i) => (
-                 <span key={i} className="mx-6 font-black text-xl tracking-[0.1em] uppercase flex items-center gap-3 whitespace-nowrap">
-                   <AlertTriangle size={24} className="animate-pulse text-brandGold shrink-0" />
-                   MISSING {localAlerts[0].type}: {localAlerts[0].name} IN YOUR AREA ({localAlerts[0].pincode}) - TAP TO HELP!
-                 </span>
+               {/* Rendering multiple sets ensures it seamlessly loops forever without snapping */}
+               {[...Array(4)].map((_, i) => (
+                 <div key={i} className="flex items-center shrink-0">
+                   {localAlerts.map(alert => (
+                     <span key={`${i}-${alert.id}`} className="mx-6 font-black text-xl tracking-[0.1em] uppercase flex items-center gap-3 whitespace-nowrap hover:underline">
+                       <AlertTriangle size={24} className="animate-pulse text-brandGold shrink-0" />
+                       MISSING {alert.type}: {alert.name} IN YOUR AREA ({alert.pincode}) - TAP TO HELP!
+                     </span>
+                   ))}
+                 </div>
                ))}
             </div>
           </Link>
@@ -721,6 +735,7 @@ export default function Dashboard() {
         <Plus size={32} strokeWidth={3} />
       </Link>
 
+      {/* 🌟 100% RELIABLE INSTANT LOST POPUP */}
       {localAlerts.filter(a => !dismissedAlerts.includes(`${a.id}-${a.kinAlertTimestamp}`)).map(alert => (
         <div key={`popup-${alert.id}-${alert.kinAlertTimestamp}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-red-600 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-400 animate-in zoom-in-95 duration-300">
@@ -736,6 +751,7 @@ export default function Dashboard() {
         </div>
       ))}
 
+      {/* 🌟 INSTANT FOUND POPUP */}
       {foundPopups.filter(s => !dismissedFoundAlerts.includes(s.id)).slice(0, 1).map(scan => (
         <div key={`found-popup-${scan.id}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
           <div className="bg-emerald-500 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-emerald-300 animate-in zoom-in-95 duration-300">
