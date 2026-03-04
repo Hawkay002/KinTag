@@ -4,7 +4,7 @@ import {
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket
+  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone
 } from 'lucide-react';
 
 export default function Home() {
@@ -226,7 +226,9 @@ export default function Home() {
             <FeatureCard icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
             <FeatureCard icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
             <FeatureCard icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
-            <FeatureCard icon={<PowerOff size={24} className="text-red-500" />} title="Instant Kill Switch" desc="Tag lost or stolen? Disable it instantly from your dashboard. Finders will be blocked by a secure 'Profile Disabled' screen." />
+            
+            {/* 🌟 UPDATED: REPLACED KILL SWITCH WITH LOST MODE AND GLOBAL WITH KINALERT */}
+            <FeatureCard icon={<Siren size={24} className="text-red-500" />} title="Lost Mode (Panic Button)" desc="Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer." />
             <FeatureCard icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
             <FeatureCard icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
             <FeatureCard icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
@@ -236,7 +238,10 @@ export default function Home() {
             <FeatureCard icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
             <FeatureCard icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
             <FeatureCard icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
-            <FeatureCard icon={<Globe size={24} className="text-indigo-400" />} title="Global Compatibility" desc="Traveling abroad? KinTag works universally. As long as the finder has internet, they can access the profile from anywhere." />
+            
+            {/* 🌟 UPDATED: KINALERT BROADCASTS IN PLACE OF GLOBAL */}
+            <FeatureCard icon={<Megaphone size={24} className="text-amber-500" />} title="KinAlert Broadcasts" desc="Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one." />
+            
             <FeatureCard icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
             <FeatureCard icon={<Zap size={24} className="text-yellow-500" />} title="Instant Setup" desc="Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes." />
             <FeatureCard icon={<Cloud size={24} className="text-sky-400" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
@@ -399,7 +404,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: CHANGELOG SECTION */}
+      {/* CHANGELOG SECTION */}
       <section className="py-24 bg-zinc-50 border-b border-zinc-200">
         <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
           <div className="w-16 h-16 bg-white text-brandDark rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-200">
