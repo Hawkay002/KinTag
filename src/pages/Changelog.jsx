@@ -141,14 +141,17 @@ export default function Changelog() {
 
       {/* TIMELINE */}
       <div className="max-w-3xl mx-auto px-4 md:px-8">
-        {/* 🌟 FIXED 2: Added pl-10 md:pl-16 so content has space and doesn't overlap the icon */}
-        <div className="relative border-l-2 border-zinc-200/80 pl-10 md:pl-16 space-y-16 ml-4 md:ml-0">
+        
+        {/* 🌟 THE FIX: Removed padding from parent wrapper, letting it sit tight to the margin */}
+        <div className="relative border-l-2 border-zinc-200/80 ml-4 md:ml-8 space-y-16 py-2">
           
           {updates.map((update, index) => (
-            <div key={update.version} className="relative group">
+            
+            {/* 🌟 THE FIX: Added pl-12 md:pl-16 specifically to the child, shifting the content box right */}
+            <div key={update.version} className="relative group pl-12 md:pl-16">
               
               {/* TIMELINE DOT & ICON */}
-              {/* 🌟 FIXED 2: Used -left-[25px] to perfectly center the 48px dot on the 2px border! */}
+              {/* 🌟 THE FIX: -left-[25px] now perfectly overlaps the center of the 48px circle with the 2px border */}
               <div className="absolute -left-[25px] top-0 w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center border-4 border-white shadow-sm transition-transform duration-300 group-hover:scale-110 z-10">
                 <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-inner border border-zinc-100">
                   {update.icon}
@@ -172,7 +175,7 @@ export default function Changelog() {
                 <ul className="space-y-4">
                   {update.changes.map((change, idx) => (
                     <li key={idx} className="flex items-start gap-3">
-                      {/* 🌟 FIXED 3: Added w-24 and justify-center to force all tags to be the exact same width! */}
+                      {/* Fixed width tags to ensure perfect text alignment */}
                       <span className={`shrink-0 flex items-center justify-center gap-1 w-24 text-[10px] font-extrabold uppercase tracking-widest px-2 py-1.5 rounded border ${getTagStyle(change.type)} mt-0.5`}>
                         {getTagIcon(change.type)}
                         {change.type}
