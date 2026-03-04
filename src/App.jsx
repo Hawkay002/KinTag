@@ -1,4 +1,4 @@
-import { HashRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { useEffect } from 'react';
 
@@ -11,7 +11,7 @@ import Login from './pages/Login';
 import Signup from './pages/Signup'; 
 import Admin from './pages/Admin'; 
 import Profile from './pages/Profile'; 
-import Changelog from './pages/Changelog'; // 🌟 NEW: Import Changelog
+import Changelog from './pages/Changelog';
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
@@ -24,6 +24,12 @@ const ProtectedRoute = ({ children }) => {
 function AppRoutes() {
   const { currentUser } = useAuth(); 
   const navigate = useNavigate();
+  const location = useLocation(); // 🌟 NEW: Get current route
+
+  // 🌟 FIXED 1: Scroll to Top on every route change!
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (isAuthRefresh) {
@@ -47,7 +53,6 @@ function AppRoutes() {
       
       <Route path="/id/:profileId" element={<PublicCard />} />
       
-      {/* 🌟 NEW: Added Route */}
       <Route path="/changelog" element={<Changelog />} /> 
       
       <Route path="*" element={<Navigate to="/" replace />} />
