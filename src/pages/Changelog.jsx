@@ -16,8 +16,6 @@ const updates = [
       { type: "ADDED", text: "The 'Kill Switch': Added a live toggle on the Dashboard to instantly Enable/Disable a profile. Scanning a disabled tag now shows a secure 'Profile Disabled' blocker screen." },
       { type: "ADDED", text: "Danger Zone (Account Deletion): Users can now permanently wipe their entire account, profiles, images, and scan history from the database by typing an exact confirmation phrase." },
       { type: "ADDED", text: "Dedicated Profile Page: Created a new /profile route for users to manage their names, view their email, handle invites, and log out securely." },
-      { type: "UPDATED", text: "Landing Page Features: Expanded the marketing feature grid from 9 to 18 massive features." },
-      { type: "UPDATED", text: "Developer Story: Rewrote the 'Solo Developer' section to highlight the '100% Free Lifetime' guarantee." },
       { type: "FIXED", text: "Firestore Security Rules: Upgraded database rules to securely allow cross-account edits only if users share the exact same familyId." }
     ]
   },
@@ -31,8 +29,7 @@ const updates = [
       { type: "ADDED", text: "Live Iframe Previews: Replaced static image mockups on the Home page with actual live iframe renders of a Kid and Pet profile." },
       { type: "ADDED", text: "Preview Mode Security: Appended ?preview=true to iframe URLs to strictly disable passive IP logging, GPS sharing, and phone dialing to prevent spam." },
       { type: "UPDATED", text: "3D Mockup Layout: Upgraded the mobile mockups to a responsive side-by-side layout on desktop, and a vertical stack on mobile." },
-      { type: "FIXED", text: "Iframe Cut-off Bug: Implemented pure CSS WebKit scrollbar hiding to ensure the live preview perfectly fits the device bezels without clipping." },
-      { type: "REMOVED", text: "Testimonials: Removed the dummy testimonials section to focus purely on the developer's story, open-source nature, and core features." }
+      { type: "FIXED", text: "Iframe Cut-off Bug: Implemented pure CSS WebKit scrollbar hiding to ensure the live preview perfectly fits the device bezels without clipping." }
     ]
   },
   {
