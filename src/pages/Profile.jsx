@@ -13,14 +13,19 @@ export default function Profile() {
   
   const [loading, setLoading] = useState(true);
   const [inviteLoading, setInviteLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  
+  // 🌟 FIXED: Split the shared error/success states into section-specific states!
+  const [profileError, setProfileError] = useState('');
+  const [profileSuccess, setProfileSuccess] = useState('');
+  const [inviteError, setInviteError] = useState('');
+  const [inviteSuccess, setInviteSuccess] = useState('');
+  const [deleteError, setDeleteError] = useState('');
 
   // Edit Name State
   const [isEditingName, setIsEditingName] = useState(false);
   const [editNameValue, setEditNameValue] = useState("");
 
-  // 🌟 NEW: Edit Zip Code State
+  // Edit Zip Code State
   const [isEditingZip, setIsEditingZip] = useState(false);
   const [editZipValue, setEditZipValue] = useState("");
 
@@ -65,38 +70,40 @@ export default function Profile() {
 
   const handleSaveName = async () => {
     if (!editNameValue.trim()) return;
+    setProfileError(''); setProfileSuccess('');
     try {
       await updateDoc(doc(db, "users", auth.currentUser.uid), { name: editNameValue.trim() });
       setUserData(prev => ({ ...prev, name: editNameValue.trim() }));
       setIsEditingName(false);
+      setProfileSuccess("Name updated successfully!");
     } catch (err) {
-      setError("Failed to update name.");
+      setProfileError("Failed to update name.");
     }
   };
 
-  // 🌟 NEW: Save Zip Code Function
   const handleSaveZipCode = async () => {
     if (!editZipValue.trim()) return;
+    setProfileError(''); setProfileSuccess('');
     try {
       await updateDoc(doc(db, "users", auth.currentUser.uid), { zipCode: editZipValue.trim() });
       setUserData(prev => ({ ...prev, zipCode: editZipValue.trim() }));
       setIsEditingZip(false);
-      setSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
+      setProfileSuccess("Zip Code updated successfully! You will now receive local KinAlerts.");
     } catch (err) {
-      setError("Failed to update Zip Code.");
+      setProfileError("Failed to update Zip Code.");
     }
   };
 
   const handleInvite = async (e) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setInviteError('');
+    setInviteSuccess('');
     
     const currentFamilyId = userData?.familyId || auth.currentUser.uid;
     const invitedCount = familyMembers.filter(m => m.id !== currentFamilyId).length;
     
     if (invitedCount >= 5) {
-      return setError("You have reached the maximum of 5 co-guardians.");
+      return setInviteError("You have reached the maximum of 5 co-guardians.");
     }
     if (!inviteEmail) return;
 
@@ -122,25 +129,25 @@ export default function Profile() {
             url: link
           });
           sharedNative = true;
-          setSuccess("Invite sent successfully!");
+          setInviteSuccess("Invite sent successfully!");
         } catch (shareErr) {}
       } 
       
       if (!sharedNative) {
         try {
           await navigator.clipboard.writeText(link);
-          setSuccess("Invite link copied to clipboard!");
+          setInviteSuccess("Invite link copied to clipboard!");
         } catch (clipErr) {
-          setSuccess("Invite saved! Ask them to sign up with that exact email.");
+          setInviteSuccess("Invite saved! Ask them to sign up with that exact email.");
         }
       }
       
       setInviteEmail('');
     } catch (err) {
       if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
-        setError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
+        setInviteError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
       } else {
-        setError(err.message || "Failed to send invite. Please try again.");
+        setInviteError(err.message || "Failed to send invite. Please try again.");
       }
     } finally {
       setInviteLoading(false);
@@ -149,6 +156,7 @@ export default function Profile() {
 
   const confirmRemoveGuardian = async () => {
     if (!guardianToRemove) return;
+    setInviteError(''); setInviteSuccess('');
     try {
       await updateDoc(doc(db, "users", guardianToRemove.id), { familyId: guardianToRemove.id });
       await deleteDoc(doc(db, "invites", guardianToRemove.email.toLowerCase()));
@@ -160,9 +168,9 @@ export default function Profile() {
         timestamp: new Date().toISOString()
       });
       setFamilyMembers(prev => prev.filter(m => m.id !== guardianToRemove.id));
-      setSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
+      setInviteSuccess(`${guardianToRemove.name || guardianToRemove.email} was removed successfully.`);
     } catch (err) {
-      setError("Failed to remove guardian. Ensure your Firebase rules are updated.");
+      setInviteError("Failed to remove guardian. Ensure your Firebase rules are updated.");
     } finally {
       setGuardianToRemove(null);
     }
@@ -171,7 +179,7 @@ export default function Profile() {
   const handleDeleteAccount = async () => {
     if (deleteInput !== deleteConfirmationPhrase) return;
     setIsDeleting(true);
-    setError('');
+    setDeleteError('');
 
     try {
       const qProfiles = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
@@ -184,9 +192,9 @@ export default function Profile() {
       navigate('/login');
     } catch (err) {
       if (err.code === 'auth/requires-recent-login') {
-        setError("For your security, please log out and log back in before deleting your account.");
+        setDeleteError("For your security, please log out and log back in before deleting your account.");
       } else {
-        setError("Failed to delete account: " + err.message);
+        setDeleteError("Failed to delete account: " + err.message);
       }
       setIsDeleting(false);
     }
@@ -216,7 +224,6 @@ export default function Profile() {
 
           <div className="w-24 h-24 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4 relative">
             <User size={40} />
-            {/* 🌟 NEW: Red Dot on profile icon if zip is missing */}
             {!userData?.zipCode && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" title="Missing Zip Code"></span>}
           </div>
 
@@ -238,7 +245,7 @@ export default function Profile() {
             <p className="text-zinc-500 font-medium">{auth.currentUser?.email}</p>
           </div>
 
-          {/* 🌟 NEW: Zip Code Field Section (For KinAlert Local Routing) */}
+          {/* Zip Code Field Section */}
           <div className="max-w-xs mx-auto bg-zinc-50 p-4 rounded-2xl border border-zinc-200 mt-6 relative">
             <div className="flex items-center justify-center gap-2 mb-2 text-brandDark font-bold">
               <MapPin size={16} className="text-brandGold" />
@@ -262,6 +269,10 @@ export default function Profile() {
               </div>
             )}
           </div>
+
+          {/* 🌟 FIXED: Specific error/success messages for Profile/Zip updates */}
+          {profileError && <div className="mt-6 mx-auto max-w-xs p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{profileError}</div>}
+          {profileSuccess && <div className="mt-6 mx-auto max-w-xs p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> {profileSuccess}</div>}
         </div>
 
         {/* Co-Guardians Card */}
@@ -274,9 +285,10 @@ export default function Profile() {
             Invite up to 5 family members to manage profiles and receive emergency scan notifications on their own phones.
           </p>
 
-          {error && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{error}</div>}
-          {success && <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
-            <span className="flex items-center gap-2"><CheckCircle2 size={18} /> {success}</span>
+          {/* 🌟 FIXED: Specific error/success messages for Invites */}
+          {inviteError && <div className="mb-6 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{inviteError}</div>}
+          {inviteSuccess && <div className="mb-6 p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100 flex items-center justify-between gap-2">
+            <span className="flex items-center gap-2"><CheckCircle2 size={18} /> {inviteSuccess}</span>
           </div>}
 
           {invitedGuardians.length < 5 && (
@@ -330,6 +342,9 @@ export default function Profile() {
           <p className="text-red-800/70 font-medium mb-6 leading-relaxed">
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
           </p>
+
+          {/* 🌟 FIXED: Specific error message for Deletions */}
+          {deleteError && <div className="mb-6 p-4 bg-white text-red-600 text-sm font-bold rounded-xl border border-red-200">{deleteError}</div>}
 
           {!showDeleteZone ? (
             <button onClick={() => setShowDeleteZone(true)} className="bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-200 transition-colors">
