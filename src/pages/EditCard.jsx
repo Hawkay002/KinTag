@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db, auth } from '../firebase'; 
 import { doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Plus, X, MapPin, Loader2, Check, FileText, Info } from 'lucide-react';
+import { Plus, X, MapPin, Loader2, Check, CheckCircle2, Info } from 'lucide-react';
 import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
@@ -30,7 +30,6 @@ export default function EditCard() {
   const [contacts, setContacts] = useState([]);
   const [primaryContactId, setPrimaryContactId] = useState('');
 
-  // 🌟 NEW: Document Vault State
   const [documents, setDocuments] = useState([]);
 
   const [formData, setFormData] = useState({
@@ -69,9 +68,9 @@ export default function EditCard() {
             temperament: data.temperament || 'Friendly', specialNeeds: data.specialNeeds || ''
           });
 
-          // Load documents if they exist
+          // 🌟 FIXED: Tracking edit state for previously uploaded documents
           if (data.documents && Array.isArray(data.documents)) {
-             setDocuments(data.documents.map(d => ({ ...d, file: null })));
+             setDocuments(data.documents.map(d => ({ ...d, file: null, isEditingFile: false })));
           }
 
           if (data.contacts && data.contacts.length > 0) {
@@ -123,14 +122,12 @@ export default function EditCard() {
     if (primaryContactId === id) setPrimaryContactId(updatedContacts[0].id);
   };
 
-  // 🌟 Document Handlers
   const addDocument = () => {
-    setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '' }]);
+    setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '', isEditingFile: false }]);
   };
 
   const removeDocument = async (id) => {
     const docToRemove = documents.find(d => d.id === id);
-    // If it was already uploaded previously, delete it from Cloudinary to save space
     if (docToRemove && docToRemove.url) {
        await deleteOldImage(docToRemove.url);
     }
@@ -172,13 +169,14 @@ export default function EditCard() {
     );
   };
 
+  // 🌟 FIXED: Use auto/upload to properly process PDFs and images identically
   const uploadToCloudinary = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
     const uploadData = new FormData();
     uploadData.append('file', file);
     uploadData.append('upload_preset', uploadPreset);
-    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, { method: 'POST', body: uploadData });
+    const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/auto/upload`, { method: 'POST', body: uploadData });
     const data = await response.json();
     return data.secure_url; 
   };
@@ -219,12 +217,11 @@ export default function EditCard() {
     setLoading(true);
 
     try {
-      // 🌟 Process Documents
       const processedDocs = [];
       for (const docItem of documents) {
         if (docItem.file) {
           const docUrl = await uploadToCloudinary(docItem.file);
-          if (docItem.url) await deleteOldImage(docItem.url); // delete old replacement
+          if (docItem.url) await deleteOldImage(docItem.url); 
           processedDocs.push({ id: docItem.id, name: docItem.name.trim(), url: docUrl });
         } else if (docItem.url) {
           processedDocs.push({ id: docItem.id, name: docItem.name.trim(), url: docItem.url });
@@ -493,15 +490,9 @@ export default function EditCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* 🌟 NEW: Important Documents (Vault) Section */}
+            {/* 🌟 FIXED: Proper sizing, no icon, and visually distinct Edit controls */}
             <div className="flex justify-between items-center mb-2">
-              <div>
-                <h3 className="text-xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
-                  <FileText size={20} />
-                  Important Documents
-                  <span className="bg-zinc-200 text-zinc-500 text-[10px] uppercase tracking-widest px-2 py-0.5 rounded-md">Optional</span>
-                </h3>
-              </div>
+              <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Important Documents (Optional)</h3>
               <button type="button" onClick={addDocument} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors shrink-0">
                 <Plus size={16} /> <span className="hidden sm:inline">Add</span>
               </button>
@@ -529,20 +520,35 @@ export default function EditCard() {
                       required 
                       className="w-full p-3 border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark" 
                     />
-                    <div className="relative">
-                      {doc.url && !doc.file && (
-                        <div className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm z-10 pointer-events-none">
-                           Uploaded
+                    
+                    <div className="relative flex items-center">
+                      {doc.url && !doc.isEditingFile ? (
+                        <div className="flex items-center justify-between w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <a href={doc.url} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline truncate mr-2">
+                            <CheckCircle2 size={16} className="shrink-0" /> <span className="truncate">View Uploaded</span>
+                          </a>
+                          <button type="button" onClick={() => handleDocumentChange(doc.id, 'isEditingFile', true)} className="shrink-0 text-xs bg-white border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
+                            Replace
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-full flex items-center gap-2">
+                          <input 
+                            type="file" 
+                            accept="image/*,application/pdf,.doc,.docx" 
+                            onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
+                            required={!doc.url} 
+                            className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandMuted file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium" 
+                          />
+                          {doc.url && (
+                            <button type="button" onClick={() => { handleDocumentChange(doc.id, 'isEditingFile', false); handleDocumentChange(doc.id, 'file', null); }} className="shrink-0 p-2.5 bg-zinc-200 text-zinc-600 hover:text-brandDark rounded-xl transition-colors" title="Cancel Replace">
+                              <X size={18} />
+                            </button>
+                          )}
                         </div>
                       )}
-                      <input 
-                        type="file" 
-                        accept="image/*" 
-                        onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
-                        required={!doc.url} 
-                        className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandMuted file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium" 
-                      />
                     </div>
+
                   </div>
                 </div>
               ))}
