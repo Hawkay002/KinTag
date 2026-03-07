@@ -468,7 +468,6 @@ export default function PublicCard() {
           </div>
         </div>
 
-        {/* 🌟 FIXED: Perfected Vault UI to avoid any border cutoffs */}
         {profile.documents && profile.documents.length > 0 && (
           <div className="bg-brandMuted p-5 rounded-3xl border border-zinc-200/60 mb-8">
             <div className="flex items-center space-x-2 mb-4 text-brandDark">
@@ -478,12 +477,10 @@ export default function PublicCard() {
 
             {!isVaultUnlocked ? (
               <div className="relative rounded-2xl overflow-hidden border border-zinc-200/50 min-h-[160px] flex items-center justify-center bg-zinc-50/50">
-                {/* Background Blur Elements */}
                 <div className="absolute inset-0 filter blur-md opacity-40 select-none pointer-events-none p-4">
                    <div className="bg-white rounded-xl mb-3 h-12 shadow-sm w-full"></div>
                    <div className="bg-white rounded-xl h-12 w-3/4 shadow-sm"></div>
                 </div>
-                {/* Foreground Lock Info */}
                 <div className="relative z-10 flex flex-col items-center justify-center p-5 text-center w-full">
                    <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shadow-lg mb-3 text-brandDark border border-zinc-100 shrink-0">
                      <Lock size={20} />
@@ -595,7 +592,7 @@ export default function PublicCard() {
         </div>
       )}
 
-      {/* 🌟 NEW: View Document Modal with PDF Support */}
+      {/* 🌟 FIXED: PDF-to-JPG Image Conversion for Perfect Cross-Platform Rendering & Anti-Download */}
       {viewingDocument && !isPreview && (
         <div className="fixed inset-0 z-[120] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
           <div className="absolute top-4 w-full px-6 flex justify-between items-center z-[130]">
@@ -605,14 +602,16 @@ export default function PublicCard() {
              </button>
           </div>
           <div className="w-full h-full flex items-center justify-center pt-16 pb-4">
-            {viewingDocument.url.toLowerCase().includes('.pdf') ? (
-              <iframe 
-                src={`${viewingDocument.url}#toolbar=0`} 
-                className="w-full h-full max-h-[85vh] rounded-2xl shadow-2xl relative z-[125] bg-white" 
-              />
+            {viewingDocument.url.toLowerCase().includes('.doc') ? (
+              <div className="w-full h-full max-h-[85vh] rounded-2xl shadow-2xl relative z-[125] bg-white overflow-hidden">
+                <iframe 
+                  src={`https://docs.google.com/gview?url=${encodeURIComponent(viewingDocument.url)}&embedded=true`} 
+                  className="w-full h-full border-0" 
+                />
+              </div>
             ) : (
               <img 
-                src={viewingDocument.url} 
+                src={viewingDocument.url.toLowerCase().includes('.pdf') ? viewingDocument.url.replace(/\.pdf$/i, '.jpg') : viewingDocument.url} 
                 alt={viewingDocument.name} 
                 onContextMenu={(e) => e.preventDefault()} 
                 draggable="false" 
