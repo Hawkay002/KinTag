@@ -3,7 +3,7 @@ import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, Refresh
 
 const updates = [
   {
-    version: "v1.2.0",
+    version: "v1.1.1",
     title: "The Security & Vault Update",
     date: "March 7, 2026",
     icon: <ShieldCheck className="text-indigo-500" size={24} />,
