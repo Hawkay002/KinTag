@@ -37,7 +37,6 @@ export default function Profile() {
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
-  // 🌟 NEW: Support Ticket States
   const [supportTickets, setSupportTickets] = useState([]);
   const [expandedTicketId, setExpandedTicketId] = useState(null);
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
@@ -70,11 +69,9 @@ export default function Profile() {
         const familySnaps = await getDocs(familyQuery);
         setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
 
-        // 🌟 NEW: Fetch user's active support tickets
         const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
         const ticketsSnaps = await getDocs(ticketsQuery);
         const fetchedTickets = ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
-        // Sort newest first
         setSupportTickets(fetchedTickets.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
 
       } catch (err) {
@@ -142,8 +139,10 @@ export default function Profile() {
     }
   };
 
-  // 🌟 NEW: Support Logic
+  // 🌟 UPDATED: Prevent opening support if ticket limit reached
   const openSupport = () => {
+    if (supportTickets.length > 0) return;
+    
     const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     setSupportForm({
       supportId: sId,
@@ -179,7 +178,6 @@ export default function Profile() {
     }
 
     try {
-      // 1. Send to Telegram via backend API
       const res = await fetch('/api/support', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -188,7 +186,6 @@ export default function Profile() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send support request.");
       
-      // 2. Save ticket to Firestore
       const ticketData = {
         supportId: supportForm.supportId,
         message: supportForm.message,
@@ -200,7 +197,6 @@ export default function Profile() {
       };
       const docRef = await addDoc(collection(db, "support_tickets"), ticketData);
       
-      // 3. Prepend to local state for instant rendering
       setSupportTickets([{ id: docRef.id, ...ticketData }, ...supportTickets]);
       
       setSupportMessage("Request sent successfully! Your ticket has been logged.");
@@ -218,7 +214,6 @@ export default function Profile() {
   const handleResolveTicket = async (ticket) => {
     setResolvingTicketId(ticket.id);
     try {
-      // 1. Trigger the email send
       const res = await fetch('/api/resolve-ticket', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -226,10 +221,7 @@ export default function Profile() {
       });
       if (!res.ok) throw new Error("Failed to send resolution email.");
 
-      // 2. Delete from database
       await deleteDoc(doc(db, "support_tickets", ticket.id));
-      
-      // 3. Remove instantly from UI
       setSupportTickets(prev => prev.filter(t => t.id !== ticket.id));
     } catch (err) {
       console.error(err);
@@ -284,7 +276,11 @@ export default function Profile() {
       }
       setInviteEmail('');
     } catch (err) {
-      setInviteError(err.message || "Failed to send invite.");
+      if (err.message.includes("Missing or insufficient permissions") || err.code === "permission-denied") {
+        setInviteError("Firebase Error: You need to update your Firestore Security Rules to allow writing to the 'invites' collection.");
+      } else {
+        setInviteError(err.message || "Failed to send invite. Please try again.");
+      }
     } finally {
       setInviteLoading(false);
     }
@@ -495,20 +491,30 @@ export default function Profile() {
                <p className="text-sm text-zinc-500 font-medium max-w-sm">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
              </div>
           </div>
-          <button onClick={openSupport} className="w-full sm:w-auto bg-brandDark text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors shrink-0">
-             Contact Support
+          {/* 🌟 UPDATED: Dynamic Support Button */}
+          <button 
+            onClick={openSupport} 
+            disabled={supportTickets.length > 0}
+            className={`w-full sm:w-auto px-8 py-3.5 rounded-xl font-bold shadow-md transition-colors shrink-0 ${
+              supportTickets.length > 0 
+                ? 'bg-zinc-200 text-zinc-500 cursor-not-allowed' 
+                : 'bg-brandDark text-white hover:bg-brandAccent'
+            }`}
+          >
+             {supportTickets.length > 0 ? 'Ticket Active (1/1)' : 'Contact Support'}
           </button>
         </div>
 
-        {/* 🌟 NEW: Active Support Tickets UI */}
+        {/* Active Support Tickets UI */}
         {supportTickets.length > 0 && (
           <div className="bg-white rounded-3xl shadow-sm border border-zinc-200 p-6 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <h3 className="text-sm font-extrabold text-zinc-400 uppercase tracking-widest mb-4">Active Support Tickets</h3>
+            <h3 className="text-sm font-extrabold text-zinc-400 uppercase tracking-widest mb-4">
+              Active Support Tickets ({supportTickets.length}/1)
+            </h3>
             <div className="space-y-3">
               {supportTickets.map((ticket) => (
                 <div key={ticket.id} className="bg-zinc-50 rounded-2xl border border-zinc-200 overflow-hidden transition-all duration-300">
                   
-                  {/* Accordion Header */}
                   <button 
                     onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} 
                     className="w-full px-5 py-4 flex items-center justify-between hover:bg-zinc-100 transition-colors"
@@ -523,7 +529,6 @@ export default function Profile() {
                     </div>
                   </button>
 
-                  {/* Accordion Body */}
                   <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedTicketId === ticket.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="p-5 pt-0 border-t border-zinc-200 mt-2">
                       <div className="flex items-center gap-2 mb-3 mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">
@@ -595,7 +600,6 @@ export default function Profile() {
                 <form onSubmit={handleSupportSubmit} className="space-y-4">
                    {supportError && <div className="p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{supportError}</div>}
 
-                   {/* 🌟 UPDATED: Ticket ID Box with Tooltip & Copy */}
                    <div className="bg-zinc-50 p-3 rounded-xl border border-zinc-200 flex justify-between items-center relative group transition-colors hover:border-zinc-300">
                      <div className="flex items-center gap-1.5">
                        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">Ticket ID</span>
@@ -671,7 +675,6 @@ export default function Profile() {
           </div>
         )}
 
-        {/* Delete Account Modal & Remove Guardian Modals Remained Unchanged Below */}
         {guardianToRemove && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
