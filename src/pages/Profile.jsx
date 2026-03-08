@@ -469,34 +469,16 @@ export default function Profile() {
           <p className="text-red-800/70 font-medium mb-6 leading-relaxed">
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
           </p>
-
-          {deleteError && <div className="mb-6 p-4 bg-white text-red-600 text-sm font-bold rounded-xl border border-red-200">{deleteError}</div>}
-
-          {!showDeleteZone ? (
-            <button onClick={() => setShowDeleteZone(true)} className="bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-200 transition-colors">
-              Delete Account
-            </button>
-          ) : (
-            <div className="bg-white p-5 rounded-2xl border border-red-200 shadow-sm animate-in fade-in slide-in-from-top-2">
-              <p className="text-sm font-bold text-brandDark mb-3">
-                To proceed, type the following phrase exactly as shown below:
-              </p>
-              <div className="bg-zinc-100 p-3 rounded-lg mb-4 text-sm text-zinc-600 font-mono select-all">
-                {deleteConfirmationPhrase}
-              </div>
-              
-              <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type the confirmation phrase here..." className="w-full p-3.5 bg-white border border-zinc-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-4" />
-              
-              <div className="flex gap-3">
-                <button onClick={() => setShowDeleteZone(false)} className="flex-1 bg-zinc-100 text-zinc-600 font-bold py-3.5 rounded-xl hover:bg-zinc-200 transition-colors">Cancel</button>
-                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50">
-                  {isDeleting ? 'Deleting...' : 'Confirm'}
-                </button>
-              </div>
-            </div>
-          )}
+          
+          {/* 🌟 NEW: Button to open Modal instead of inline form */}
+          <button onClick={() => setShowDeleteZone(true)} className="bg-red-100 text-red-600 font-bold px-6 py-3 rounded-xl hover:bg-red-200 transition-colors shadow-sm">
+            Delete Account
+          </button>
         </div>
 
+        {/* --- MODALS --- */}
+
+        {/* Guardian Removal Modal */}
         {guardianToRemove && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
@@ -578,7 +560,6 @@ export default function Profile() {
                       </button>
                    </div>
 
-                   {/* 🌟 UPDATED: Telegram @ Input Block */}
                    {supportForm.platform === 'whatsapp' ? (
                      <div className="flex w-full border border-zinc-300 rounded-xl focus-within:border-brandDark focus-within:ring-1 focus-within:ring-brandDark bg-white overflow-hidden transition-all relative">
                         <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
@@ -608,7 +589,6 @@ export default function Profile() {
 
                    <textarea placeholder="How can we help you?" required rows="4" value={supportForm.message} onChange={e => setSupportForm({...supportForm, message: e.target.value})} className="w-full p-3 border border-zinc-300 rounded-xl outline-none focus:border-brandDark focus:ring-1 focus:ring-brandDark font-medium resize-none"></textarea>
 
-                   {/* 🌟 NEW: Dynamic Contact Expectations Note */}
                    <div className="bg-brandGold/10 p-3 rounded-xl border border-brandGold/20 mt-1">
                       <p className="text-xs text-brandDark font-medium leading-relaxed">
                         <strong>Note:</strong> After sending your request, you'll be contacted by <strong className="font-extrabold">{supportForm.platform === 'whatsapp' ? '+91 87778 45713' : '@X_o_x_o_002'}</strong> on {supportForm.platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} within 36 hours. Please be patient.
@@ -621,6 +601,39 @@ export default function Profile() {
                    </button>
                 </form>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* 🌟 NEW: Delete Account Modal */}
+        {showDeleteZone && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
+              <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="absolute top-6 right-6 text-zinc-400 hover:bg-zinc-100 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                <AlertOctagon size={32} />
+              </div>
+              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Account?</h2>
+              <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">
+                This action cannot be undone. To proceed, type the following phrase exactly as shown below:
+              </p>
+              
+              {deleteError && <div className="mb-4 p-3 bg-red-50 text-red-600 text-sm font-bold rounded-xl border border-red-100">{deleteError}</div>}
+
+              <div className="bg-zinc-100 p-3 rounded-lg mb-4 text-sm text-zinc-600 font-mono select-all">
+                {deleteConfirmationPhrase}
+              </div>
+              
+              <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type the confirmation phrase here..." className="w-full p-3.5 bg-white border border-zinc-300 rounded-xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-6 text-center" />
+              
+              <div className="flex gap-3">
+                <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="flex-1 bg-zinc-100 text-zinc-600 font-bold py-3.5 rounded-xl hover:bg-zinc-200 transition-colors">Cancel</button>
+                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors disabled:opacity-50">
+                  {isDeleting ? 'Deleting...' : 'Confirm'}
+                </button>
+              </div>
             </div>
           </div>
         )}
