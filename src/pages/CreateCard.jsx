@@ -118,7 +118,6 @@ export default function CreateCard() {
     );
   };
 
-  // 🌟 FIXED: Changed API to /auto/upload to properly handle PDFs and Doc files
   const uploadToCloudinary = async (file) => {
     const cloudName = import.meta.env.VITE_CLOUDINARY_CLOUD_NAME; 
     const uploadPreset = import.meta.env.VITE_CLOUDINARY_UPLOAD_PRESET; 
@@ -160,8 +159,12 @@ export default function CreateCard() {
 
       let imageUrl = imageFile ? await uploadToCloudinary(imageFile) : 'https://placehold.co/600x400/eeeeee/999999?text=No+Photo+Provided';
       
+      // 🌟 Format the pincode to remove spaces and make uppercase
+      const formattedPincode = formData.pincode ? formData.pincode.replace(/\s+/g, '').toUpperCase() : '';
+
       const docRef = await addDoc(collection(db, "profiles"), {
         ...formData, 
+        pincode: formattedPincode, // 🌟 Save the formatted version
         type, 
         imageUrl, 
         contacts, 
@@ -344,7 +347,8 @@ export default function CreateCard() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div><label className={labelStyles}>Local Police Station</label><input type="text" name="policeStation" placeholder="Nearest station name" value={formData.policeStation} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
+              {/* 🌟 FIXED PLACEHOLDER */}
+              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" placeholder="Zip / Postal / PIN Code" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
             </div>
 
             <div>
@@ -436,7 +440,6 @@ export default function CreateCard() {
 
             <hr className="border-zinc-200" />
 
-            {/* 🌟 FIXED: Proper sizing, no icon, and accepting PDFs */}
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Important Documents (Optional)</h3>
               <button type="button" onClick={addDocument} className="flex items-center space-x-1 text-sm bg-brandMuted text-brandDark font-bold px-4 py-2 rounded-lg hover:bg-zinc-200 transition-colors shrink-0">
