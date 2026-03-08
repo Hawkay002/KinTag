@@ -4,7 +4,7 @@ import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
 import { User, LogOut, ArrowLeft, Users, Mail, Link as LinkIcon, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send } from 'lucide-react'; 
-import { sortedCountryCodes } from '../data/countryCodes'; // Needed for the Support WhatsApp dropdown
+import { sortedCountryCodes } from '../data/countryCodes'; 
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -34,7 +34,8 @@ export default function Profile() {
   const [isDeleting, setIsDeleting] = useState(false);
   const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
 
-  // 🌟 NEW: Share & Support States
+  // 🌟 NEW: Share Modal State
+  const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
   
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -103,7 +104,6 @@ export default function Profile() {
     }
   };
 
-  // 🌟 NEW: Share Handler
   const handleShareApp = async () => {
     const shareData = {
       title: 'KinTag - Digital Safety Net',
@@ -130,7 +130,6 @@ export default function Profile() {
     }
   };
 
-  // 🌟 NEW: Support Handlers
   const openSupport = () => {
     const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
     setSupportForm({
@@ -305,12 +304,33 @@ export default function Profile() {
         </div>
 
         {/* Profile Card */}
-        <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 mb-8 text-center relative">
-          <button onClick={handleLogout} className="absolute top-6 right-6 flex items-center justify-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-colors shadow-sm" title="Log Out Securely">
-            <LogOut size={18} />
+        <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 mb-8 text-center relative overflow-hidden">
+          
+          {/* 🌟 NEW: Expanding Top-Left Share Button */}
+          <button 
+            onClick={() => setShowShareModal(true)} 
+            className="absolute top-6 left-6 flex items-center bg-emerald-50 text-emerald-600 hover:bg-emerald-100 p-3 rounded-full transition-all duration-300 shadow-sm group"
+            title="Share KinTag"
+          >
+            <Share2 size={18} className="shrink-0" />
+            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 group-hover:ml-2 transition-all duration-300 font-bold text-sm">
+              Share
+            </span>
           </button>
 
-          <div className="w-24 h-24 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4 relative">
+          {/* 🌟 NEW: Expanding Top-Right Log Out Button */}
+          <button 
+            onClick={handleLogout} 
+            className="absolute top-6 right-6 flex items-center bg-red-50 text-red-600 hover:bg-red-100 p-3 rounded-full transition-all duration-300 shadow-sm group"
+            title="Log Out Securely"
+          >
+            <span className="max-w-0 overflow-hidden whitespace-nowrap opacity-0 group-hover:max-w-[100px] group-hover:opacity-100 group-hover:mr-2 transition-all duration-300 font-bold text-sm">
+              Log Out
+            </span>
+            <LogOut size={18} className="shrink-0" />
+          </button>
+
+          <div className="w-24 h-24 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4 relative mt-4 md:mt-0">
             <User size={40} />
             {!userData?.zipCode && <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 border-2 border-white rounded-full animate-pulse" title="Missing Zip Code"></span>}
           </div>
@@ -419,39 +439,35 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* 🌟 NEW: Share & Support Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {/* Share Card */}
-            <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 text-center flex flex-col items-center justify-center transition-all hover:shadow-md">
-               <div className="w-14 h-14 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mb-4">
-                  <Share2 size={24} />
-               </div>
-               <h3 className="text-xl font-extrabold text-brandDark mb-2">Share KinTag</h3>
-               <p className="text-sm text-zinc-500 font-medium mb-6">Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.</p>
-               <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-3 rounded-xl font-bold shadow-md hover:bg-emerald-600 transition-colors">
-                 Share Now
-               </button>
-               {shareMessage && <p className="text-xs text-emerald-600 font-bold mt-3 animate-in fade-in duration-300">{shareMessage}</p>}
-            </div>
+        {/* 🌟 NEW: Full Width Support Card */}
+        <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-md gap-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+             <div className="w-14 h-14 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center shrink-0">
+                <LifeBuoy size={24} />
+             </div>
+             <div>
+               <h3 className="text-xl font-extrabold text-brandDark mb-1">Help & Support</h3>
+               <p className="text-sm text-zinc-500 font-medium max-w-sm">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
+             </div>
+          </div>
+          <button onClick={openSupport} className="w-full sm:w-auto bg-brandDark text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors shrink-0">
+             Contact Support
+          </button>
+        </div>
 
-            {/* Support Card */}
-            <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-8 text-center flex flex-col items-center justify-center transition-all hover:shadow-md">
-               <div className="w-14 h-14 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center mb-4">
-                  <LifeBuoy size={24} />
-               </div>
-               <h3 className="text-xl font-extrabold text-brandDark mb-2">Help & Support</h3>
-               <p className="text-sm text-zinc-500 font-medium mb-6">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
-               <button onClick={openSupport} className="w-full bg-brandDark text-white py-3 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors">
-                 Contact Support
-               </button>
-            </div>
+        {/* 🌟 NEW: Elegant Separator */}
+        <div className="flex items-center justify-center mb-8 relative">
+          <div className="w-full h-px bg-zinc-200"></div>
+          <span className="absolute bg-zinc-50 px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
+            Danger Zone
+          </span>
         </div>
 
         {/* Danger Zone for Account Deletion */}
         <div className="bg-red-50/50 rounded-3xl border border-red-100 p-8">
           <div className="flex items-center gap-3 mb-2">
             <AlertOctagon size={24} className="text-red-500" />
-            <h2 className="text-2xl font-extrabold text-red-600 tracking-tight">Danger Zone</h2>
+            <h2 className="text-2xl font-extrabold text-red-600 tracking-tight">Delete Account</h2>
           </div>
           <p className="text-red-800/70 font-medium mb-6 leading-relaxed">
             Permanently delete your account, all profiles, and all scan history. This action cannot be undone.
@@ -502,7 +518,29 @@ export default function Profile() {
           </div>
         )}
 
-        {/* 🌟 NEW: Support Form Modal */}
+        {/* 🌟 NEW: Share Modal */}
+        {showShareModal && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
+            <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200 relative">
+              <button onClick={() => setShowShareModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:bg-zinc-100 p-2 rounded-full transition-colors">
+                <X size={20} />
+              </button>
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Share2 size={32} />
+              </div>
+              <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Share KinTag</h2>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
+                Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.
+              </p>
+              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2">
+                <Share2 size={18} /> Share Now
+              </button>
+              {shareMessage && <p className="text-xs text-emerald-600 font-bold mt-4 animate-in fade-in duration-300">{shareMessage}</p>}
+            </div>
+          </div>
+        )}
+
+        {/* Support Form Modal */}
         {showSupportModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm overflow-y-auto">
             <div className="bg-white rounded-3xl p-6 md:p-8 max-w-md w-full shadow-2xl border border-zinc-100 my-8 animate-in zoom-in-95 duration-200">
