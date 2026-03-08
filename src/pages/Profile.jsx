@@ -32,7 +32,7 @@ export default function Profile() {
   const [showDeleteZone, setShowDeleteZone] = useState(false);
   const [deleteInput, setDeleteInput] = useState("");
   const [isDeleting, setIsDeleting] = useState(false);
-  const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still i want to delete my account, ${auth.currentUser.email}` : '';
+  const deleteConfirmationPhrase = auth.currentUser ? `I know this will delete all data related to this account, still I want to delete my account, ${auth.currentUser.email}` : '';
 
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareMessage, setShareMessage] = useState('');
