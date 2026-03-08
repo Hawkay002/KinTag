@@ -232,8 +232,19 @@ export default function EditCard() {
         await deleteOldImage(currentImageUrl); 
       }
 
+      // 🌟 Format the pincode to remove spaces and make uppercase
+      const formattedPincode = formData.pincode ? formData.pincode.replace(/\s+/g, '').toUpperCase() : '';
+
       await updateDoc(doc(db, "profiles", profileId), {
-        ...formData, type, imageUrl, contacts, primaryContactId, isActive, documents: processedDocs, updatedAt: new Date().toISOString()
+        ...formData, 
+        pincode: formattedPincode, // 🌟 Save the formatted version
+        type, 
+        imageUrl, 
+        contacts, 
+        primaryContactId, 
+        isActive, 
+        documents: processedDocs, 
+        updatedAt: new Date().toISOString()
       });
       navigate('/'); 
     } catch (err) {
@@ -243,14 +254,11 @@ export default function EditCard() {
     }
   };
 
-  // 🌟 NEW: Safe Preview URL Generator for the "View Uploaded" button
   const getSafePreviewUrl = (url) => {
     if (!url) return '#';
-    // If PDF, convert extension to JPG to force Cloudinary to rasterize it safely
     if (url.toLowerCase().includes('.pdf')) {
       return url.replace(/\.pdf$/i, '.jpg');
     }
-    // If DOC/DOCX, route it through Google Docs Viewer
     if (url.toLowerCase().includes('.doc') || url.toLowerCase().includes('.docx')) {
       return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
     }
@@ -410,7 +418,8 @@ export default function EditCard() {
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-5">
               <div><label className={labelStyles}>Local Police Station</label><input type="text" name="policeStation" placeholder="Nearest station name" value={formData.policeStation} onChange={handleInputChange} required className={inputStyles} /></div>
-              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
+              {/* 🌟 FIXED PLACEHOLDER */}
+              <div><label className={labelStyles}>Local Pincode / Zipcode</label><input type="text" name="pincode" placeholder="Zip / Postal / PIN Code" value={formData.pincode} onChange={handleInputChange} required className={inputStyles} /></div>
             </div>
 
             <div>
@@ -535,7 +544,6 @@ export default function EditCard() {
                     <div className="relative flex items-center">
                       {doc.url && !doc.isEditingFile ? (
                         <div className="flex items-center justify-between w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
-                          {/* 🌟 FIXED: Used the safe preview URL converter */}
                           <a href={getSafePreviewUrl(doc.url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline truncate mr-2">
                             <CheckCircle2 size={16} className="shrink-0" /> <span className="truncate">View Uploaded</span>
                           </a>
