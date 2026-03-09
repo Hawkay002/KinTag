@@ -3,7 +3,8 @@ import { auth, db } from '../firebase';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useNavigate, Link } from 'react-router-dom';
-import { Eye, EyeOff, Loader2 } from 'lucide-react'; // 🌟 NEW: Added Loader2
+import { Eye, EyeOff, Loader2 } from 'lucide-react'; 
+import ReCAPTCHA from "react-google-recaptcha"; // 🌟 NEW
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,14 +14,13 @@ export default function Login() {
   const [error, setError] = useState('');
   const [resetMessage, setResetMessage] = useState(''); 
   const [loading, setLoading] = useState(false);
-  const [resetLoading, setResetLoading] = useState(false); // 🌟 NEW: Loader state for forgot password
+  const [resetLoading, setResetLoading] = useState(false); 
+  const [captchaToken, setCaptchaToken] = useState(null); // 🌟 NEW
 
-  // 🌟 Ensure family linking happens even on simple logins
   const syncUserDatabase = async (user) => {
     const userDocRef = doc(db, "users", user.uid);
     const userDoc = await getDoc(userDocRef);
     
-    // Check if they were invited AFTER they originally created their account
     const inviteRef = doc(db, "invites", user.email.toLowerCase());
     const inviteSnap = await getDoc(inviteRef);
     
@@ -39,6 +39,12 @@ export default function Login() {
     e.preventDefault();
     setError('');
     setResetMessage('');
+
+    if (!captchaToken) {
+      setError("Please complete the security check.");
+      return;
+    }
+
     setLoading(true);
 
     try {
@@ -55,6 +61,12 @@ export default function Login() {
   const handleGoogleLogin = async () => {
     setError('');
     setResetMessage('');
+
+    if (!captchaToken) {
+      setError("Please complete the security check.");
+      return;
+    }
+
     setLoading(true);
     const provider = new GoogleAuthProvider();
     
@@ -69,7 +81,6 @@ export default function Login() {
     }
   };
 
-  // 🌟 UPDATED: Call the custom API instead of Firebase directly
   const handleResetPassword = async () => {
     setError('');
     setResetMessage('');
@@ -144,7 +155,6 @@ export default function Login() {
           </div>
 
           <div className="flex justify-end mt-1">
-            {/* 🌟 UPDATED: Added Loader and disabled state to the Forgot Password button */}
             <button 
               type="button" 
               onClick={handleResetPassword} 
@@ -155,8 +165,17 @@ export default function Login() {
               {resetLoading ? 'Sending...' : 'Forgot Password?'}
             </button>
           </div>
+
+          {/* 🌟 NEW: Google reCAPTCHA */}
+          <div className="flex justify-center mt-4">
+            <ReCAPTCHA
+              sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+              onChange={(token) => setCaptchaToken(token)}
+            />
+          </div>
           
-          <button type="submit" disabled={loading} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
+          {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
+          <button type="submit" disabled={loading || !captchaToken} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
             {loading ? 'Processing...' : 'Log In'}
           </button>
         </form>
@@ -166,7 +185,8 @@ export default function Login() {
           <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 tracking-wider">OR</span>
         </div>
 
-        <button onClick={handleGoogleLogin} disabled={loading} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm">
+        {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
+        <button onClick={handleGoogleLogin} disabled={loading || !captchaToken} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
           <span>Log in with Google</span>
         </button>
