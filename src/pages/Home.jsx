@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom'; 
-import { Turnstile } from '@marsidev/react-turnstile'; // 🌟 NEW
+import { Turnstile } from '@marsidev/react-turnstile';
 import { 
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -112,14 +112,6 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white">
       
-      {/* 🌟 NEW: Invisible Cloudflare Turnstile for passive bot protection */}
-      <div className="hidden">
-        <Turnstile 
-          siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
-          options={{ size: 'invisible' }}
-        />
-      </div>
-
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-50/80 backdrop-blur-md border-b border-zinc-200/50">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
@@ -157,7 +149,7 @@ export default function Home() {
             Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
           </p>
           
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link to="/signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
               <span>Try KinTag for Free</span>
               <ArrowRight size={18} />
@@ -165,6 +157,13 @@ export default function Home() {
             <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
               How it works
             </button>
+          </div>
+
+          {/* 🌟 NEW: Visible Managed Turnstile Widget with min-height to prevent layout jump */}
+          <div className="flex justify-center mb-10 min-h-[65px]">
+            <Turnstile 
+              siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
+            />
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-10">
