@@ -4,6 +4,7 @@ import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, ge
 import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore'; 
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail } from 'lucide-react';
+import ReCAPTCHA from "react-google-recaptcha"; // 🌟 NEW
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -22,15 +23,15 @@ export default function Signup() {
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState(null); // 🌟 NEW
 
-  // 🌟 OTP Verification State
+  // OTP Verification State
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
   
-  // 6-box array for the OTP inputs
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef([]);
 
@@ -81,7 +82,6 @@ export default function Signup() {
     }).catch(err => console.log("Welcome email failed:", err));
   };
 
-  // 🌟 Trigger OTP Send
   const handleSendOtp = async () => {
     setError('');
     setOtpLoading(true);
@@ -103,7 +103,6 @@ export default function Signup() {
     }
   };
 
-  // 🌟 Verify the OTP code
   const handleVerifyOtp = async () => {
     setOtpError('');
     setVerifyLoading(true);
@@ -127,11 +126,14 @@ export default function Signup() {
     }
   };
 
-  // 🌟 Final Signup step (after email is verified)
   const handleEmailSignup = async (e) => {
     e.preventDefault();
     setError('');
     
+    if (!captchaToken) {
+      setError("Please complete the security check.");
+      return;
+    }
     if (!isEmailVerified) {
       setError("Please verify your email address first.");
       return;
@@ -161,6 +163,11 @@ export default function Signup() {
 
   const handleGoogleSignup = async () => {
     setError('');
+    if (!captchaToken) {
+      setError("Please complete the security check.");
+      return;
+    }
+
     setLoading(true);
     const provider = new GoogleAuthProvider();
     
@@ -179,7 +186,6 @@ export default function Signup() {
     }
   };
 
-  // 🌟 Auto-advance cursor logic for 6-box input
   const handleOtpChange = (index, value) => {
     if (isNaN(value)) return;
     const newOtp = [...otpValues];
@@ -249,7 +255,6 @@ export default function Signup() {
           <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
           <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-3.5 bg-brandMuted border-transparent rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all" />
           
-          {/* 🌟 NEW: Inline Verify Button in Email Field */}
           <div className="relative">
             <input 
               type="email" 
@@ -296,7 +301,6 @@ export default function Signup() {
             </button>
           </div>
 
-          {/* Confirm Password Field */}
           <div className="relative">
             <input 
               type={showConfirmPassword ? "text" : "password"} 
@@ -334,8 +338,17 @@ export default function Signup() {
               </ul>
             </div>
           </div>
+
+          {/* 🌟 NEW: Google reCAPTCHA */}
+          <div className="flex justify-center mt-4">
+            <ReCAPTCHA
+              sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+              onChange={(token) => setCaptchaToken(token)}
+            />
+          </div>
           
-          <button type="submit" disabled={loading || password.length < 8 || password !== confirmPassword || !isEmailVerified} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
+          {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
+          <button type="submit" disabled={loading || password.length < 8 || password !== confirmPassword || !isEmailVerified || !captchaToken} className="w-full bg-brandDark text-white p-3.5 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md mt-2 disabled:opacity-50">
             {loading ? 'Processing...' : 'Create Account'}
           </button>
         </form>
@@ -345,7 +358,8 @@ export default function Signup() {
           <span className="absolute bg-white px-4 text-xs font-bold text-zinc-400 tracking-wider">OR</span>
         </div>
 
-        <button onClick={handleGoogleSignup} disabled={loading} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm">
+        {/* 🌟 UPDATED: Disabled if Captcha isn't completed */}
+        <button onClick={handleGoogleSignup} disabled={loading || !captchaToken} className="w-full flex items-center justify-center space-x-2 bg-white border border-zinc-200 text-brandDark p-3.5 rounded-xl font-bold hover:bg-zinc-50 transition-all shadow-sm disabled:opacity-50">
           <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
           <span>Sign up with Google</span>
         </button>
@@ -354,7 +368,6 @@ export default function Signup() {
           Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
         </p>
 
-        {/* 🌟 UNCLOSABLE 6-BOX OTP MODAL */}
         {showOtpModal && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
             <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
