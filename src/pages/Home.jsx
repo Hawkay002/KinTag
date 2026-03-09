@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom'; 
+import { Turnstile } from '@marsidev/react-turnstile'; // 🌟 NEW
 import { 
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -111,6 +112,14 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white">
       
+      {/* 🌟 NEW: Invisible Cloudflare Turnstile for passive bot protection */}
+      <div className="hidden">
+        <Turnstile 
+          siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
+          options={{ size: 'invisible' }}
+        />
+      </div>
+
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-50/80 backdrop-blur-md border-b border-zinc-200/50">
         <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
