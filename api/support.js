@@ -15,21 +15,31 @@ export default async function handler(req, res) {
   let replyUrl = "";
   let replyText = "";
 
+  // 🌟 NEW: Create the pre-filled response message dynamically
+  // We truncate their original message to 60 chars so the URL doesn't break
+  const shortUserMessage = message.length > 60 ? message.substring(0, 60) + '...' : message;
+  
+  // Create the exact message you want to send them, heavily URL-encoded so it transfers perfectly
+  const preFilledMessage = `Hello ${name}, we've received your KinTag support request (${supportId}) regarding: "${shortUserMessage}"\n\nCould you please elaborate about this a bit more so we can help you quickly?`;
+  const encodedText = encodeURIComponent(preFilledMessage);
+
   // Format the contact info and create the dynamic reply button
   if (platform === 'whatsapp') {
     const cleanPhone = contactValue.replace(/\D/g, ''); // Remove non-numeric characters
     const fullPhone = countryCode.replace('+', '') + cleanPhone;
     contactInfo = `WhatsApp: ${countryCode} ${contactValue}`;
-    replyUrl = `https://wa.me/${fullPhone}`;
-    replyText = "💬 Reply on WhatsApp";
+    // Attach the pre-filled text to the WhatsApp link
+    replyUrl = `https://wa.me/${fullPhone}?text=${encodedText}`;
+    replyText = "Reply on WhatsApp";
   } else {
     const cleanTg = contactValue.startsWith('@') ? contactValue.substring(1) : contactValue;
     contactInfo = `Telegram: @${cleanTg}`;
-    replyUrl = `https://t.me/${cleanTg}`;
-    replyText = "✈️ Reply on Telegram";
+    // Attach the pre-filled text to the Telegram link
+    replyUrl = `https://t.me/${cleanTg}?text=${encodedText}`;
+    replyText = "Reply on Telegram";
   }
 
-  // Format the message safely using HTML
+  // Format the admin notification message safely using HTML
   const tgMessage = `🚨 <b>New Support Request</b>\n\n<b>ID:</b> <code>${supportId}</code>\n<b>Name:</b> ${name}\n<b>Email:</b> ${email}\n<b>Platform:</b> ${contactInfo}\n\n<b>Message:</b>\n${message}`;
 
   const payload = {
