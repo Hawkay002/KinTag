@@ -53,7 +53,7 @@ export default function Profile() {
     supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: ''
   });
 
-  // 🌟 UPDATED: Listen for Install Prompt and check window variable
+  // Listen for Install Prompt and check window variable
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -577,13 +577,16 @@ export default function Profile() {
                     </div>
                   </button>
 
-                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedTicketId === ticket.id ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'}`}>
+                  {/* 🌟 FIXED: Expanded wrapper max-height increased and internal text box scrollable */}
+                  <div className={`overflow-hidden transition-all duration-300 ease-in-out ${expandedTicketId === ticket.id ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'}`}>
                     <div className="p-5 pt-0 border-t border-zinc-200 mt-2">
                       <div className="flex items-center gap-2 mb-3 mt-4 text-xs font-bold text-zinc-400 uppercase tracking-widest">
                         <span>Submitted on:</span>
                         <span className="text-zinc-600">{new Date(ticket.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
                       </div>
-                      <p className="text-sm text-brandDark font-medium bg-white p-4 rounded-xl border border-zinc-200 mb-4 whitespace-pre-wrap leading-relaxed shadow-sm">
+                      
+                      {/* 🌟 FIXED: Text area now has max-h-48 and overflow-y-auto to handle long messages smoothly */}
+                      <p className="text-sm text-brandDark font-medium bg-white p-4 rounded-xl border border-zinc-200 mb-4 whitespace-pre-wrap leading-relaxed shadow-sm max-h-48 overflow-y-auto">
                         "{ticket.message}"
                       </p>
                       
