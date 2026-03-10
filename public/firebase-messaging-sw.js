@@ -1,16 +1,11 @@
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js');
 importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging-compat.js');
 
-self.addEventListener('install', function(event) {
-  self.skipWaiting();
-});
-self.addEventListener('activate', function(event) {
-  event.waitUntil(self.clients.claim());
-});
+// NOTE: We completely removed the self.skipWaiting() and self.clients.claim() blocks 
+// so the Update Toast can pause and wait for the user!
 
-// NOTE: Paste your Firebase string values back in here!
 firebase.initializeApp({
-apiKey: "AIzaSyAS4oLPUdC6qIWgO6dLwupPn4UVvkl8Uso",
+  apiKey: "AIzaSyAS4oLPUdC6qIWgO6dLwupPn4UVvkl8Uso",
   authDomain: "kintag-4c1ac.firebaseapp.com",
   projectId: "kintag-4c1ac",
   storageBucket: "kintag-4c1ac.firebasestorage.app",
@@ -31,6 +26,3 @@ self.addEventListener('notificationclick', function(event) {
     clients.openWindow(targetUrl)
   );
 });
-
-
-  
