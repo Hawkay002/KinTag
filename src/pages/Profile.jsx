@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check, Smartphone, Download } from 'lucide-react'; // 🌟 NEW IMPORTS
 import { sortedCountryCodes } from '../data/countryCodes'; 
 
 export default function Profile() {
@@ -42,6 +42,9 @@ export default function Profile() {
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
   
+  // 🌟 NEW: PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+  
   const [showSupportModal, setShowSupportModal] = useState(false);
   const [supportLoading, setSupportLoading] = useState(false);
   const [supportMessage, setSupportMessage] = useState('');
@@ -49,6 +52,25 @@ export default function Profile() {
   const [supportForm, setSupportForm] = useState({
     supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: ''
   });
+
+  // 🌟 NEW: Listen for Install Prompt
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -139,7 +161,6 @@ export default function Profile() {
     }
   };
 
-  // 🌟 UPDATED: Prevent opening support if ticket limit reached
   const openSupport = () => {
     if (supportTickets.length > 0) return;
     
@@ -480,6 +501,25 @@ export default function Profile() {
           </div>
         </div>
 
+        {/* 🌟 NEW: Install App Dynamic Block */}
+        {deferredPrompt && (
+          <div className="bg-brandDark text-white rounded-3xl shadow-premium p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-lg gap-6">
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
+               <div className="w-14 h-14 bg-white/10 text-white rounded-full flex items-center justify-center shrink-0">
+                  <Smartphone size={24} />
+               </div>
+               <div>
+                 <h3 className="text-xl font-extrabold mb-1">Install KinTag App</h3>
+                 <p className="text-sm text-white/70 font-medium max-w-sm">Add KinTag to your home screen for a seamless, full-screen native experience.</p>
+               </div>
+            </div>
+            <button onClick={handleInstallApp} className="w-full sm:w-auto bg-brandGold text-white px-8 py-3.5 rounded-xl font-bold shadow-md hover:bg-amber-500 transition-colors shrink-0 flex items-center justify-center gap-2">
+               <Download size={18} />
+               Install Now
+            </button>
+          </div>
+        )}
+
         {/* Support Block */}
         <div className="bg-white rounded-3xl shadow-premium border border-zinc-100 p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-md gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
@@ -491,7 +531,6 @@ export default function Profile() {
                <p className="text-sm text-zinc-500 font-medium max-w-sm">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
              </div>
           </div>
-          {/* 🌟 UPDATED: Dynamic Support Button */}
           <button 
             onClick={openSupport} 
             disabled={supportTickets.length > 0}
