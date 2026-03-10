@@ -16,7 +16,7 @@ export default function Home() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // 🌟 UPDATED: Listen for Install Prompt and check window variable
+  // Listen for Install Prompt and check window variable
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -195,7 +195,7 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.1.1 is now live!</span>
+              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.2.0 is now live</span>
             </div>
           </ScrollReveal>
           
@@ -409,6 +409,69 @@ export default function Home() {
             <FeatureCard delay={0} icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
             <FeatureCard delay={100} icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
           </div>
+        </div>
+      </section>
+
+      {/* 🌟 NEW: NATIVE APP & APK DOWNLOAD SECTION */}
+      <section className="py-24 bg-white border-y border-zinc-100">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
+          <ScrollReveal>
+            <div className="bg-zinc-900 rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-12">
+              
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <div className="flex-1 relative z-10 text-center md:text-left">
+                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full mb-6">
+                  <Smartphone size={14} className="text-brandGold" />
+                  <span className="text-xs font-extrabold uppercase tracking-widest text-white">Experience KinTag Native</span>
+                </div>
+                <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
+                  Get the KinTag App
+                </h2>
+                <p className="text-zinc-400 font-medium text-lg leading-relaxed mb-8">
+                  For the best, full-screen experience without browser distractions, install KinTag directly to your device. Choose between our seamless Web App or download the Android APK.
+                </p>
+                
+                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
+                  {/* Dynamic PWA Install Button */}
+                  {deferredPrompt ? (
+                    <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandGold text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-amber-500 transition-all hover:-translate-y-0.5">
+                      <Download size={20} />
+                      <span>Install Web App</span>
+                    </button>
+                  ) : (
+                    <div className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white/10 text-white/50 px-8 py-4 rounded-2xl font-bold border border-white/10 cursor-not-allowed" title="Already installed or not supported on this browser">
+                      <CheckCircle2 size={20} />
+                      <span>Web App Installed</span>
+                    </div>
+                  )}
+
+                  {/* Direct APK Download Link */}
+                  {/* NOTE: Change this href to the exact raw link of your APK in your GitHub repo */}
+                  <a 
+                    href="/KinTag.apk" 
+                    download="KinTag.apk"
+                    className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-zinc-900 px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-zinc-200 transition-all hover:-translate-y-0.5"
+                  >
+                    <Smartphone size={20} />
+                    <span>Download APK</span>
+                  </a>
+                </div>
+                
+                <p className="text-zinc-500 text-xs font-medium mt-6 max-w-md mx-auto md:mx-0">
+                  * iOS Users: To install the Web App, tap the Share icon in Safari and select "Add to Home Screen".
+                </p>
+              </div>
+
+              <div className="relative z-10 shrink-0 hidden lg:block">
+                <div className="w-48 h-48 bg-gradient-to-br from-brandGold to-amber-600 rounded-[2.5rem] shadow-2xl flex items-center justify-center transform rotate-12 hover:rotate-0 transition-all duration-500">
+                  <img src="/kintag-logo.png" alt="KinTag Icon" className="w-24 h-24 rounded-2xl shadow-inner bg-white p-2" />
+                </div>
+              </div>
+
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
