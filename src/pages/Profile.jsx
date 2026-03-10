@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check, Smartphone, Download } from 'lucide-react'; // 🌟 NEW IMPORTS
+import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check, Smartphone, Download } from 'lucide-react'; 
 import { sortedCountryCodes } from '../data/countryCodes'; 
 
 export default function Profile() {
@@ -42,7 +42,7 @@ export default function Profile() {
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
   
-  // 🌟 NEW: PWA Install State
+  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -53,13 +53,21 @@ export default function Profile() {
     supportId: '', name: '', email: '', platform: 'whatsapp', countryCode: '+1', countryIso: 'us', contactValue: '', message: ''
   });
 
-  // 🌟 NEW: Listen for Install Prompt
+  // 🌟 UPDATED: Listen for Install Prompt and check window variable
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
+      window.pwaDeferredPrompt = e;
     };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    
+    // Grab it if it fired early
+    if (window.pwaDeferredPrompt) {
+      setDeferredPrompt(window.pwaDeferredPrompt);
+    }
+
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -69,6 +77,7 @@ export default function Profile() {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === 'accepted') {
       setDeferredPrompt(null);
+      window.pwaDeferredPrompt = null;
     }
   };
 
@@ -501,7 +510,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* 🌟 NEW: Install App Dynamic Block */}
+        {/* Install App Dynamic Block */}
         {deferredPrompt && (
           <div className="bg-brandDark text-white rounded-3xl shadow-premium p-6 md:p-8 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-lg gap-6">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
