@@ -5,13 +5,34 @@ import {
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck
+  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download
 } from 'lucide-react';
 
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isFaqExpanded, setIsFaqExpanded] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
+  
+  // 🌟 NEW: PWA Install State
+  const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+  useEffect(() => {
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const scrollToHowItWorks = (e) => {
     e.preventDefault();
@@ -110,7 +131,6 @@ export default function Home() {
   }
 ];
 
-  // Gatekeeper Screen
   if (!isVerified) {
     return (
       <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
@@ -165,7 +185,7 @@ export default function Home() {
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.1.1 is now live</span>
+              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.2.0 is now live</span>
             </div>
           </ScrollReveal>
           
@@ -187,9 +207,18 @@ export default function Home() {
                 <span>Try KinTag for Free</span>
                 <ArrowRight size={18} />
               </Link>
-              <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
-                How it works
-              </button>
+              
+              {/* 🌟 NEW: Dynamic Install App Button */}
+              {deferredPrompt ? (
+                <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black transition-all shadow-lg hover:-translate-y-0.5">
+                  <Download size={18} />
+                  <span>Install App</span>
+                </button>
+              ) : (
+                <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
+                  How it works
+                </button>
+              )}
             </div>
           </ScrollReveal>
 
@@ -588,7 +617,7 @@ export default function Home() {
   );
 }
 
-// 🌟 NEW: Custom Intersection Observer Engine for Scroll Animations
+// Custom Intersection Observer Engine for Scroll Animations
 function ScrollReveal({ children, delay = 0 }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
