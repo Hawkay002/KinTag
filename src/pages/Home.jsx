@@ -1,12 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom'; 
 import { Turnstile } from '@marsidev/react-turnstile';
+import { CardStack } from '../components/ui/card-stack'; 
 import { 
-  Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
+  Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
-  ChevronDown, Lock, Globe, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, PowerOff, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download
+  ChevronDown, Lock, Infinity, Zap, Mail, MessageCircle, Send, 
+  Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download
 } from 'lucide-react';
+
+// 🌟 ALL 20 ORIGINAL FEATURES RESTORED WITH ICONS
+const stackFeatures = [
+  { id: 1, title: "No App Required", description: "Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install.", icon: <Smartphone size={40} className="text-blue-500" /> },
+  { id: 2, title: "Instant Setup", description: "Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes.", icon: <Zap size={40} className="text-yellow-500" /> },
+  { id: 3, title: "Unlimited Scans", description: "There is absolutely no cap on how many times your QR codes or NFC tags can be scanned.", icon: <Infinity size={40} className="text-rose-500" /> },
+  { id: 4, title: "Precision GPS Pinpointing", description: "When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap.", icon: <MapPin size={40} className="text-emerald-500" /> },
+  { id: 5, title: "Passive Location Fallback", description: "Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert.", icon: <Wifi size={40} className="text-rose-400" /> },
+  { id: 6, title: "Instant Push Alerts", description: "The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found.", icon: <BellRing size={40} className="text-brandGold" /> },
+  { id: 7, title: "One-Tap Emergency Dial", description: "A massive, clear button allows the finder to instantly dial your emergency contact number without copying it.", icon: <Phone size={40} className="text-emerald-600" /> },
+  { id: 8, title: "Lost Mode (Panic Button)", description: "Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer.", icon: <Siren size={40} className="text-red-500" /> },
+  { id: 9, title: "KinAlert Broadcasts", description: "Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one.", icon: <Megaphone size={40} className="text-amber-500" /> },
+  { id: 10, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-indigo-500" /> },
+  { id: 11, title: "Anti-Download Protection", description: "Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents.", icon: <ShieldCheck size={40} className="text-emerald-600" /> },
+  { id: 12, title: "Co-Guardian Family Sharing", description: "Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously.", icon: <Users size={40} className="text-indigo-500" /> },
+  { id: 13, title: "Behavioral Alerts", description: "Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them.", icon: <AlertTriangle size={40} className="text-amber-500" /> },
+  { id: 14, title: "Critical Medical Info", description: "Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-pink-500" /> },
+  { id: 15, title: "Microchip Linking", description: "Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly.", icon: <Database size={40} className="text-zinc-600" /> },
+  { id: 16, title: "Vaccination Records", description: "Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle.", icon: <Activity size={40} className="text-sky-500" /> },
+  { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-teal-500" /> },
+  { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-sky-400" /> },
+  { id: 19, title: "Complete Data Control", description: "You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time.", icon: <Trash2 size={40} className="text-zinc-800" /> },
+  { id: 20, title: "Zero Battery Required", description: "Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power.", icon: <Battery size={40} className="text-orange-500" /> }
+];
 
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
@@ -16,7 +41,6 @@ export default function Home() {
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // Listen for Install Prompt and check window variable
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
       e.preventDefault();
@@ -26,7 +50,6 @@ export default function Home() {
     
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     
-    // Grab it if it fired early
     if (window.pwaDeferredPrompt) {
       setDeferredPrompt(window.pwaDeferredPrompt);
     }
@@ -59,87 +82,12 @@ export default function Home() {
   };
 
   const faqData = [
-  {
-    q: "Is there a monthly subscription fee?",
-    a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to."
-  },
-  {
-    q: "Does the finder need to download an app?",
-    a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly."
-  },
-  {
-    q: "Can my spouse and I both receive alerts?",
-    a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles."
-  },
-  {
-    q: "Can I upload medical records or government IDs?",
-    a: "Yes. Our Secure Document Vault allows you to attach sensitive files like Rabies Certificates or Autism Medical IDs. To protect your privacy, these documents remain heavily blurred and locked until the finder physically taps 'Share Location' or calls your emergency contact."
-  },
-  {
-    q: "Can strangers download my child's photos or documents?",
-    a: "No. We have implemented strict anti-download protections across all public profiles. Right-clicking, image dragging, and mobile long-press saving are completely disabled to protect your family's data."
-  },
-  {
-    q: "What is 'Lost Mode' (The Panic Button)?",
-    a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and a pulsing emergency dialer to urge finders to call immediately."
-  },
-  {
-    q: "What is a KinAlert Community Broadcast?",
-    a: "When you activate Lost Mode, you can optionally send a 'KinAlert'. This blasts an instant push notification to all other KinTag users in your Zip Code, turning your neighborhood into an active search party."
-  },
-  {
-    q: "Why do I need to provide my Zip Code?",
-    a: "Your Zip Code securely connects you to the KinAlert network. It ensures you only receive emergency push notifications for kids or pets that go missing in your immediate local area, and allows you to ask locals for help if yours goes missing."
-  },
-  {
-    q: "How do I let the community know my pet/child was found?",
-    a: "Simply toggle 'Lost Mode' off in your dashboard! This automatically restores their standard digital ID and sends a green 'Safe & Sound' notification to the local community to call off the search."
-  },
-  {
-    q: "What happens if the finder denies GPS access?",
-    a: "KinTag uses a dual-layer alert system. Even if the finder taps 'No' to sharing their exact GPS coordinates, our system performs a 'Passive Scan' which grabs their general IP-based city/region and sends you an instant push notification anyway."
-  },
-  {
-    q: "What if a tag gets lost or stolen?",
-    a: "We built an instant 'Kill Switch'. From your dashboard, you can click one button to disable any profile. If someone scans the lost tag, they will be blocked by a secure 'Profile Disabled' screen, protecting your data."
-  },
-  {
-    q: "Do I have to buy special tags directly from you?",
-    a: "Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself."
-  },
-  {
-    q: "What is an NFC tag and how do I use it?",
-    a: "NFC (Near Field Communication) is the same technology used for contactless payments. You can buy blank NFC stickers online and use free apps to program your unique KinTag URL onto them. Anyone who taps their phone to the sticker will instantly open your profile."
-  },
-  {
-    q: "What if I move or change my phone number?",
-    a: "Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved."
-  },
-  {
-    q: "Does the tag have a battery I need to charge?",
-    a: "No. Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power."
-  },
-  {
-    q: "Will the QR code fade or expire?",
-    a: "The link embedded in the QR code will never expire as long as your account is active. If you print it on paper, we recommend placing clear tape over it to waterproof it and prevent smudging."
-  },
-  {
-    q: "Can I print the tags myself?",
-    a: "Absolutely. When you create a profile, you get a 'Download QR' button. You can print this at home, scale it down, and laminate it onto a backpack or dog collar."
-  },
-  {
-    q: "Can I create profiles for multiple pets or kids?",
-    a: "Yes! Your single KinTag dashboard can hold multiple profiles. You can create unique cards and QR codes for every child, dog, or cat in your household."
-  },
-  {
-    q: "How do I delete my data if I stop using KinTag?",
-    a: "You have total ownership of your data. We built a 'Danger Zone' in your profile settings where you can permanently wipe your account, all created profiles, and all scan histories from our servers instantly."
-  },
-  {
-    q: "Can I self-host this application?",
-    a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership."
-  }
-];
+    { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." },
+    { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." },
+    { q: "Can my spouse and I both receive alerts?", a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles." },
+    { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer to urge finders to call immediately." },
+    { q: "What is a KinAlert Community Broadcast?", a: "When you activate Lost Mode, you can optionally send a 'KinAlert'. This blasts an instant push notification to all other KinTag users in your Zip Code, turning your neighborhood into an active search party." }
+  ];
 
   if (!isVerified) {
     return (
@@ -155,17 +103,14 @@ export default function Home() {
         </div>
         
         <div className="animate-in fade-in zoom-in-95 duration-500 delay-300 min-h-[65px]">
-          <Turnstile 
-            siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
-            onSuccess={() => setIsVerified(true)}
-          />
+          <Turnstile siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} onSuccess={() => setIsVerified(true)} />
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white animate-in fade-in duration-700">
+    <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white animate-in fade-in duration-700 overflow-x-hidden">
       
       {/* NAVBAR */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-50/80 backdrop-blur-md border-b border-zinc-200/50">
@@ -252,43 +197,28 @@ export default function Home() {
               </div>
 
               <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-16 perspective-[1200px] w-full pb-10 md:pb-0">
-                
-                {/* iPhone Mockup (Live Kid Profile) */}
                 <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
                   <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
                      <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]">
-                        <iframe 
-                          src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" 
-                          className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" 
-                          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                          title="Live Kid Profile View"
-                        />
+                        <iframe src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Kid Profile View" />
                      </div>
                   </div>
                 </div>
 
-                {/* Google Pixel Mockup (Live Pet Profile) */}
                 <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
                   <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
                      <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]">
-                        <iframe 
-                          src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" 
-                          className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" 
-                          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-                          title="Live Pet Profile View"
-                        />
+                        <iframe src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Pet Profile View" />
                      </div>
                   </div>
                 </div>
-
               </div>
             </div>
           </ScrollReveal>
-
         </div>
       </section>
 
-      {/* HOW IT WORKS (STEP-BY-STEP) */}
+      {/* HOW IT WORKS */}
       <section id="how-it-works" className="py-24 bg-white border-t border-zinc-100 scroll-mt-16">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
@@ -372,52 +302,36 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FEATURES GRID */}
-      <section className="py-24 bg-white border-y border-zinc-100">
+      {/* 🌟 NEW: INTERACTIVE CARD STACK FEATURES */}
+      <section className="py-32 bg-white border-y border-zinc-100 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Smarter than a standard ID tag.</h2>
-              <p className="text-zinc-500 font-medium text-lg">Every feature is engineered to bring them home safely and quickly.</p>
+              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Smarter than a standard ID.</h2>
+              <p className="text-zinc-500 font-medium text-lg">Swipe to explore how KinTag brings them home safely and quickly.</p>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <FeatureCard delay={0} icon={<Smartphone size={24} className="text-blue-500" />} title="No App Required" desc="Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install." />
-            <FeatureCard delay={100} icon={<Zap size={24} className="text-yellow-500" />} title="Instant Setup" desc="Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes." />
-            <FeatureCard delay={200} icon={<Infinity size={24} className="text-rose-500" />} title="Unlimited Scans" desc="There is absolutely no cap on how many times your QR codes or NFC tags can be scanned." />
-            
-            <FeatureCard delay={0} icon={<MapPin size={24} className="text-emerald-500" />} title="Precision GPS Pinpointing" desc="When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap." />
-            <FeatureCard delay={100} icon={<Wifi size={24} className="text-rose-400" />} title="Passive Location Fallback" desc="Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert." />
-            <FeatureCard delay={200} icon={<BellRing size={24} className="text-brandGold" />} title="Instant Push Alerts" desc="The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found." />
-
-            <FeatureCard delay={0} icon={<Phone size={24} className="text-emerald-600" />} title="One-Tap Emergency Dial" desc="A massive, clear button allows the finder to instantly dial your emergency contact number without copying it." />
-            <FeatureCard delay={100} icon={<Siren size={24} className="text-red-500" />} title="Lost Mode (Panic Button)" desc="Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer." />
-            <FeatureCard delay={200} icon={<Megaphone size={24} className="text-amber-500" />} title="KinAlert Broadcasts" desc="Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one." />
-
-            <FeatureCard delay={0} icon={<FileText size={24} className="text-indigo-500" />} title="Secure Document Vault" desc="Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you." />
-            <FeatureCard delay={100} icon={<ShieldCheck size={24} className="text-emerald-600" />} title="Anti-Download Protection" desc="Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents." />
-            <FeatureCard delay={200} icon={<Users size={24} className="text-indigo-500" />} title="Co-Guardian Family Sharing" desc="Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously." />
-
-            <FeatureCard delay={0} icon={<AlertTriangle size={24} className="text-amber-500" />} title="Behavioral Alerts" desc="Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them." />
-            <FeatureCard delay={100} icon={<Heart size={24} className="text-pink-500" />} title="Critical Medical Info" desc="Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag." />
-            <FeatureCard delay={200} icon={<Database size={24} className="text-zinc-600" />} title="Microchip Linking" desc="Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly." />
-            
-            <FeatureCard delay={0} icon={<Activity size={24} className="text-sky-500" />} title="Vaccination Records" desc="Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle." />
-            <FeatureCard delay={100} icon={<RefreshCw size={24} className="text-teal-500" />} title="Dynamic Updates" desc="Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag." />
-            <FeatureCard delay={200} icon={<Cloud size={24} className="text-sky-400" />} title="Cloud Synced" desc="All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device." />
-            <FeatureCard delay={0} icon={<Trash2 size={24} className="text-zinc-800" />} title="Complete Data Control" desc="You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time." />
-            <FeatureCard delay={100} icon={<Battery size={24} className="text-orange-500" />} title="Zero Battery Required" desc="Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power." />
-          </div>
+          <ScrollReveal delay={200}>
+            <div className="w-full max-w-lg mx-auto flex justify-center">
+              <CardStack
+                items={stackFeatures}
+                initialIndex={0}
+                autoAdvance
+                intervalMs={3000}
+                pauseOnHover
+                showDots={false} 
+              />
+            </div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* NATIVE APP SECTION */}
-      <section className="py-24 bg-white border-y border-zinc-100">
+      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
         <div className="max-w-5xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="bg-zinc-900 rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-12">
-              
               <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
@@ -434,7 +348,6 @@ export default function Home() {
                 </p>
                 
                 <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
-                  {/* Dynamic PWA Install Button */}
                   {deferredPrompt ? (
                     <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandGold text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-amber-500 transition-all hover:-translate-y-0.5">
                       <Download size={20} />
@@ -458,14 +371,13 @@ export default function Home() {
                   <img src="/kintag-logo.png" alt="KinTag Icon" className="w-24 h-24 rounded-2xl shadow-inner bg-white p-2" />
                 </div>
               </div>
-
             </div>
           </ScrollReveal>
         </div>
       </section>
 
       {/* THE PASSIONATE DEVELOPER STORY */}
-      <section className="py-24 px-4 relative bg-zinc-50 border-b border-zinc-100">
+      <section className="py-24 px-4 relative bg-white border-b border-zinc-100">
         <ScrollReveal>
           <div className="max-w-5xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden">
             <div className="absolute top-0 right-0 w-96 h-96 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -514,7 +426,7 @@ export default function Home() {
       </section>
 
       {/* EXPANDING FAQS */}
-      <section className="py-24 bg-white border-b border-zinc-100">
+      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
         <div className="max-w-3xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -548,7 +460,7 @@ export default function Home() {
       </section>
 
       {/* SELF-HOST GUIDE */}
-      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
+      <section className="py-24 bg-white border-b border-zinc-100">
         <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center gap-10">
           <div className="flex-1 relative">
             <ScrollReveal delay={0}>
@@ -608,7 +520,7 @@ export default function Home() {
       </section>
 
       {/* LIVE CONTACT & LIMITATIONS */}
-      <section className="py-24 bg-white border-b border-zinc-100">
+      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
         <ScrollReveal>
           <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
             <Heart size={40} className="text-rose-500 mx-auto mb-6" />
@@ -621,13 +533,13 @@ export default function Home() {
             </p>
             
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <a href="mailto:shovith2@gmail.com" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
+              <a href="mailto:shovith2@gmail.com" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
                 <Mail size={18} className="text-blue-500"/> Email Me
               </a>
-              <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
+              <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
                 <MessageCircle size={18} className="text-emerald-500"/> WhatsApp
               </a>
-              <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-zinc-100 hover:bg-zinc-200 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all">
+              <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
                 <Send size={18} className="text-sky-500"/> Telegram
               </a>
             </div>
@@ -636,17 +548,17 @@ export default function Home() {
       </section>
 
       {/* CHANGELOG SECTION */}
-      <section className="py-24 bg-zinc-50 border-b border-zinc-200">
+      <section className="py-24 bg-white border-b border-zinc-200">
         <ScrollReveal>
           <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
-            <div className="w-16 h-16 bg-white text-brandDark rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-200">
+            <div className="w-16 h-16 bg-zinc-50 text-brandDark rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-200">
               <Rocket size={32} />
             </div>
             <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-6">Constantly Evolving</h2>
             <p className="text-zinc-600 font-medium text-lg leading-relaxed max-w-2xl mx-auto mb-10">
               KinTag is actively maintained and frequently updated with new features, security enhancements, and community-requested tools. See how the platform has grown since day one.
             </p>
-            <Link to="/changelog" className="inline-flex items-center justify-center space-x-2 bg-white text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-100 transition-all shadow-sm border border-zinc-200">
+            <Link to="/changelog" className="inline-flex items-center justify-center space-x-2 bg-zinc-50 text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-100 transition-all shadow-sm border border-zinc-200">
               <span>Read the Official Changelog</span>
               <ArrowRight size={18} />
             </Link>
@@ -678,7 +590,6 @@ export default function Home() {
   );
 }
 
-// Custom Intersection Observer Engine for Scroll Animations
 function ScrollReveal({ children, delay = 0 }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -713,20 +624,6 @@ function ScrollReveal({ children, delay = 0 }) {
   );
 }
 
-function FeatureCard({ icon, title, desc, delay = 0 }) {
-  return (
-    <ScrollReveal delay={delay}>
-      <div className="bg-zinc-50 p-8 rounded-3xl border border-zinc-200 hover:border-brandDark/20 transition-all hover:bg-white hover:shadow-md h-full">
-        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-sm mb-5 border border-zinc-100">
-          {icon}
-        </div>
-        <h3 className="text-xl font-extrabold text-brandDark mb-2">{title}</h3>
-        <p className="text-sm text-zinc-500 font-medium leading-relaxed">{desc}</p>
-      </div>
-    </ScrollReveal>
-  );
-}
-
 function FAQItem({ question, answer }) {
   const [isOpen, setIsOpen] = useState(false);
   return (
@@ -741,9 +638,7 @@ function FAQItem({ question, answer }) {
           className={`text-zinc-400 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
         />
       </button>
-      <div 
-        className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 pb-5 opacity-100' : 'max-h-0 opacity-0'}`}
-      >
+      <div className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 pb-5 opacity-100' : 'max-h-0 opacity-0'}`}>
         <p className="text-zinc-500 font-medium leading-relaxed pt-2 border-t border-zinc-100">{answer}</p>
       </div>
     </div>
