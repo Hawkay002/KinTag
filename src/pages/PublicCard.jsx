@@ -35,7 +35,6 @@ export default function PublicCard() {
   const [loading, setLoading] = useState(true);
   const [isImageEnlarged, setIsImageEnlarged] = useState(false);
   
-  // 🌟 NEW: Gatekeeper State (Auto-verified if it's a Homepage iframe preview)
   const [isVerified, setIsVerified] = useState(isPreview);
   
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
@@ -50,6 +49,14 @@ export default function PublicCard() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [viewingDocument, setViewingDocument] = useState(null);
   const vaultTimerRef = useRef(null);
+
+  // 🌟 NEW: Global audio chime function
+  const playChime = () => {
+    try {
+      const audio = new Audio('/chime.mp3');
+      audio.play().catch(() => {});
+    } catch (err) {}
+  };
 
   const startLogoTimer = () => {
     if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
@@ -81,7 +88,6 @@ export default function PublicCard() {
     };
   }, [profileId]);
 
-  // 🌟 UPDATED: Passive alert now strictly waits until CAPTCHA is solved
   useEffect(() => {
     const sendPassiveAlert = async () => {
       if (!isVerified || !profile || profile.isActive === false || passiveAlertSent.current || isPreview) return; 
@@ -142,6 +148,13 @@ export default function PublicCard() {
   const handleActiveAlert = (e) => {
     e.stopPropagation(); 
     if (isPreview || profile?.isActive === false) return;
+
+    // 🌟 NEW: Trigger Chime and Haptic Feedback instantly on press!
+    playChime();
+    if (navigator.vibrate) {
+      // Double pulse vibration pattern (100ms vibrate, 50ms pause, 100ms vibrate)
+      navigator.vibrate([100, 50, 100]); 
+    }
 
     setIsSendingAlert(true);
     setGpsError('');
@@ -205,7 +218,6 @@ export default function PublicCard() {
     startLogoTimer();
   };
 
-  // 🌟 NEW: The Gatekeeper Screen
   if (!isVerified) {
     return (
       <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
@@ -328,9 +340,10 @@ export default function PublicCard() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent pointer-events-none"></div>
         
+        {/* 🌟 FIXED: Perfectly aligned h-10 container for logo */}
         <div 
           onClick={handleLogoClick}
-          className={`absolute top-5 left-5 z-20 flex items-center bg-black/20 backdrop-blur-sm py-1.5 rounded-full border border-white/10 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'px-3' : 'px-1.5'}`}
+          className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/30 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'px-3.5' : 'w-10 justify-center px-0'}`}
         >
           <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
           <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
@@ -338,7 +351,12 @@ export default function PublicCard() {
           </span>
         </div>
 
-        <button onClick={() => { if(!isPreview) setIsImageEnlarged(true); }} className={`absolute top-4 right-4 bg-black/30 backdrop-blur-md border border-white/20 text-white p-2.5 rounded-full transition z-20 ${isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/50'}`} title="View Full Image">
+        {/* 🌟 FIXED: Perfectly matched w-10 h-10 container for expand button */}
+        <button 
+          onClick={() => { if(!isPreview) setIsImageEnlarged(true); }} 
+          className={`absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-black/30 backdrop-blur-md border border-white/20 text-white rounded-full transition z-20 ${isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/50'}`} 
+          title="View Full Image"
+        >
           <Maximize2 size={18} />
         </button>
       </div>
@@ -624,7 +642,6 @@ export default function PublicCard() {
         </div>
       )}
 
-      {/* 🌟 FIXED: Ultra-aggressive regex to strip any trailing Cloudinary queries from PDFs */}
       {viewingDocument && !isPreview && (
         <div className="fixed inset-0 z-[120] bg-brandDark/95 flex flex-col items-center justify-center p-4 backdrop-blur-lg animate-in fade-in duration-200">
           <div className="absolute top-4 w-full px-6 flex justify-between items-center z-[130]">
