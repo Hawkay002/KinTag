@@ -2,14 +2,14 @@ import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom'; 
 import { Turnstile } from '@marsidev/react-turnstile';
 import { CardStack } from '../components/ui/card-stack'; 
+import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
-  ChevronDown, Lock, Infinity, Zap, Mail, MessageCircle, Send, 
+  Lock, Infinity, Zap, Mail, MessageCircle, Send, 
   Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download
 } from 'lucide-react';
 
-// 🌟 ALL 20 ORIGINAL FEATURES RESTORED WITH ICONS
 const stackFeatures = [
   { id: 1, title: "No App Required", description: "Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install.", icon: <Smartphone size={40} className="text-blue-500" /> },
   { id: 2, title: "Instant Setup", description: "Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes.", icon: <Zap size={40} className="text-yellow-500" /> },
@@ -35,7 +35,6 @@ const stackFeatures = [
 
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
-  const [isFaqExpanded, setIsFaqExpanded] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   
   // PWA Install State
@@ -81,13 +80,29 @@ export default function Home() {
     setTimeout(() => setShowGithubTooltip(false), 2500);
   };
 
+  // 🌟 FULL 20 ENRICHED FAQS
   const faqData = [
-    { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to." },
-    { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly." },
-    { q: "Can my spouse and I both receive alerts?", a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles." },
-    { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer to urge finders to call immediately." },
-    { q: "What is a KinAlert Community Broadcast?", a: "When you activate Lost Mode, you can optionally send a 'KinAlert'. This blasts an instant push notification to all other KinTag users in your Zip Code, turning your neighborhood into an active search party." }
-  ];
+    { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to.", meta: "Pricing" },
+    { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly.", meta: "Access" },
+    { q: "Can my spouse and I both receive alerts?", a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles.", meta: "Family" },
+    { q: "Can I upload medical records or government IDs?", a: "Yes. Our Secure Document Vault allows you to attach sensitive files like Rabies Certificates or Autism Medical IDs. To protect your privacy, these documents remain heavily blurred and locked until the finder physically taps 'Share Location' or calls your emergency contact.", meta: "Vault" },
+    { q: "Can strangers download my child's photos or documents?", a: "No. We have implemented strict anti-download protections across all public profiles. Right-clicking, image dragging, and mobile long-press saving are completely disabled to protect your family's data.", meta: "Privacy" },
+    { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and a pulsing emergency dialer to urge finders to call immediately.", meta: "Safety" },
+    { q: "What is a KinAlert Community Broadcast?", a: "When you activate Lost Mode, you can optionally send a 'KinAlert'. This blasts an instant push notification to all other KinTag users in your Zip Code, turning your neighborhood into an active search party.", meta: "Community" },
+    { q: "Why do I need to provide my Zip Code?", a: "Your Zip Code securely connects you to the KinAlert network. It ensures you only receive emergency push notifications for kids or pets that go missing in your immediate local area, and allows you to ask locals for help if yours goes missing.", meta: "Location" },
+    { q: "How do I let the community know my pet/child was found?", a: "Simply toggle 'Lost Mode' off in your dashboard! This automatically restores their standard digital ID and sends a green 'Safe & Sound' notification to the local community to call off the search.", meta: "Community" },
+    { q: "What happens if the finder denies GPS access?", a: "KinTag uses a dual-layer alert system. Even if the finder taps 'No' to sharing their exact GPS coordinates, our system performs a 'Passive Scan' which grabs their general IP-based city/region and sends you an instant push notification anyway.", meta: "Location" },
+    { q: "What if a tag gets lost or stolen?", a: "We built an instant 'Kill Switch'. From your dashboard, you can click one button to disable any profile. If someone scans the lost tag, they will be blocked by a secure 'Profile Disabled' screen, protecting your data.", meta: "Security" },
+    { q: "Do I have to buy special tags directly from you?", a: "Not at all. You can generate and download high-resolution QR codes directly from your dashboard to print on standard paper/stickers, or you can buy cheap, blank NFC tags from Amazon and program them yourself.", meta: "Hardware" },
+    { q: "What is an NFC tag and how do I use it?", a: "NFC (Near Field Communication) is the same technology used for contactless payments. You can buy blank NFC stickers online and use free apps to program your unique KinTag URL onto them. Anyone who taps their phone to the sticker will instantly open your profile.", meta: "Hardware" },
+    { q: "What if I move or change my phone number?", a: "Because KinTag is a cloud-based digital ID, any changes you make in your dashboard are instantly updated on the live tag. You never have to engrave, print, or buy a new physical tag just because you moved.", meta: "Account" },
+    { q: "Does the tag have a battery I need to charge?", a: "No. Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power.", meta: "Hardware" },
+    { q: "Will the QR code fade or expire?", a: "The link embedded in the QR code will never expire as long as your account is active. If you print it on paper, we recommend placing clear tape over it to waterproof it and prevent smudging.", meta: "Hardware" },
+    { q: "Can I print the tags myself?", a: "Absolutely. When you create a profile, you get a 'Download QR' button. You can print this at home, scale it down, and laminate it onto a backpack or dog collar.", meta: "Customization" },
+    { q: "Can I create profiles for multiple pets or kids?", a: "Yes! Your single KinTag dashboard can hold multiple profiles. You can create unique cards and QR codes for every child, dog, or cat in your household.", meta: "Family" },
+    { q: "How do I delete my data if I stop using KinTag?", a: "You have total ownership of your data. We built a 'Danger Zone' in your profile settings where you can permanently wipe your account, all created profiles, and all scan histories from our servers instantly.", meta: "Privacy" },
+    { q: "Can I self-host this application?", a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership.", meta: "Open Source" }
+  ].map(item => ({ question: item.q, answer: item.a, meta: item.meta }));
 
   if (!isVerified) {
     return (
@@ -302,7 +317,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: INTERACTIVE CARD STACK FEATURES */}
+      {/* INTERACTIVE CARD STACK FEATURES */}
       <section className="py-32 bg-white border-y border-zinc-100 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
@@ -425,39 +440,8 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      {/* EXPANDING FAQS */}
-      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
-        <div className="max-w-3xl mx-auto px-4 md:px-8">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Frequently Asked Questions</h2>
-              <p className="text-zinc-500 font-medium text-lg">Everything you need to know about securing your family.</p>
-            </div>
-          </ScrollReveal>
-          
-          <div className="space-y-3">
-            {faqData.slice(0, isFaqExpanded ? faqData.length : 6).map((faq, idx) => (
-               <ScrollReveal key={idx} delay={(idx % 6) * 100}>
-                 <FAQItem question={faq.q} answer={faq.a} />
-               </ScrollReveal>
-            ))}
-          </div>
-
-          {!isFaqExpanded && (
-            <ScrollReveal delay={600}>
-              <div className="flex justify-center mt-10">
-                <button 
-                  onClick={() => setIsFaqExpanded(true)} 
-                  className="flex items-center gap-2 bg-gradient-to-r from-brandDark via-zinc-800 to-brandDark bg-[length:200%_auto] hover:bg-[position:right_center] text-white px-8 py-3.5 rounded-full font-bold shadow-lg hover:-translate-y-0.5 transition-all duration-500"
-                >
-                  <span>Read All FAQs</span>
-                  <ChevronDown size={18} />
-                </button>
-              </div>
-            </ScrollReveal>
-          )}
-        </div>
-      </section>
+      {/* 🌟 NEW: MONOCHROME FAQ SECTION */}
+      <FAQMonochrome faqs={faqData} />
 
       {/* SELF-HOST GUIDE */}
       <section className="py-24 bg-white border-b border-zinc-100">
@@ -479,7 +463,7 @@ export default function Home() {
               <div className="relative inline-block">
                 <button 
                   onClick={handleGithubClick}
-                  className="inline-flex items-center justify-center space-x-2 bg-zinc-200 text-zinc-400 px-6 py-3 rounded-xl font-bold cursor-not-allowed transition-all"
+                  className="inline-flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 text-zinc-400 px-6 py-3 rounded-xl font-bold cursor-not-allowed transition-all shadow-sm"
                 >
                   <span>View GitHub Repository</span>
                 </button>
@@ -579,7 +563,7 @@ export default function Home() {
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-white py-10 border-t border-zinc-200 text-center">
+      <footer className="bg-zinc-50 py-10 border-t border-zinc-200 text-center">
         <div className="flex items-center justify-center space-x-2 mb-4 opacity-50">
           <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded grayscale" />
           <span className="font-bold text-brandDark">KinTag</span>
@@ -620,27 +604,6 @@ function ScrollReveal({ children, delay = 0 }) {
       className={`transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)] ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
     >
       {children}
-    </div>
-  );
-}
-
-function FAQItem({ question, answer }) {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="bg-white rounded-2xl shadow-sm border border-zinc-200 overflow-hidden transition-all">
-      <button 
-        onClick={() => setIsOpen(!isOpen)} 
-        className="w-full px-6 py-5 flex items-center justify-between text-left hover:bg-zinc-50 transition-colors"
-      >
-        <h4 className="text-lg font-extrabold text-brandDark pr-4">{question}</h4>
-        <ChevronDown 
-          size={20} 
-          className={`text-zinc-400 transition-transform duration-300 shrink-0 ${isOpen ? 'rotate-180' : ''}`} 
-        />
-      </button>
-      <div className={`px-6 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-96 pb-5 opacity-100' : 'max-h-0 opacity-0'}`}>
-        <p className="text-zinc-500 font-medium leading-relaxed pt-2 border-t border-zinc-100">{answer}</p>
-      </div>
     </div>
   );
 }
