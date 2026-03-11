@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom'; 
+import { Turnstile } from '@marsidev/react-turnstile';
 import { 
   Shield, MapPin, BellRing, Heart, QrCode, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -10,6 +11,7 @@ import {
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isFaqExpanded, setIsFaqExpanded] = useState(false);
+  const [isVerified, setIsVerified] = useState(false);
   
   // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -138,6 +140,29 @@ export default function Home() {
     a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership."
   }
 ];
+
+  if (!isVerified) {
+    return (
+      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
+        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
+          <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 border border-zinc-100">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl animate-pulse" />
+          </div>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight mb-2">Checking your browser...</h1>
+          <p className="text-zinc-500 font-medium max-w-sm mx-auto leading-relaxed">
+            Please wait a moment to ensure you are a real person before accessing KinTag.
+          </p>
+        </div>
+        
+        <div className="animate-in fade-in zoom-in-95 duration-500 delay-300 min-h-[65px]">
+          <Turnstile 
+            siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} 
+            onSuccess={() => setIsVerified(true)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white animate-in fade-in duration-700">
