@@ -7,37 +7,35 @@ import {
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
   Lock, Infinity, Zap, Mail, MessageCircle, Send, 
-  Users, Wifi, Database, Phone, AlertTriangle, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download
+  Users, Database, Phone, AlertTriangle, Trash2, Rocket, Siren, Megaphone, FileText, ShieldCheck, Download, ChevronRight
 } from 'lucide-react';
 
 const stackFeatures = [
-  { id: 1, title: "No App Required", description: "Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install.", icon: <Smartphone size={40} className="text-blue-500" /> },
-  { id: 2, title: "Instant Setup", description: "Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes.", icon: <Zap size={40} className="text-yellow-500" /> },
-  { id: 3, title: "Unlimited Scans", description: "There is absolutely no cap on how many times your QR codes or NFC tags can be scanned.", icon: <Infinity size={40} className="text-rose-500" /> },
-  { id: 4, title: "Precision GPS Pinpointing", description: "When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap.", icon: <MapPin size={40} className="text-emerald-500" /> },
-  { id: 5, title: "Passive Location Fallback", description: "Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert.", icon: <Wifi size={40} className="text-rose-400" /> },
-  { id: 6, title: "Instant Push Alerts", description: "The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found.", icon: <BellRing size={40} className="text-brandGold" /> },
-  { id: 7, title: "One-Tap Emergency Dial", description: "A massive, clear button allows the finder to instantly dial your emergency contact number without copying it.", icon: <Phone size={40} className="text-emerald-600" /> },
-  { id: 8, title: "Lost Mode (Panic Button)", description: "Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer.", icon: <Siren size={40} className="text-red-500" /> },
-  { id: 9, title: "KinAlert Broadcasts", description: "Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one.", icon: <Megaphone size={40} className="text-amber-500" /> },
-  { id: 10, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-indigo-500" /> },
-  { id: 11, title: "Anti-Download Protection", description: "Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents.", icon: <ShieldCheck size={40} className="text-emerald-600" /> },
-  { id: 12, title: "Co-Guardian Family Sharing", description: "Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously.", icon: <Users size={40} className="text-indigo-500" /> },
-  { id: 13, title: "Behavioral Alerts", description: "Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them.", icon: <AlertTriangle size={40} className="text-amber-500" /> },
-  { id: 14, title: "Critical Medical Info", description: "Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-pink-500" /> },
-  { id: 15, title: "Microchip Linking", description: "Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly.", icon: <Database size={40} className="text-zinc-600" /> },
-  { id: 16, title: "Vaccination Records", description: "Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle.", icon: <Activity size={40} className="text-sky-500" /> },
-  { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-teal-500" /> },
-  { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-sky-400" /> },
+  { id: 1, title: "No App Required", description: "Anyone with a smartphone camera can scan the tag. There is absolutely nothing for the finder to download or install.", icon: <Smartphone size={40} className="text-zinc-800" /> },
+  { id: 2, title: "Instant Setup", description: "Skip the wait times of ordering custom engraved metals. Create an account and secure your child or pet in under 2 minutes.", icon: <Zap size={40} className="text-zinc-800" /> },
+  { id: 3, title: "Unlimited Scans", description: "There is absolutely no cap on how many times your QR codes or NFC tags can be scanned.", icon: <Infinity size={40} className="text-zinc-800" /> },
+  { id: 4, title: "Precision GPS Pinpointing", description: "When scanned, the finder can securely send their exact coordinates directly to your phone with a single tap.", icon: <MapPin size={40} className="text-zinc-800" /> },
+  { id: 5, title: "Passive Location Fallback", description: "Even if the finder denies GPS access, KinTag will passively log their general IP-based city and send an alert.", icon: <MapPin size={40} className="text-zinc-800" /> },
+  { id: 6, title: "Instant Push Alerts", description: "The second a tag is scanned, you receive an emergency push notification alerting you that your loved one was found.", icon: <BellRing size={40} className="text-zinc-800" /> },
+  { id: 7, title: "One-Tap Emergency Dial", description: "A massive, clear button allows the finder to instantly dial your emergency contact number without copying it.", icon: <Phone size={40} className="text-zinc-800" /> },
+  { id: 8, title: "Lost Mode (Panic Button)", description: "Instantly transform a lost tag into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer.", icon: <Siren size={40} className="text-zinc-800" /> },
+  { id: 9, title: "KinAlert Broadcasts", description: "Trigger an instant localized push notification to all other KinTag users in your zip code to help search for your missing loved one.", icon: <Megaphone size={40} className="text-zinc-800" /> },
+  { id: 10, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-zinc-800" /> },
+  { id: 11, title: "Anti-Download Protection", description: "Strict UI protections prevent strangers from right-clicking, dragging, or long-pressing to save your photos and documents.", icon: <ShieldCheck size={40} className="text-zinc-800" /> },
+  { id: 12, title: "Co-Guardian Family Sharing", description: "Invite up to 5 family members. When a tag is scanned, every co-guardian receives an instant push alert simultaneously.", icon: <Users size={40} className="text-zinc-800" /> },
+  { id: 13, title: "Behavioral Alerts", description: "Highlight critical non-verbal behaviors, special needs, or fears so the finder knows exactly how to approach them.", icon: <AlertTriangle size={40} className="text-zinc-800" /> },
+  { id: 14, title: "Critical Medical Info", description: "Display crucial allergies, blood types, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-zinc-800" /> },
+  { id: 15, title: "Microchip Linking", description: "Store your pet's official microchip ID number visibly so veterinarians can cross-reference it instantly.", icon: <Database size={40} className="text-zinc-800" /> },
+  { id: 16, title: "Vaccination Records", description: "Display rabies and core vaccination statuses to reassure finders that your pet is safe to handle.", icon: <Activity size={40} className="text-zinc-800" /> },
+  { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-zinc-800" /> },
+  { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-zinc-800" /> },
   { id: 19, title: "Complete Data Control", description: "You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time.", icon: <Trash2 size={40} className="text-zinc-800" /> },
-  { id: 20, title: "Zero Battery Required", description: "Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power.", icon: <Battery size={40} className="text-orange-500" /> }
+  { id: 20, title: "Zero Battery Required", description: "Unlike bulky GPS collars that constantly die and require charging, KinTag relies on the battery and cellular data of the Good Samaritan's smartphone. Your tag will never run out of power.", icon: <Battery size={40} className="text-zinc-800" /> }
 ];
 
 export default function Home() {
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
-  
-  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
   useEffect(() => {
@@ -46,13 +44,8 @@ export default function Home() {
       setDeferredPrompt(e);
       window.pwaDeferredPrompt = e;
     };
-    
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
-    if (window.pwaDeferredPrompt) {
-      setDeferredPrompt(window.pwaDeferredPrompt);
-    }
-
+    if (window.pwaDeferredPrompt) setDeferredPrompt(window.pwaDeferredPrompt);
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
@@ -68,10 +61,7 @@ export default function Home() {
 
   const scrollToHowItWorks = (e) => {
     e.preventDefault();
-    const element = document.getElementById('how-it-works');
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
+    document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const handleGithubClick = (e) => {
@@ -105,17 +95,16 @@ export default function Home() {
 
   if (!isVerified) {
     return (
-      <div className="min-h-screen bg-zinc-50 flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
+      <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center p-4">
         <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 border border-zinc-100">
+          <div className="w-20 h-20 bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex items-center justify-center mx-auto mb-6 border border-zinc-200/50">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl animate-pulse" />
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight mb-2">Checking your browser...</h1>
+          <h1 className="text-2xl md:text-3xl font-extrabold text-zinc-900 tracking-tight mb-2">Authenticating...</h1>
           <p className="text-zinc-500 font-medium max-w-sm mx-auto leading-relaxed">
-            Please wait a moment to ensure you are a real person before accessing KinTag.
+            Please wait a moment to ensure you are a real person before accessing the platform.
           </p>
         </div>
-        
         <div className="animate-in fade-in zoom-in-95 duration-500 delay-300 min-h-[65px]">
           <Turnstile siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} onSuccess={() => setIsVerified(true)} />
         </div>
@@ -124,205 +113,242 @@ export default function Home() {
   }
 
   return (
-    // 🌟 FIXED: Removed overflow-x-hidden to fix the Chrome Desktop site auto-zoom bug!
-    <div className="min-h-screen bg-zinc-50 font-sans selection:bg-brandGold selection:text-white animate-in fade-in duration-700 w-full">
+    <div className="min-h-screen bg-[#fafafa] text-zinc-900 font-sans selection:bg-zinc-900 selection:text-white animate-in fade-in duration-700 w-full">
       
-      {/* NAVBAR */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-zinc-50/80 backdrop-blur-md border-b border-zinc-200/50">
-        <div className="max-w-6xl mx-auto px-4 md:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center space-x-2.5">
-            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-lg shadow-sm" />
-            <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
+      {/* 🌟 NEW: FLOATING PILL NAVBAR */}
+      <div className="fixed top-6 left-0 right-0 z-50 flex justify-center px-4 pointer-events-none">
+        <nav className="pointer-events-auto bg-white/70 backdrop-blur-xl border border-zinc-200/60 shadow-[0_8px_30px_rgb(0,0,0,0.06)] rounded-full px-5 py-3 flex items-center justify-between w-full max-w-5xl transition-all">
+          <div className="flex items-center space-x-3">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-xl shadow-sm border border-zinc-100" />
+            <span className="text-xl font-extrabold tracking-tight">KinTag</span>
           </div>
-          <div className="flex items-center space-x-4">
-            <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-            <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2.5 rounded-xl hover:bg-brandAccent transition-all shadow-sm">
+          <div className="flex items-center space-x-2 sm:space-x-4">
+            <Link to="/login" className="text-sm font-bold text-zinc-500 hover:text-zinc-900 transition-colors px-2">Log In</Link>
+            <Link to="/signup" className="bg-zinc-900 text-white text-sm font-bold px-5 py-2.5 rounded-full hover:bg-zinc-800 transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
               Get Started
             </Link>
           </div>
-        </div>
-      </nav>
+        </nav>
+      </div>
 
-      {/* HERO SECTION */}
-      <section className="pt-32 pb-16 md:pt-40 md:pb-24 px-4 relative overflow-hidden">
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
+      {/* 🌟 NEW: MODERN GRID HERO SECTION */}
+      <section className="relative pt-40 pb-24 md:pt-52 md:pb-32 px-4 overflow-hidden">
+        {/* Subtle dot background pattern */}
+        <div className="absolute inset-0 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px] opacity-60 z-0"></div>
+        {/* Glowing Orbs */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-brandGold/10 rounded-full blur-[100px] pointer-events-none z-0"></div>
+        <div className="absolute top-40 -left-40 w-[500px] h-[500px] bg-blue-500/5 rounded-full blur-[100px] pointer-events-none z-0"></div>
         
-        <div className="max-w-4xl mx-auto text-center relative z-10">
-          
+        <div className="max-w-5xl mx-auto text-center relative z-10">
           <ScrollReveal delay={0}>
-            <div className="inline-flex items-center space-x-2 bg-white border border-zinc-200 px-4 py-1.5 rounded-full mb-6 shadow-sm">
+            <div className="inline-flex items-center space-x-2 bg-white/80 backdrop-blur-sm border border-zinc-200/80 px-4 py-2 rounded-full mb-8 shadow-sm">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
               </span>
-              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-500">V1.1.1 is now live!</span>
+              <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.1.1 is Live</span>
             </div>
           </ScrollReveal>
           
           <ScrollReveal delay={100}>
-            <h1 className="text-5xl md:text-7xl font-extrabold text-brandDark tracking-tight leading-[1.1] mb-6">
-              The ultimate digital <br className="hidden md:block"/> safety net for your family.
+            <h1 className="text-6xl md:text-[5.5rem] font-extrabold tracking-tighter leading-[1.05] mb-8 text-zinc-900 drop-shadow-sm">
+              The ultimate <br className="hidden md:block"/> digital safety net.
             </h1>
           </ScrollReveal>
           
           <ScrollReveal delay={200}>
-            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mb-10 leading-relaxed">
-              Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
+            <p className="text-lg md:text-2xl text-zinc-500 font-medium max-w-2xl mx-auto mb-12 leading-relaxed tracking-tight">
+              Link custom QR codes or NFC tags to life-saving profiles for your kids and pets. 
+              <span className="text-zinc-800 font-semibold"> Scanned in a panic, found in an instant.</span>
             </p>
           </ScrollReveal>
           
           <ScrollReveal delay={300}>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
-              <Link to="/signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandDark text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5">
-                <span>Try KinTag for Free</span>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+              <Link to="/signup" className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-zinc-900 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-zinc-800 transition-all shadow-xl hover:shadow-2xl hover:-translate-y-1">
+                <span>Start Securing Free</span>
                 <ArrowRight size={18} />
               </Link>
-              
-              {deferredPrompt ? (
-                <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-zinc-900 text-white px-8 py-4 rounded-2xl font-bold text-lg hover:bg-black transition-all shadow-lg hover:-translate-y-0.5">
-                  <Download size={18} />
-                  <span>Install App</span>
-                </button>
-              ) : (
-                <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
-                  How it works
-                </button>
-              )}
+              <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-zinc-900 border border-zinc-200/80 px-8 py-4 rounded-full font-bold text-lg hover:bg-zinc-50 transition-all shadow-sm">
+                See how it works
+              </button>
             </div>
           </ScrollReveal>
 
+          {/* 🌟 REFINED: Floating Iframes with better perspective */}
           <ScrollReveal delay={400}>
-            <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs font-bold text-zinc-400 uppercase tracking-widest mb-10">
-              <span className="flex items-center gap-1.5"><CheckCircle2 size={14} className="text-emerald-500"/> 100% Free Forever</span>
-              <span className="flex items-center gap-1.5"><Lock size={14} className="text-brandGold"/> Secure & Encrypted</span>
-              <span className="flex items-center gap-1.5"><Shield size={14} className="text-blue-500"/> No App Required</span>
-            </div>
-          </ScrollReveal>
+            <div className="relative mx-auto max-w-5xl mt-10">
+              <div className="flex flex-col md:flex-row justify-center items-center gap-8 md:gap-12 perspective-[2000px] w-full pb-10 md:pb-0 relative z-20">
+                
+                {/* Glow behind phones */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[60%] h-[80%] bg-zinc-400/20 blur-[120px] rounded-full -z-10"></div>
 
-          {/* Native Width Iframes with CSS Scrollbar Hiding */}
-          <ScrollReveal delay={500}>
-            <div className="relative mx-auto max-w-5xl">
-              <div className="flex justify-center mb-8 relative z-40">
-                <div className="inline-flex items-center gap-1.5 bg-zinc-900/90 backdrop-blur-md border border-zinc-700 text-white px-3 py-1.5 rounded-full shadow-2xl">
-                  <Info size={12} className="text-brandGold shrink-0" />
-                  <span className="text-[9px] md:text-[10px] font-bold tracking-wide uppercase">
-                    Live Preview: Action buttons disabled
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-col md:flex-row justify-center items-center gap-12 md:gap-16 perspective-[1200px] w-full pb-10 md:pb-0">
-                <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.25rem] md:rounded-[3rem] border-[8px] md:border-[10px] border-zinc-900 bg-zinc-900 shadow-2xl overflow-hidden transform md:rotate-y-[8deg] md:rotate-x-[4deg] z-20 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.75rem] md:rounded-[2.4rem]">
+                <div className="relative w-[280px] md:w-[320px] aspect-[9/19.5] rounded-[2.5rem] md:rounded-[3.2rem] border-[10px] border-zinc-900 bg-zinc-900 shadow-[0_30px_60px_rgba(0,0,0,0.3)] overflow-hidden transform md:rotate-y-[12deg] md:rotate-x-[5deg] z-20 md:hover:rotate-y-0 md:hover:rotate-x-0 hover:scale-[1.03] transition-all duration-700 ease-out group shrink-0 ring-1 ring-white/10">
+                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[2rem] md:rounded-[2.6rem]">
                      <div className="absolute top-0 left-0 w-[375px] h-[813px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]">
-                        <iframe src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Kid Profile View" />
+                        <iframe src="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden pointer-events-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Kid Profile View" />
                      </div>
                   </div>
                 </div>
 
-                <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2rem] md:rounded-[2.75rem] border-[8px] md:border-[10px] border-zinc-800 bg-zinc-800 shadow-2xl overflow-hidden transform md:rotate-y-[-8deg] md:rotate-x-[4deg] z-10 md:hover:rotate-y-0 hover:scale-[1.02] transition-all duration-700 ease-out group shrink-0">
-                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.5rem] md:rounded-[2.1rem]">
+                <div className="relative w-[280px] md:w-[310px] aspect-[9/20] rounded-[2.2rem] md:rounded-[3rem] border-[10px] border-zinc-800 bg-zinc-800 shadow-[0_30px_60px_rgba(0,0,0,0.2)] overflow-hidden transform md:rotate-y-[-12deg] md:rotate-x-[5deg] z-10 md:hover:rotate-y-0 md:hover:rotate-x-0 hover:scale-[1.03] transition-all duration-700 ease-out group shrink-0 ring-1 ring-white/5">
+                  <div className="relative w-full h-full bg-zinc-100 overflow-hidden rounded-[1.7rem] md:rounded-[2.4rem]">
                      <div className="absolute top-0 left-0 w-[375px] h-[834px] origin-top-left max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]">
-                        <iframe src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Pet Profile View" />
+                        <iframe src="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true" className="w-full h-full border-0 [&::-webkit-scrollbar]:hidden pointer-events-none" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }} title="Live Pet Profile View" />
                      </div>
                   </div>
                 </div>
+
               </div>
             </div>
           </ScrollReveal>
         </div>
       </section>
 
-      {/* HOW IT WORKS */}
-      <section id="how-it-works" className="py-24 bg-white border-t border-zinc-100 scroll-mt-16">
-        <div className="max-w-6xl mx-auto px-4 md:px-8">
+      {/* 🌟 NEW: SLEEK PROCESS TIMELINE */}
+      <section id="how-it-works" className="py-32 bg-white scroll-mt-20 relative border-t border-zinc-200/50">
+        <div className="max-w-5xl mx-auto px-4 md:px-8">
           <ScrollReveal>
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">How KinTag Works</h2>
-              <p className="text-zinc-500 font-medium text-lg">Three simple steps to ultimate peace of mind.</p>
+            <div className="text-center mb-20">
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">How it works.</h2>
+              <p className="text-zinc-500 font-medium text-lg">Three steps between lost and safely found.</p>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
-            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-0.5 bg-zinc-100 z-0"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative z-10">
+            {/* Connecting line for desktop */}
+            <div className="hidden md:block absolute top-12 left-[15%] right-[15%] h-[2px] bg-gradient-to-r from-transparent via-zinc-200 to-transparent -z-10"></div>
             
             <ScrollReveal delay={0}>
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
-                  <span className="text-3xl font-extrabold text-brandDark">1</span>
+              <div className="flex flex-col items-center text-center bg-[#fafafa] p-8 rounded-[2.5rem] border border-zinc-200/50 shadow-sm h-full hover:shadow-md transition-all">
+                <div className="w-16 h-16 bg-white border-2 border-zinc-100 shadow-sm rounded-2xl flex items-center justify-center mb-6">
+                  <span className="text-2xl font-extrabold text-zinc-800">1</span>
                 </div>
-                <h3 className="text-xl font-extrabold text-brandDark mb-3">Create a Profile</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed px-4">Sign up and build a detailed digital ID card containing emergency contacts, medical info, and behavioral details.</p>
+                <h3 className="text-xl font-extrabold mb-3">Create a Profile</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed">Sign up and build a detailed digital ID card containing emergency contacts, medical info, and behavioral details.</p>
               </div>
             </ScrollReveal>
 
             <ScrollReveal delay={150}>
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
-                  <span className="text-3xl font-extrabold text-brandDark">2</span>
+              <div className="flex flex-col items-center text-center bg-[#fafafa] p-8 rounded-[2.5rem] border border-zinc-200/50 shadow-sm h-full hover:shadow-md transition-all">
+                <div className="w-16 h-16 bg-white border-2 border-zinc-100 shadow-sm rounded-2xl flex items-center justify-center mb-6">
+                  <span className="text-2xl font-extrabold text-zinc-800">2</span>
                 </div>
-                <h3 className="text-xl font-extrabold text-brandDark mb-3">Generate & Attach</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed px-4">Download your custom QR code or link an NFC tag. Attach it to a pet's collar, a kid's backpack, or a medical bracelet.</p>
+                <h3 className="text-xl font-extrabold mb-3">Generate & Attach</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed">Download your custom QR code or link an NFC tag. Attach it to a pet's collar, a kid's backpack, or a medical bracelet.</p>
               </div>
             </ScrollReveal>
 
             <ScrollReveal delay={300}>
-              <div className="relative z-10 flex flex-col items-center text-center">
-                <div className="w-24 h-24 bg-zinc-50 border-4 border-white shadow-xl rounded-full flex items-center justify-center mb-6 hover:scale-105 transition-transform">
-                  <span className="text-3xl font-extrabold text-brandDark">3</span>
+              <div className="flex flex-col items-center text-center bg-[#fafafa] p-8 rounded-[2.5rem] border border-zinc-200/50 shadow-sm h-full hover:shadow-md transition-all">
+                <div className="w-16 h-16 bg-zinc-900 border-2 border-zinc-800 shadow-lg rounded-2xl flex items-center justify-center mb-6">
+                  <span className="text-2xl font-extrabold text-white">3</span>
                 </div>
-                <h3 className="text-xl font-extrabold text-brandDark mb-3">Get Scanned</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed px-4">If they are lost, a Good Samaritan scans the tag. You instantly get an alert, and they can send you their exact GPS location.</p>
+                <h3 className="text-xl font-extrabold mb-3">Get Scanned</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed">If they are lost, a Good Samaritan scans the tag. You instantly get an alert, and they can send you their exact GPS location.</p>
               </div>
             </ScrollReveal>
           </div>
         </div>
       </section>
 
-      {/* USE CASES / WHO IS IT FOR */}
-      <section className="py-24 bg-zinc-50 border-t border-zinc-100">
+      {/* 🌟 NEW: BENTO BOX GRID (Who is it for + Install App) */}
+      <section className="py-32 bg-[#fafafa] border-t border-zinc-200/50">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Who is KinTag for?</h2>
-              <p className="text-zinc-500 font-medium text-lg">Designed specifically for the most vulnerable members of your family.</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Built for the vulnerable.</h2>
+              <p className="text-zinc-500 font-medium text-lg">Designed specifically for those who cannot speak for themselves.</p>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <ScrollReveal delay={0}>
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1 h-full">
-                <User size={32} className="text-blue-500 mb-5" />
-                <h3 className="text-xl font-extrabold text-brandDark mb-2">Children</h3>
-                <p className="text-zinc-500 font-medium mb-4">Perfect for amusement parks, crowded malls, or field trips. Alert finders to non-verbal behaviors or severe allergies.</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Tall Kid Bento */}
+            <ScrollReveal delay={0} className="lg:col-span-1">
+              <div className="bg-white p-8 md:p-10 rounded-[3rem] border border-zinc-200/60 shadow-sm h-full flex flex-col justify-between group hover:shadow-xl transition-all duration-500">
+                <div>
+                  <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-8 shadow-inner group-hover:scale-110 transition-transform">
+                    <User size={32} />
+                  </div>
+                  <h3 className="text-3xl font-extrabold tracking-tight mb-4">Children</h3>
+                  <p className="text-zinc-500 font-medium leading-relaxed mb-8">
+                    Perfect for amusement parks, crowded malls, or field trips. Alert finders to non-verbal behaviors, autism triggers, or severe allergies instantly.
+                  </p>
+                </div>
+                <div className="w-full h-32 bg-gradient-to-t from-blue-50 to-transparent rounded-2xl border-b-4 border-blue-100"></div>
               </div>
             </ScrollReveal>
             
-            <ScrollReveal delay={150}>
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1 h-full">
-                <PawPrint size={32} className="text-amber-500 mb-5" />
-                <h3 className="text-xl font-extrabold text-brandDark mb-2">Pets & Animals</h3>
-                <p className="text-zinc-500 font-medium mb-4">Easily share their microchip number, temperament, and diet restrictions instantly if they escape the yard.</p>
+            {/* Stacked Bento */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
+                <ScrollReveal delay={100} className="h-full">
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200/60 shadow-sm h-full group hover:shadow-lg transition-all">
+                    <div className="w-14 h-14 bg-amber-50 text-amber-500 rounded-2xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                      <PawPrint size={28} />
+                    </div>
+                    <h3 className="text-2xl font-extrabold tracking-tight mb-3">Pets</h3>
+                    <p className="text-zinc-500 font-medium leading-relaxed">
+                      Easily share their microchip number, temperament, and diet restrictions instantly if they escape the yard.
+                    </p>
+                  </div>
+                </ScrollReveal>
+                
+                <ScrollReveal delay={200} className="h-full">
+                  <div className="bg-white p-8 rounded-[2.5rem] border border-zinc-200/60 shadow-sm h-full group hover:shadow-lg transition-all">
+                    <div className="w-14 h-14 bg-pink-50 text-pink-500 rounded-2xl flex items-center justify-center mb-6 shadow-inner group-hover:scale-110 transition-transform">
+                      <Activity size={28} />
+                    </div>
+                    <h3 className="text-2xl font-extrabold tracking-tight mb-3">Seniors</h3>
+                    <p className="text-zinc-500 font-medium leading-relaxed">
+                      A critical safety net for elderly family members prone to wandering, detailing their primary caregivers.
+                    </p>
+                  </div>
+                </ScrollReveal>
               </div>
-            </ScrollReveal>
-            
-            <ScrollReveal delay={300}>
-              <div className="bg-white p-8 rounded-3xl shadow-sm border border-zinc-200 transition-all hover:shadow-md hover:-translate-y-1 h-full">
-                <Activity size={32} className="text-pink-500 mb-5" />
-                <h3 className="text-xl font-extrabold text-brandDark mb-2">Seniors & Medical</h3>
-                <p className="text-zinc-500 font-medium mb-4">A critical safety net for elderly family members prone to wandering, detailing their medical conditions and primary caregivers.</p>
-              </div>
-            </ScrollReveal>
+
+              {/* App Install Bento */}
+              <ScrollReveal delay={300}>
+                <div className="bg-zinc-900 text-white p-8 md:p-10 rounded-[3rem] border border-zinc-800 shadow-2xl relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8 group">
+                  <div className="absolute top-0 right-0 w-64 h-64 bg-brandGold/20 rounded-full blur-[80px] pointer-events-none group-hover:bg-brandGold/30 transition-colors"></div>
+                  
+                  <div className="relative z-10 text-center md:text-left">
+                    <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/10 px-3 py-1 rounded-full mb-4">
+                      <Smartphone size={12} className="text-brandGold" />
+                      <span className="text-[10px] font-extrabold uppercase tracking-widest">Native Experience</span>
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-extrabold tracking-tight mb-2">Install the Web App</h3>
+                    <p className="text-zinc-400 font-medium">Get full-screen access and instant loading directly from your home screen.</p>
+                  </div>
+
+                  <div className="relative z-10 shrink-0 w-full md:w-auto">
+                    {deferredPrompt ? (
+                      <button onClick={handleInstallApp} className="w-full md:w-auto flex items-center justify-center space-x-2 bg-white text-zinc-900 px-8 py-4 rounded-full font-bold shadow-lg hover:scale-105 transition-all">
+                        <Download size={18} />
+                        <span>Install Now</span>
+                      </button>
+                    ) : (
+                      <div className="w-full md:w-auto flex items-center justify-center space-x-2 bg-white/10 text-white/50 px-8 py-4 rounded-full font-bold border border-white/10 cursor-not-allowed">
+                        <CheckCircle2 size={18} />
+                        <span>Installed</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </ScrollReveal>
+            </div>
+
           </div>
         </div>
       </section>
 
-      {/* INTERACTIVE CARD STACK FEATURES */}
-      <section className="py-32 bg-white border-y border-zinc-100 overflow-hidden">
+      {/* CARD STACK FEATURES */}
+      <section className="py-32 bg-white border-t border-zinc-200/50 overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-4">Smarter than a standard ID.</h2>
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4">Smarter than a standard ID.</h2>
               <p className="text-zinc-500 font-medium text-lg">Swipe to explore how KinTag brings them home safely and quickly.</p>
             </div>
           </ScrollReveal>
@@ -342,239 +368,136 @@ export default function Home() {
         </div>
       </section>
 
-      {/* NATIVE APP SECTION */}
-      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
-        <div className="max-w-5xl mx-auto px-4 md:px-8">
-          <ScrollReveal>
-            <div className="bg-zinc-900 rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-12">
-              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
-              <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-emerald-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      {/* 🌟 NEW: EDITORIAL DEV STORY BENTO */}
+      <section className="py-32 px-4 bg-[#fafafa] border-t border-zinc-200/50">
+        <ScrollReveal>
+          <div className="max-w-5xl mx-auto bg-white rounded-[3rem] p-8 md:p-16 border border-zinc-200/60 shadow-[0_20px_60px_rgba(0,0,0,0.04)] relative overflow-hidden flex flex-col md:flex-row items-center gap-16">
+            
+            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-zinc-100 rounded-full blur-[80px] pointer-events-none"></div>
 
-              <div className="flex-1 relative z-10 text-center md:text-left">
-                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full mb-6">
-                  <Smartphone size={14} className="text-brandGold" />
-                  <span className="text-xs font-extrabold uppercase tracking-widest text-white">Experience KinTag Native</span>
-                </div>
-                <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-[1.1] mb-6">
-                  Get the KinTag App
-                </h2>
-                <p className="text-zinc-400 font-medium text-lg leading-relaxed mb-8">
-                  For the best, full-screen experience without browser distractions, install the KinTag Web App directly to your device.
+            <div className="flex-1 space-y-8 relative z-10">
+              <div className="inline-flex items-center space-x-2 bg-zinc-100 border border-zinc-200 px-4 py-1.5 rounded-full">
+                <Heart size={14} className="text-zinc-900" fill="currentColor" />
+                <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">The KinTag Mission</span>
+              </div>
+              
+              <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-[1.05] text-zinc-900">
+                Built by a solo developer.<br/><span className="text-zinc-400">Driven by passion.</span>
+              </h2>
+              
+              <div className="space-y-5 text-zinc-600 font-medium leading-relaxed md:text-lg">
+                <p>
+                  I built KinTag in a single week. When I looked for a way to safeguard my own family, I found an industry plagued by bulky hardware, clunky apps, and predatory monthly subscriptions.
                 </p>
-                
-                <div className="flex flex-col sm:flex-row items-center gap-4 justify-center md:justify-start">
-                  {deferredPrompt ? (
-                    <button onClick={handleInstallApp} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-brandGold text-white px-8 py-4 rounded-2xl font-bold shadow-lg hover:bg-amber-500 transition-all hover:-translate-y-0.5">
-                      <Download size={20} />
-                      <span>Install Web App</span>
-                    </button>
-                  ) : (
-                    <div className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white/10 text-white/50 px-8 py-4 rounded-2xl font-bold border border-white/10 cursor-not-allowed" title="Already installed or not supported on this browser">
-                      <CheckCircle2 size={20} />
-                      <span>Web App Installed</span>
+                <p>
+                  I absolutely refused to be trapped in a subscription cycle for something so crucial. <strong className="text-zinc-900">Think about it: one forgotten payment, and your child's safety net is instantly turned off.</strong> I couldn't live with that anxiety.
+                </p>
+                <p className="text-zinc-900 text-xl font-bold pt-2 border-l-4 border-zinc-900 pl-4">
+                  That is exactly why KinTag is 100% free for lifetime.
+                </p>
+              </div>
+
+              <Link to="/signup" className="inline-flex items-center justify-center space-x-2 bg-zinc-900 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-zinc-800 transition-all shadow-md hover:-translate-y-1">
+                <span>Create Your Free Tag</span>
+                <ArrowRight size={18} />
+              </Link>
+            </div>
+
+            <div className="w-full md:w-auto shrink-0 relative z-10">
+              <div className="bg-zinc-50 p-8 rounded-[2.5rem] border border-zinc-200 shadow-inner max-w-sm w-full space-y-6">
+                <h3 className="font-extrabold text-xl tracking-tight mb-2">The Promise</h3>
+                <ul className="space-y-4">
+                  <li className="flex items-start text-zinc-600 font-medium gap-3"><CheckCircle2 size={20} className="text-zinc-900 shrink-0 mt-0.5"/> Fully encrypted database</li>
+                  <li className="flex items-start text-zinc-600 font-medium gap-3"><CheckCircle2 size={20} className="text-zinc-900 shrink-0 mt-0.5"/> Zero hidden paywalls</li>
+                  <li className="flex items-start text-zinc-600 font-medium gap-3"><CheckCircle2 size={20} className="text-zinc-900 shrink-0 mt-0.5"/> Total data ownership</li>
+                  <li className="flex items-start text-zinc-600 font-medium gap-3"><CheckCircle2 size={20} className="text-zinc-900 shrink-0 mt-0.5"/> Built by a parent</li>
+                </ul>
+              </div>
+            </div>
+            
+          </div>
+        </ScrollReveal>
+      </section>
+
+      {/* MONOCHROME FAQ SECTION */}
+      <FAQMonochrome faqs={faqData} />
+
+      {/* 🌟 NEW: DARK MODE FINISH (Self-Host & Contact merging into footer) */}
+      <div className="bg-zinc-950 text-white pt-24 pb-10 border-t border-white/10">
+        
+        {/* Self Host Mini-Bento */}
+        <section className="max-w-5xl mx-auto px-4 md:px-8 mb-24">
+          <ScrollReveal>
+            <div className="bg-zinc-900 rounded-[3rem] p-8 md:p-12 border border-white/10 shadow-2xl flex flex-col md:flex-row items-center gap-10">
+              <div className="flex-1">
+                <h2 className="text-3xl font-extrabold tracking-tight mb-4 flex items-center gap-3">
+                  <Github size={32} /> Open & Self-Hostable
+                </h2>
+                <p className="text-zinc-400 font-medium leading-relaxed mb-8">
+                  Developers shouldn't have to rely on third-party servers. Grab the code, hook it up to your own Firebase instance, and take 100% ownership of your database.
+                </p>
+                <div className="relative inline-block">
+                  <button onClick={handleGithubClick} className="inline-flex items-center space-x-2 bg-white/10 hover:bg-white/20 text-white px-6 py-3 rounded-full font-bold transition-all border border-white/10">
+                    <span>View GitHub Repo</span>
+                  </button>
+                  {showGithubTooltip && (
+                    <div className="absolute top-1/2 left-[calc(100%+14px)] -translate-y-1/2 bg-white text-zinc-900 text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-left-2 duration-200 z-10">
+                      Coming soon
                     </div>
                   )}
                 </div>
-                
-                <p className="text-zinc-500 text-xs font-medium mt-6 max-w-md mx-auto md:mx-0">
-                  * iOS Users: To install the Web App, tap the Share icon in Safari and select "Add to Home Screen".
-                </p>
               </div>
-
-              <div className="relative z-10 shrink-0 hidden lg:block">
-                <div className="w-48 h-48 bg-gradient-to-br from-brandGold to-amber-600 rounded-[2.5rem] shadow-2xl flex items-center justify-center transform rotate-12 hover:rotate-0 transition-all duration-500">
-                  <img src="/kintag-logo.png" alt="KinTag Icon" className="w-24 h-24 rounded-2xl shadow-inner bg-white p-2" />
+              <div className="flex-1 w-full bg-black/50 p-6 rounded-3xl border border-white/5 font-mono text-sm text-emerald-400 overflow-x-auto shadow-inner">
+                <div className="flex gap-2 mb-4">
+                  <div className="w-3 h-3 rounded-full bg-red-500/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-amber-500/80"></div>
+                  <div className="w-3 h-3 rounded-full bg-emerald-500/80"></div>
                 </div>
+                <p><span className="text-zinc-500"># Clone the repository</span><br/><span className="text-blue-400">git clone</span> https://github.com/...</p>
+                <p className="mt-3"><span className="text-zinc-500"># Start local server</span><br/><span className="text-blue-400">npm run</span> dev</p>
               </div>
             </div>
           </ScrollReveal>
-        </div>
-      </section>
+        </section>
 
-      {/* THE PASSIONATE DEVELOPER STORY */}
-      <section className="py-24 px-4 relative bg-white border-b border-zinc-100">
-        <ScrollReveal>
-          <div className="max-w-5xl mx-auto bg-brandDark rounded-[3rem] p-8 md:p-16 shadow-2xl relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-brandGold/10 rounded-full blur-3xl pointer-events-none"></div>
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none"></div>
-            
-            <div className="relative z-10 flex flex-col md:flex-row gap-12 items-center">
-              <div className="flex-1 space-y-6">
-                <div className="inline-flex items-center space-x-2 bg-white/10 backdrop-blur-sm border border-white/20 px-4 py-1.5 rounded-full mb-2">
-                  <Heart size={14} className="text-brandGold" />
-                  <span className="text-xs font-extrabold uppercase tracking-widest text-white">The KinTag Story</span>
-                </div>
-                <h2 className="text-3xl md:text-5xl font-extrabold text-white tracking-tight leading-[1.1]">
-                  Built by a solo developer.<br/>Driven by pure passion.
-                </h2>
-                <div className="space-y-4 text-white/80 font-medium leading-relaxed md:text-lg">
-                  <p>
-                    I built KinTag in a single week. When I looked for a way to safeguard my own family, I found an industry plagued by bulky hardware, clunky apps, and predatory monthly subscriptions. 
-                  </p>
-                  <p>
-                    I realized I couldn't trust massive corporations with my family's deeply personal data. More importantly, I absolutely refused to be trapped in a subscription cycle for something so crucial. <span className="text-brandGold font-bold">Think about it: one forgotten payment, and your child's safety net is instantly turned off.</span> I couldn't live with that anxiety.
-                  </p>
-                  <p className="text-white text-xl md:text-2xl font-bold pt-2">
-                    That is exactly why KinTag is <span className="text-emerald-400 font-extrabold border-b-2 border-emerald-400 pb-0.5">100% free for lifetime.</span>
-                  </p>
-                  <p>
-                    I actively use this platform for my own loved ones, because I needed to build the exact tool I wished existed.
-                  </p>
-                </div>
-              </div>
-              
-              <div className="flex-1 w-full bg-black/30 backdrop-blur-md p-6 md:p-8 rounded-3xl border border-white/10">
-                <h3 className="text-white font-extrabold mb-6 text-xl">The KinTag Promise:</h3>
-                <ul className="space-y-4 mb-8">
-                  <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> Fully encrypted Google Firebase database</li>
-                  <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> Zero hidden paywalls or premium lockouts</li>
-                  <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> You have absolute ownership of your data</li>
-                  <li className="flex items-start text-white/90 font-medium gap-3"><CheckCircle2 size={20} className="text-emerald-400 shrink-0 mt-0.5"/> Built specifically for parents, by a parent</li>
-                </ul>
-                <Link to="/signup" className="w-full flex items-center justify-center bg-white text-brandDark py-3.5 px-6 md:px-8 md:py-4 rounded-xl font-bold text-base md:text-lg hover:bg-zinc-200 transition-all shadow-lg hover:scale-[1.02]">
-                  Create Your Free KinTag
-                </Link>
-              </div>
-            </div>
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* 🌟 MONOCHROME FAQ SECTION */}
-      <FAQMonochrome faqs={faqData} />
-
-      {/* SELF-HOST GUIDE */}
-      <section className="py-24 bg-white border-b border-zinc-100">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 flex flex-col md:flex-row items-center gap-10">
-          <div className="flex-1 relative">
-            <ScrollReveal delay={0}>
-              <h2 className="text-3xl font-extrabold text-brandDark tracking-tight mb-4 flex items-center gap-3">
-                <Github size={32} /> Open & Self-Hostable
-              </h2>
-              <p className="text-zinc-600 font-medium leading-relaxed mb-6">
-                Are you a developer? You shouldn't have to rely on third-party servers for your family's safety. KinTag is designed to be completely self-hostable. Grab the code, hook it up to your own Firebase instance, and take 100% ownership of your database.
-              </p>
-              <ul className="space-y-3 mb-8">
-                <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Full React/Vite Source Code</li>
-                <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Simple Firebase Integration</li>
-                <li className="flex items-center text-sm font-bold text-zinc-700 gap-2"><CheckCircle2 size={18} className="text-emerald-500"/> Free to modify for personal use</li>
-              </ul>
-              
-              <div className="relative inline-block">
-                <button 
-                  onClick={handleGithubClick}
-                  className="inline-flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 text-zinc-400 px-6 py-3 rounded-xl font-bold cursor-not-allowed transition-all shadow-sm"
-                >
-                  <span>View GitHub Repository</span>
-                </button>
-                
-                {showGithubTooltip && (
-                  <div className="absolute top-1/2 left-[calc(100%+14px)] -translate-y-1/2 bg-brandDark text-white text-xs font-bold px-3 py-2 rounded-lg shadow-xl animate-in fade-in slide-in-from-left-2 duration-200 flex items-center whitespace-nowrap z-10">
-                    Coming soon
-                    <div className="absolute top-1/2 -left-[5px] -translate-y-1/2 w-0 h-0 border-y-[5px] border-y-transparent border-r-[5px] border-r-brandDark"></div>
-                  </div>
-                )}
-              </div>
-            </ScrollReveal>
-          </div>
-          <div className="flex-1 w-full">
-            <ScrollReveal delay={200}>
-              <div className="bg-zinc-900 rounded-3xl p-6 shadow-2xl border border-zinc-800 text-left">
-                <div className="flex gap-2 mb-4">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                </div>
-                <pre className="text-emerald-400 font-mono text-sm overflow-x-auto">
-                  <code>
-<span className="text-zinc-500"># Clone the repository</span><br/>
-<span className="text-blue-400">git clone</span> https://github.com/...<br/><br/>
-<span className="text-zinc-500"># Install dependencies</span><br/>
-<span className="text-blue-400">npm</span> install<br/><br/>
-<span className="text-zinc-500"># Setup your Firebase config</span><br/>
-<span className="text-blue-400">cp</span> .env.example .env<br/><br/>
-<span className="text-zinc-500"># Start local server</span><br/>
-<span className="text-blue-400">npm run</span> dev
-                  </code>
-                </pre>
-              </div>
-            </ScrollReveal>
-          </div>
-        </div>
-      </section>
-
-      {/* LIVE CONTACT & LIMITATIONS */}
-      <section className="py-24 bg-zinc-50 border-b border-zinc-100">
-        <ScrollReveal>
-          <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
-            <Heart size={40} className="text-rose-500 mx-auto mb-6" />
-            <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-6">Help keep KinTag alive.</h2>
-            <p className="text-zinc-600 font-medium text-lg leading-relaxed max-w-3xl mx-auto mb-10">
-              I promised KinTag will always be free to use, and I mean it. Currently, the platform relies entirely on the free tiers of backend services like Firebase and Vercel. 
-              However, as more parents and pet owners join to safeguard their families, our database storage and server limits will eventually max out. Buying more capacity is incredibly costly for a solo developer. 
-              <br/><br/>
-              If you believe in this mission and want to help me scale it to protect more families, or if you just want to say hi, my inbox is always open!
+        {/* Contact & Footer */}
+        <section className="max-w-4xl mx-auto px-4 md:px-8 text-center border-b border-white/10 pb-20">
+          <ScrollReveal>
+            <h2 className="text-3xl font-extrabold tracking-tight mb-6">Help keep KinTag alive.</h2>
+            <p className="text-zinc-400 font-medium text-lg leading-relaxed max-w-2xl mx-auto mb-10">
+              KinTag relies entirely on free-tier backend services. As more families join, our limits will eventually max out. If you believe in this mission and want to help scale it, or just say hi, my inbox is open!
             </p>
-            
             <div className="flex flex-wrap items-center justify-center gap-4">
-              <a href="mailto:shovith2@gmail.com" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
-                <Mail size={18} className="text-blue-500"/> Email Me
+              <a href="mailto:shovith2@gmail.com" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-3 rounded-full font-bold transition-all">
+                <Mail size={18}/> Email Me
               </a>
-              <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
-                <MessageCircle size={18} className="text-emerald-500"/> WhatsApp
+              <a href="https://wa.me/918777845713" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-3 rounded-full font-bold transition-all">
+                <MessageCircle size={18}/> WhatsApp
               </a>
-              <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white hover:bg-zinc-100 text-brandDark border border-zinc-200 px-6 py-3 rounded-xl font-bold transition-all shadow-sm">
-                <Send size={18} className="text-sky-500"/> Telegram
+              <a href="https://t.me/X_o_x_o_002" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 bg-white/5 hover:bg-white/10 text-white border border-white/10 px-6 py-3 rounded-full font-bold transition-all">
+                <Send size={18}/> Telegram
               </a>
             </div>
+          </ScrollReveal>
+        </section>
+
+        <footer className="text-center pt-10">
+          <div className="flex items-center justify-center space-x-2 mb-4 opacity-50">
+            <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded grayscale" />
+            <span className="font-bold text-white">KinTag</span>
           </div>
-        </ScrollReveal>
-      </section>
+          <p className="text-xs text-zinc-500 font-bold tracking-widest uppercase">
+            © {new Date().getFullYear()} KINTAG. ALL RIGHTS RESERVED. 
+            <Link to="/changelog" className="ml-4 hover:text-white transition-colors">CHANGELOG</Link>
+          </p>
+        </footer>
+      </div>
 
-      {/* CHANGELOG SECTION */}
-      <section className="py-24 bg-white border-b border-zinc-200">
-        <ScrollReveal>
-          <div className="max-w-4xl mx-auto px-4 md:px-8 text-center">
-            <div className="w-16 h-16 bg-zinc-50 text-brandDark rounded-full flex items-center justify-center mx-auto mb-6 shadow-sm border border-zinc-200">
-              <Rocket size={32} />
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-6">Constantly Evolving</h2>
-            <p className="text-zinc-600 font-medium text-lg leading-relaxed max-w-2xl mx-auto mb-10">
-              KinTag is actively maintained and frequently updated with new features, security enhancements, and community-requested tools. See how the platform has grown since day one.
-            </p>
-            <Link to="/changelog" className="inline-flex items-center justify-center space-x-2 bg-zinc-50 text-brandDark px-8 py-4 rounded-2xl font-bold text-lg hover:bg-zinc-100 transition-all shadow-sm border border-zinc-200">
-              <span>Read the Official Changelog</span>
-              <ArrowRight size={18} />
-            </Link>
-          </div>
-        </ScrollReveal>
-      </section>
-
-      {/* FINAL CALL TO ACTION */}
-      <section className="py-24 bg-zinc-50 text-center px-4">
-        <ScrollReveal>
-          <h2 className="text-3xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure your loved ones?</h2>
-          <p className="text-zinc-500 font-medium text-lg mb-8">Join the platform and create your first tag in under 2 minutes.</p>
-          <Link to="/signup" className="inline-flex items-center justify-center space-x-2 bg-brandGold text-white px-10 py-5 rounded-2xl font-bold text-xl hover:bg-amber-500 transition-all shadow-xl hover:-translate-y-1">
-            <span>Get Started for Free</span>
-            <ArrowRight size={20} />
-          </Link>
-        </ScrollReveal>
-      </section>
-
-      {/* FOOTER */}
-      <footer className="bg-zinc-50 py-10 border-t border-zinc-200 text-center">
-        <div className="flex items-center justify-center space-x-2 mb-4 opacity-50">
-          <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded grayscale" />
-          <span className="font-bold text-brandDark">KinTag</span>
-        </div>
-        <p className="text-xs text-zinc-400 font-bold">© {new Date().getFullYear()} KinTag. All rights reserved.</p>
-      </footer>
     </div>
   );
 }
 
-function ScrollReveal({ children, delay = 0 }) {
+function ScrollReveal({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
 
@@ -601,7 +524,7 @@ function ScrollReveal({ children, delay = 0 }) {
     <div 
       ref={ref} 
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)] ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.25,1,0.5,1)] ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'} ${className}`}
     >
       {children}
     </div>
