@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone } from 'lucide-react';
-import { avatars } from '../components/ui/avatar-picker'; // 🌟 NEW: Imported avatars
+import { avatars } from '../components/ui/avatar-picker'; 
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -63,12 +63,15 @@ export default function Dashboard() {
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
+  
+  // Single and Bulk Scan Deletion states
   const [scanToDelete, setScanToDelete] = useState(null);
+  const [selectedScans, setSelectedScans] = useState([]);
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
   
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [showSoftAskModal, setShowSoftAskModal] = useState(false);
   const [showNotifCenter, setShowNotifCenter] = useState(false);
-  // 🌟 FIXED 3: Changed default tab to 'personal' (labels updated in render)
   const [notifTab, setNotifTab] = useState('personal'); 
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
@@ -76,8 +79,7 @@ export default function Dashboard() {
 
   const [userFamilyId, setUserFamilyId] = useState(null);
   const [userZipCode, setUserZipCode] = useState(''); 
-  // 🌟 FIXED 2: State to hold user's avatar ID
-  const [userAvatarId, setUserAvatarId] = useState(null);
+  const [userAvatarId, setUserAvatarId] = useState(null); 
 
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
@@ -126,7 +128,7 @@ export default function Dashboard() {
           if (data.lastViewedPersonal) setLastViewedPersonal(data.lastViewedPersonal);
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
           setUserZipCode(data.zipCode || ''); 
-          setUserAvatarId(data.avatarId || null); // 🌟 Sync Avatar ID
+          setUserAvatarId(data.avatarId || null); 
           currentFamilyId = data.familyId || currentUser.uid;
         } else {
           await setDoc(userDocRef, { email: currentUser.email, familyId: currentUser.uid }, { merge: true });
@@ -175,6 +177,9 @@ export default function Dashboard() {
           const fetchedScans = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           fetchedScans.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
           setScans(fetchedScans);
+          
+          // Refresh selection if scans are deleted elsewhere
+          setSelectedScans(prev => prev.filter(id => fetchedScans.some(s => s.id === id)));
           isInitialScansLoad.current = false;
         });
 
@@ -242,22 +247,33 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
+  // 🌟 FIXED: Mark as Lost logic
   const handleConfirmLost = async () => {
     if (!lostModalProfile) return;
-    const profile = lostModalProfile;
+    const profileToUpdate = lostModalProfile;
+    setLostModalProfile(null); 
+    
     try {
-      await updateDoc(doc(db, "profiles", profile.id), { isLost: true });
-      setLostModalProfile(null);
-      setBroadcastModalProfile(profile);
+      await updateDoc(doc(db, "profiles", profileToUpdate.id), { isLost: true });
+      // Proceed immediately to broadcast question
+      const updatedProfile = { ...profileToUpdate, isLost: true };
+      setBroadcastModalProfile(updatedProfile);
     } catch (e) {
-      showMessage("Error", "Failed to activate Lost Mode.");
+      showMessage("Error", "Failed to activate Lost Mode.", "error");
     }
   };
 
+  // 🌟 FIXED: Broadcast logic
   const handleConfirmBroadcast = async () => {
     if (!broadcastModalProfile) return;
     const profile = broadcastModalProfile;
     setBroadcastModalProfile(null);
+    
+    if (!profile.pincode) {
+        showMessage("Missing Pincode", "You need to set a local Area Pincode or Zip Code in this profile's edit settings to broadcast an alert.", "warning");
+        return;
+    }
+
     try {
       const newTimestamp = Date.now();
       await updateDoc(doc(db, "profiles", profile.id), { kinAlertActive: true, kinAlertTimestamp: newTimestamp });
@@ -298,7 +314,7 @@ export default function Dashboard() {
 
       showMessage("KinAlert Active", `Broadcasted alert to guardians in Zip Code ${profile.pincode}.`, "success");
     } catch (e) {
-      showMessage("Error", "Failed to broadcast KinAlert.");
+      showMessage("Error", "Failed to broadcast KinAlert.", "error");
     }
   };
 
@@ -306,7 +322,7 @@ export default function Dashboard() {
     try {
       await updateDoc(doc(db, "profiles", profile.id), { isLost: false, kinAlertActive: false });
       
-      if (profile.kinAlertActive) {
+      if (profile.kinAlertActive && profile.pincode) {
           const uQuery = query(collection(db, "users"), where("zipCode", "==", profile.pincode));
           const uSnap = await getDocs(uQuery);
           const targetFamilies = new Set();
@@ -327,7 +343,7 @@ export default function Dashboard() {
       }
       showMessage("Safe and Sound", `${profile.name} has been marked as found.`, "success");
     } catch (e) {
-      showMessage("Error", "Failed to deactivate Lost Mode.");
+      showMessage("Error", "Failed to deactivate Lost Mode.", "error");
     }
   };
 
@@ -442,6 +458,7 @@ export default function Dashboard() {
     }
   };
 
+  // 🌟 Single Delete
   const confirmDeleteScan = async () => {
     if (!scanToDelete) return;
     try {
@@ -451,6 +468,31 @@ export default function Dashboard() {
       showMessage("Error", "Failed to delete notification.", "error");
     } finally {
       setScanToDelete(null); 
+    }
+  };
+
+  // 🌟 NEW: Bulk Delete Handlers
+  const toggleScanSelection = (scanId) => {
+    setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
+  };
+
+  const handleSelectAll = () => {
+    if (selectedScans.length === scans.length) {
+      setSelectedScans([]);
+    } else {
+      setSelectedScans(scans.map(s => s.id));
+    }
+  };
+
+  const confirmBulkDelete = async () => {
+    try {
+      await Promise.all(selectedScans.map(id => deleteDoc(doc(db, "scans", id))));
+      setScans(scans.filter(s => !selectedScans.includes(s.id)));
+      setSelectedScans([]);
+      setShowBulkDeleteModal(false);
+      showMessage("Success", "Selected notifications have been deleted.", "success");
+    } catch (error) {
+      showMessage("Error", "Failed to delete selected notifications.", "error");
     }
   };
 
@@ -575,7 +617,6 @@ export default function Dashboard() {
     group.items.push(scan);
   });
 
-  // 🌟 Lookup the user's active avatar for the Dashboard icon
   const currentAvatar = avatars.find(a => a.id === userAvatarId) || null;
 
   if (loading) return <DashboardSkeleton />;
@@ -583,25 +624,23 @@ export default function Dashboard() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-32 selection:bg-brandGold selection:text-white">
       
-      {/* 🌟 Premium Background Elements */}
+      {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
       <div className="max-w-5xl mx-auto relative z-10 animate-in fade-in duration-700 pt-4">
         
-        {/* 🌟 HEADER: Frosted Glass */}
+        {/* HEADER */}
         <div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80">
           <div className="flex items-center space-x-4 w-full md:w-auto">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
             <div className="flex-1">
-              {/* 🌟 FIXED 1: "KinTags" -> "KinTag" */}
               <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight leading-none mb-0.5">KinTag</h1>
               <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">Family Dashboard</p>
             </div>
           </div>
           
           <button onClick={() => navigate('/profile')} className="relative flex items-center justify-center bg-white border border-zinc-200 hover:border-brandDark/30 p-2 md:pr-5 md:pl-2 md:py-2 rounded-full transition-all shadow-sm hover:shadow-md group active:scale-95 shrink-0">
-            {/* 🌟 FIXED 2: Dynamic Avatar Support */}
             <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-0.5 border border-zinc-200">
                {currentAvatar ? currentAvatar.svg : <User size={20} />}
             </div>
@@ -610,7 +649,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* 🌟 Action Buttons */}
+        {/* Action Buttons */}
         <div className="flex gap-4 mb-10">
           <button onClick={handleEnableAlertsClick} disabled={isEnablingPush} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-white p-4 md:py-5 rounded-[2rem] hover:bg-amber-500 transition-all font-bold shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0">
             {isEnablingPush ? <Loader2 size={20} className="animate-spin" /> : <BellRing size={20} />}
@@ -624,7 +663,7 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* 🌟 TRUE SEAMLESS MARQUEE */}
+        {/* TRUE SEAMLESS MARQUEE */}
         {localAlerts.length > 0 && (
           <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block mb-10 overflow-hidden bg-red-600 text-white rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] border-[6px] border-red-500 relative h-[72px] group cursor-pointer hover:border-red-400 transition-all active:scale-[0.98]">
             <style>{`
@@ -678,14 +717,14 @@ export default function Dashboard() {
                     <div className="absolute top-4 right-4 flex gap-2 z-30">
                        <button 
                          disabled={!profile.isLost}
-                         onClick={() => { if(profile.isLost && !profile.kinAlertActive) setBroadcastModalProfile(profile); }}
+                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); if(profile.isLost && !profile.kinAlertActive) setBroadcastModalProfile(profile); }}
                          className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
                          title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
                        >
                           <Megaphone size={18} />
                        </button>
                        <button 
-                         onClick={() => profile.isLost ? handleDeactivateLost(profile) : setLostModalProfile(profile)}
+                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? handleDeactivateLost(profile) : setLostModalProfile(profile); }}
                          className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
                          title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
                        >
@@ -708,16 +747,16 @@ export default function Dashboard() {
                         <Eye size={16} />
                         <span>View</span>
                       </Link>
-                      <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-3 rounded-2xl transition-all shadow-sm active:scale-95 ${profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleProfileStatus(profile.id, profile.isActive); }} className={`flex items-center justify-center p-3 rounded-2xl transition-all shadow-sm active:scale-95 ${profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
                         {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
-                      <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 border border-amber-100 hover:bg-amber-100 text-amber-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Mobile ID & QR">
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQrModalProfile(profile); }} className="bg-amber-50 border border-amber-100 hover:bg-amber-100 text-amber-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Mobile ID & QR">
                         <Smartphone size={18} />
                       </button>
                       <Link to={`/edit/${profile.id}`} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Edit Profile">
                         <Edit size={18} />
                       </Link>
-                      <button onClick={() => setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl })} className="bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-500 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Delete Profile">
+                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl }); }} className="bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-500 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Delete Profile">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -734,7 +773,7 @@ export default function Dashboard() {
         <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
       </Link>
 
-      {/* --- MODALS (Upgraded to Glassmorphism) --- */}
+      {/* --- MODALS --- */}
 
       {/* QR Modal */}
       {qrModalProfile && (
@@ -800,7 +839,6 @@ export default function Dashboard() {
               <button onClick={() => setShowNotifCenter(false)} className="p-2.5 bg-zinc-50 rounded-full text-zinc-500 hover:text-brandDark hover:bg-zinc-100 transition-colors border border-zinc-200 shadow-sm"><X size={20}/></button>
             </div>
             <div className="flex border-b border-zinc-200 shrink-0 px-4 pt-2 bg-white">
-              {/* 🌟 FIXED 3: Label is now "Personal" */}
               <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
                 Personal {unreadPersonalCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm">{unreadPersonalCount}</span>}
               </button>
@@ -808,6 +846,30 @@ export default function Dashboard() {
                 System {unreadSystemCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm">{unreadSystemCount}</span>}
               </button>
             </div>
+            
+            {/* 🌟 Bulk Actions Header */}
+            {notifTab === 'personal' && scans.length > 0 && (
+              <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
+                <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
+                  <input 
+                    type="checkbox" 
+                    checked={selectedScans.length === scans.length && scans.length > 0} 
+                    onChange={handleSelectAll} 
+                    className="w-5 h-5 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer transition-all" 
+                  />
+                  Select All
+                </label>
+                {selectedScans.length > 0 && (
+                  <button 
+                    onClick={() => setShowBulkDeleteModal(true)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                  >
+                    <Trash2 size={14} /> Delete ({selectedScans.length})
+                  </button>
+                )}
+              </div>
+            )}
+
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-zinc-50">
               {pendingInvite && (
                 <div className="bg-brandGold/5 p-6 rounded-[2rem] border border-brandGold/20 mb-6 shadow-sm relative overflow-hidden group">
@@ -836,45 +898,69 @@ export default function Dashboard() {
                         {group.items.map(scan => {
                           if (scan.type === 'kinAlert') {
                              return (
-                               <div key={scan.id} className="bg-red-50 p-5 rounded-[2rem] border border-red-200 shadow-sm relative group overflow-hidden">
-                                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                               <div key={scan.id} className="bg-red-50 p-4 sm:p-5 rounded-[2rem] border border-red-200 shadow-sm relative group overflow-hidden flex items-start gap-3">
+                                 <input 
+                                   type="checkbox" 
+                                   checked={selectedScans.includes(scan.id)} 
+                                   onChange={() => toggleScanSelection(scan.id)} 
+                                   className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" 
+                                 />
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none z-0"></div>
                                  <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
-                                 <div className="flex items-center justify-between mb-3 pr-10 relative z-10"><span className="font-extrabold text-red-800 text-lg flex items-center gap-2"><Siren size={18}/> KinAlert</span><span className="text-[10px] text-red-400 font-bold uppercase shrink-0 bg-red-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                                 <p className="text-sm text-red-900 font-bold mb-4 leading-relaxed relative z-10">{scan.message}</p>
-                                 {scan.publicLink && <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md transition-all active:scale-95 relative z-10"><Eye size={18}/> View Profile</a>}
+                                 <div className="flex-1 min-w-0 relative z-10">
+                                   <div className="flex items-center justify-between mb-3 pr-10"><span className="font-extrabold text-red-800 text-lg flex items-center gap-2"><Siren size={18}/> KinAlert</span><span className="text-[10px] text-red-400 font-bold uppercase shrink-0 bg-red-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                   <p className="text-sm text-red-900 font-bold mb-4 leading-relaxed">{scan.message}</p>
+                                   {scan.publicLink && <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md transition-all active:scale-95"><Eye size={18}/> View Profile</a>}
+                                 </div>
                                </div>
                              );
                           } else if (scan.type === 'kinAlert_found') {
                              return (
-                               <div key={scan.id} className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-200 shadow-sm relative group overflow-hidden">
-                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                               <div key={scan.id} className="bg-emerald-50 p-4 sm:p-5 rounded-[2rem] border border-emerald-200 shadow-sm relative group overflow-hidden flex items-start gap-3">
+                                 <input 
+                                   type="checkbox" 
+                                   checked={selectedScans.includes(scan.id)} 
+                                   onChange={() => toggleScanSelection(scan.id)} 
+                                   className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" 
+                                 />
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none z-0"></div>
                                  <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
-                                 <div className="flex items-center justify-between mb-3 pr-10 relative z-10"><span className="font-extrabold text-emerald-800 text-lg flex items-center gap-2"><CheckCircle2 size={18}/> Found Alert</span><span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0 bg-emerald-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                                 <p className="text-sm text-emerald-900 font-bold leading-relaxed relative z-10">{scan.message}</p>
+                                 <div className="flex-1 min-w-0 relative z-10">
+                                   <div className="flex items-center justify-between mb-3 pr-10"><span className="font-extrabold text-emerald-800 text-lg flex items-center gap-2"><CheckCircle2 size={18}/> Found Alert</span><span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0 bg-emerald-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                   <p className="text-sm text-emerald-900 font-bold leading-relaxed">{scan.message}</p>
+                                 </div>
                                </div>
                              );
                           }
                           return (
-                            <div key={scan.id} className="bg-white p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md">
+                            <div key={scan.id} className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md flex items-start gap-3">
+                              <input 
+                                type="checkbox" 
+                                checked={selectedScans.includes(scan.id)} 
+                                onChange={() => toggleScanSelection(scan.id)} 
+                                className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" 
+                              />
                               <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
-                              <div className="flex items-center justify-between mb-3 pr-10">
-                                <span className="font-extrabold text-brandDark text-lg tracking-tight truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
-                                <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0 bg-zinc-50 border border-zinc-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-                              </div>
-                              {scan.type === 'active' ? (
-                                <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2">
-                                  <p className="text-xs text-red-800 font-bold mb-4 flex items-center gap-2"><MapPin size={16} className="text-red-500 shrink-0"/> A Good Samaritan pinpointed their exact location!</p>
-                                  <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md active:scale-95 transition-all">Open in Google Maps</a>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between mb-3 pr-8">
+                                  <span className="font-extrabold text-brandDark text-lg tracking-tight truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
+                                  <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0 bg-zinc-50 border border-zinc-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
                                 </div>
-                              ) : scan.type === 'invite_response' ? ( 
-                                <p className="text-sm text-emerald-700 font-bold flex items-start gap-2 mt-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 leading-relaxed">
-                                  <Users size={16} className="shrink-0 mt-0.5 text-emerald-500"/> {scan.message}
-                                </p>
-                              ) : ( 
-                                <p className="text-sm text-zinc-500 font-medium flex items-center gap-2 mt-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                  <Info size={16} className="shrink-0 text-brandGold"/> Passive scan near <strong className="text-brandDark font-bold">{scan.city}, {scan.region}</strong>
-                                </p> 
-                              )}
+                                {scan.type === 'active' ? (
+                                  <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2">
+                                    <p className="text-xs text-red-800 font-bold mb-4 flex items-center gap-2"><MapPin size={16} className="text-red-500 shrink-0"/> A Good Samaritan pinpointed their exact location!</p>
+                                    <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md active:scale-95 transition-all">Open in Google Maps</a>
+                                  </div>
+                                ) : scan.type === 'invite_response' ? ( 
+                                  <p className="text-sm text-emerald-700 font-bold flex items-start gap-2 mt-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 leading-relaxed">
+                                    <Users size={16} className="shrink-0 mt-0.5 text-emerald-500"/> {scan.message}
+                                  </p>
+                                ) : ( 
+                                  <p className="text-sm text-zinc-500 font-medium flex items-center gap-2 mt-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                    <Info size={16} className="shrink-0 text-brandGold"/> Passive scan near <strong className="text-brandDark font-bold">{scan.city}, {scan.region}</strong>
+                                  </p> 
+                                )}
+                              </div>
                             </div>
                           );
                         })}
@@ -909,6 +995,39 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Profile Lost/Found Modals */}
+      {lostModalProfile && (
+        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+             <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+                <Siren size={36} className="animate-pulse" />
+             </div>
+             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Mark as Lost?</h2>
+             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This will instantly change {lostModalProfile.name}'s public ID into a high-alert distress signal with pulsing warnings.</p>
+             <div className="flex flex-col gap-3">
+               <button onClick={handleConfirmLost} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, I'm Sure</button>
+               <button onClick={() => setLostModalProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+             </div>
+          </div>
+        </div>
+      )}
+
+      {broadcastModalProfile && (
+        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+             <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-amber-100">
+                <Megaphone size={36} />
+             </div>
+             <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Broadcast Alert?</h2>
+             <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">Would you like to send a KinAlert? This will instantly notify all other KinTag users in your exact Pincode ({broadcastModalProfile.pincode}) to keep an eye out.</p>
+             <div className="flex flex-col gap-3">
+               <button onClick={handleConfirmBroadcast} className="w-full bg-amber-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-amber-600 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Broadcast</button>
+               <button onClick={() => setBroadcastModalProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Not Now</button>
+             </div>
+          </div>
+        </div>
+      )}
+
       {/* Delete Profile Modal */}
       {profileToDelete && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
@@ -926,7 +1045,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Delete Scan Modal */}
+      {/* Delete Single Scan Modal */}
       {scanToDelete && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -943,6 +1062,38 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* 🌟 NEW: Bulk Delete Modal */}
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+              <Trash2 size={36} />
+            </div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Delete {selectedScans.length} Records?</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This action cannot be undone. These scan records will be permanently removed from your history.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmBulkDelete} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Delete All</button>
+              <button onClick={() => setShowBulkDeleteModal(false)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Soft Ask Notification Permission Modal */}
+      {showSoftAskModal && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-brandGold/10 text-brandGold rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-brandGold/20"><BellRing size={36} /></div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Enable Alerts?</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">KinTag needs permission to send you emergency push notifications when your tag is scanned.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={processNotificationPermission} className="w-full bg-brandGold text-white py-4 rounded-full font-bold shadow-lg hover:bg-amber-500 hover:-translate-y-0.5 active:scale-95 transition-all">Proceed</button>
+              <button onClick={() => setShowSoftAskModal(false)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Maybe Later</button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
@@ -953,8 +1104,8 @@ function DashboardSkeleton() {
       <div className="max-w-5xl mx-auto space-y-8">
         <div className="h-[88px] bg-zinc-200 animate-pulse rounded-[2.5rem] w-full"></div>
         <div className="flex gap-4">
-           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2rem] w-1/2"></div>
-           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2rem] w-1/2"></div>
+           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2.5rem] w-1/2"></div>
+           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2.5rem] w-1/2"></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map(i => (
