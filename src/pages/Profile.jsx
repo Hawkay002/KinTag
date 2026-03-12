@@ -3,8 +3,9 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check, Smartphone, Download } from 'lucide-react'; 
+import { User, LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, Edit2, AlertOctagon, X, Trash2, UserMinus, MapPin, Share2, LifeBuoy, MessageCircle, Send, Info, ChevronDown, Check, Smartphone, Download, Camera } from 'lucide-react'; 
 import { sortedCountryCodes } from '../data/countryCodes'; 
+import { AvatarPicker, avatars } from '../components/ui/avatar-picker'; // 🌟 NEW AVATAR IMPORT
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -27,6 +28,10 @@ export default function Profile() {
   const [isEditingZip, setIsEditingZip] = useState(false);
   const [editZipValue, setEditZipValue] = useState("");
 
+  // 🌟 NEW: Avatar Picker States
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+
   const [guardianToRemove, setGuardianToRemove] = useState(null);
 
   const [showDeleteZone, setShowDeleteZone] = useState(false);
@@ -42,7 +47,6 @@ export default function Profile() {
   const [resolvingTicketId, setResolvingTicketId] = useState(null);
   const [copiedId, setCopiedId] = useState(false);
   
-  // PWA Install State
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   
   const [showSupportModal, setShowSupportModal] = useState(false);
@@ -86,7 +90,7 @@ export default function Profile() {
           activeFamilyId = data.familyId || auth.currentUser.uid;
           setUserData({ ...data, familyId: activeFamilyId });
         } else {
-          setUserData({ name: '', zipCode: '', familyId: activeFamilyId });
+          setUserData({ name: '', zipCode: '', avatarId: 1, familyId: activeFamilyId });
         }
         
         const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
@@ -110,6 +114,22 @@ export default function Profile() {
   const handleLogout = async () => {
     await signOut(auth);
     navigate('/login');
+  };
+
+  // 🌟 NEW: Firebase Logic for Saving Avatar ID
+  const handleSaveAvatar = async (avatarId) => {
+    setProfileError(''); setProfileSuccess('');
+    setAvatarLoading(true);
+    try {
+      await updateDoc(doc(db, "users", auth.currentUser.uid), { avatarId });
+      setUserData(prev => ({ ...prev, avatarId }));
+      setProfileSuccess("Avatar updated successfully!");
+    } catch (err) {
+      setProfileError("Failed to update avatar.");
+    } finally {
+      setAvatarLoading(false);
+      setShowAvatarModal(false);
+    }
   };
 
   const handleSaveName = async () => {
@@ -352,6 +372,9 @@ export default function Profile() {
   const currentFamilyId = userData?.familyId || auth.currentUser?.uid;
   const invitedGuardians = familyMembers.filter(m => m.id !== currentFamilyId);
 
+  // 🌟 Lookup the user's active avatar for the UI
+  const currentAvatar = avatars.find(a => a.id === userData?.avatarId) || null;
+
   return (
     <div className="min-h-screen bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
       {/* Premium Background Elements */}
@@ -365,7 +388,7 @@ export default function Profile() {
           <span>Back to Dashboard</span>
         </button>
 
-        {/* 🌟 Profile Card */}
+        {/* 🌟 MAIN PROFILE CARD WITH AVATAR */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 text-center relative overflow-hidden group">
           
           <button onClick={() => setShowShareModal(true)} className="absolute top-6 left-6 flex items-center bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100 p-3 rounded-full transition-all duration-300 shadow-sm hover:shadow-md group/btn" title="Share KinTag">
@@ -378,9 +401,27 @@ export default function Profile() {
             <LogOut size={18} className="shrink-0" />
           </button>
 
-          <div className="w-28 h-28 bg-gradient-to-br from-zinc-50 to-zinc-100 border border-zinc-200 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 shadow-inner group-hover:scale-105 transition-transform duration-500">
-            <User size={48} />
-            {!userData?.zipCode && <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 border-[3px] border-white rounded-full animate-pulse" title="Missing Zip Code"></span>}
+          {/* 🌟 DYNAMIC AVATAR DISPLAY & EDIT TRIGGER */}
+          <div 
+            onClick={() => setShowAvatarModal(true)}
+            className="w-28 h-28 bg-white border-[4px] border-white shadow-xl text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 relative mt-8 md:mt-0 group-hover:scale-105 transition-all duration-500 cursor-pointer overflow-hidden group/avatar"
+          >
+            {currentAvatar ? (
+              <div className="w-full h-full bg-zinc-50 p-2">
+                {currentAvatar.svg}
+              </div>
+            ) : (
+              <div className="w-full h-full bg-zinc-50 flex items-center justify-center">
+                 <User size={48} />
+              </div>
+            )}
+            
+            {/* Hover Overlay for Camera Icon */}
+            <div className="absolute inset-0 bg-brandDark/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-opacity backdrop-blur-[2px]">
+               <Camera size={28} className="text-white" />
+            </div>
+
+            {!userData?.zipCode && <span className="absolute -top-2 -right-2 w-5 h-5 bg-red-500 border-[3px] border-white rounded-full animate-pulse z-10" title="Missing Zip Code"></span>}
           </div>
 
           <div className="flex flex-col items-center justify-center mb-6">
@@ -428,7 +469,7 @@ export default function Profile() {
           {profileSuccess && <div className="mt-6 mx-auto max-w-sm p-4 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-2xl border border-emerald-100 flex items-center justify-center gap-2"><CheckCircle2 size={18} /> {profileSuccess}</div>}
         </div>
 
-        {/* 🌟 Co-Guardians Card */}
+        {/* Co-Guardians Card */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 bg-brandGold/10 rounded-2xl flex items-center justify-center text-brandGold border border-brandGold/20 shadow-sm">
@@ -464,8 +505,13 @@ export default function Profile() {
             {familyMembers.map((member) => (
               <div key={member.id} className="flex items-center justify-between bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-zinc-50 rounded-full flex items-center justify-center border border-zinc-200 text-zinc-500 shadow-inner shrink-0">
-                    <User size={20} />
+                  {/* Guardian list falls back to basic icon if they don't have an avatar assigned */}
+                  <div className="w-12 h-12 bg-zinc-50 rounded-2xl flex items-center justify-center border border-zinc-200 text-zinc-400 shadow-inner shrink-0 overflow-hidden p-1">
+                    {member.avatarId ? (
+                        avatars.find(a => a.id === member.avatarId)?.svg || <User size={20} />
+                    ) : (
+                        <User size={20} />
+                    )}
                   </div>
                   <div>
                     <p className="font-bold text-brandDark truncate text-base">{member.name || 'Guardian'}</p>
@@ -489,7 +535,7 @@ export default function Profile() {
           </div>
         </div>
 
-        {/* 🌟 Install App Dynamic Block */}
+        {/* Install App Dynamic Block */}
         {deferredPrompt && (
           <div className="bg-brandDark text-white rounded-[2.5rem] shadow-xl p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-2xl gap-6 relative overflow-hidden group">
             <div className="absolute top-0 right-0 w-64 h-64 bg-brandGold/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-brandGold/20 transition-colors"></div>
@@ -509,7 +555,7 @@ export default function Profile() {
           </div>
         )}
 
-        {/* 🌟 Support Block */}
+        {/* Support Block */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6">
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
              <div className="w-16 h-16 bg-blue-50/80 border border-blue-100 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
@@ -533,7 +579,7 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* 🌟 Active Support Tickets UI */}
+        {/* Active Support Tickets UI */}
         {supportTickets.length > 0 && (
           <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-5 flex items-center gap-2">
@@ -591,7 +637,7 @@ export default function Profile() {
           </span>
         </div>
 
-        {/* 🌟 Danger Zone */}
+        {/* Danger Zone */}
         <div className="bg-red-50/80 backdrop-blur-xl rounded-[2.5rem] border border-red-100 p-8 md:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-red-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -608,7 +654,19 @@ export default function Profile() {
           </button>
         </div>
 
-        {/* --- MODALS (Upgraded to Glassmorphism) --- */}
+        {/* --- MODALS --- */}
+        
+        {/* 🌟 NEW: AVATAR PICKER MODAL */}
+        {showAvatarModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
+            <AvatarPicker 
+              currentAvatarId={userData?.avatarId} 
+              onSave={handleSaveAvatar} 
+              onCancel={() => setShowAvatarModal(false)}
+              isSaving={avatarLoading}
+            />
+          </div>
+        )}
 
         {/* Support Form Modal */}
         {showSupportModal && (
