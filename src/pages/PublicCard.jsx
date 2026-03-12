@@ -26,7 +26,7 @@ const getComputedAge = (profile) => {
   };
 };
 
-// 🌟 FIXED 2: Slide to Share Interactive Component with perfect padding constraints
+// 🌟 FIXED & BULLETPROOFED: Interactive Slider
 const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
@@ -34,19 +34,18 @@ const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
   const controls = useAnimation();
 
   useEffect(() => {
-    if (containerRef.current) {
-      setWidth(containerRef.current.offsetWidth);
-    }
-    const handleResize = () => {
+    const updateWidth = () => {
       if (containerRef.current) setWidth(containerRef.current.offsetWidth);
     };
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, [isLoading]); 
 
   const handleDragEnd = async (e, info) => {
     const threshold = width * 0.65; 
-    const maxTravel = width > 0 ? width - 60 : 0; // 48px thumb + 6px left + 6px right = 60px subtracted
+    const maxTravel = width > 0 ? width - 60 : 0; // Exactly 60px accounts for the 48px thumb + 6px padding on both sides
+    
     if (info.offset.x >= threshold) {
       await controls.start({ x: maxTravel }); 
       onSlide(e);
@@ -55,38 +54,38 @@ const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="w-full h-[60px] bg-white/10 rounded-full border border-white/20 flex items-center justify-center shadow-inner">
-        <Loader2 className="animate-spin text-white" size={24} />
-        <span className="ml-3 text-white font-extrabold tracking-widest uppercase text-xs">Locating...</span>
-      </div>
-    );
-  }
-
   return (
     <div ref={containerRef} className="relative w-full h-[60px] bg-white/10 rounded-full overflow-hidden border border-white/20 shadow-inner group">
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none pr-4 pl-16">
-        <span className="text-white/60 font-extrabold uppercase tracking-widest text-[11px] sm:text-xs transition-opacity group-hover:text-white/90">
-          {isPreview ? "Disabled in Preview" : "Slide to Share Location"}
-        </span>
-        <ChevronRight size={16} className="text-white/30 ml-2 animate-pulse" />
-      </div>
-      
-      <motion.div
-        className="absolute top-1.5 left-1.5 bottom-1.5 w-[48px] bg-red-500 rounded-full shadow-lg flex items-center justify-center z-10"
-        drag={isPreview ? false : "x"}
-        dragConstraints={{ left: 0, right: width > 0 ? width - 60 : 0 }}
-        dragElastic={0.05}
-        onDragEnd={handleDragEnd}
-        animate={controls}
-        style={{ x, cursor: isPreview ? 'not-allowed' : 'grab' }}
-        whileTap={{ scale: isPreview ? 1 : 0.95, cursor: isPreview ? 'not-allowed' : 'grabbing' }}
-      >
-        <div className="flex items-center justify-center w-full h-full text-white">
-          <ArrowRight size={22} strokeWidth={3} />
+      {isLoading ? (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <Loader2 className="animate-spin text-white" size={24} />
+          <span className="ml-3 text-white font-extrabold tracking-widest uppercase text-xs">Locating...</span>
         </div>
-      </motion.div>
+      ) : (
+        <>
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none pr-4 pl-16">
+            <span className="text-white/60 font-extrabold uppercase tracking-widest text-[11px] sm:text-xs transition-opacity group-hover:text-white/90">
+              {isPreview ? "Disabled in Preview" : "Slide to Share Location"}
+            </span>
+            <ChevronRight size={16} className="text-white/30 ml-2 animate-pulse" />
+          </div>
+          
+          <motion.div
+            className="absolute top-1.5 left-1.5 bottom-1.5 w-[48px] bg-red-500 rounded-full shadow-lg flex items-center justify-center z-10 touch-none"
+            drag={isPreview ? false : "x"}
+            dragConstraints={{ left: 0, right: width > 0 ? width - 60 : 0 }}
+            dragElastic={0.05}
+            onDragEnd={handleDragEnd}
+            animate={controls}
+            style={{ x, cursor: isPreview ? 'not-allowed' : 'grab' }}
+            whileTap={{ scale: isPreview ? 1 : 0.95, cursor: isPreview ? 'not-allowed' : 'grabbing' }}
+          >
+            <div className="flex items-center justify-center w-full h-full text-white">
+              <ArrowRight size={22} strokeWidth={3} />
+            </div>
+          </motion.div>
+        </>
+      )}
     </div>
   );
 };
@@ -111,6 +110,7 @@ export default function PublicCard() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [viewingDocument, setViewingDocument] = useState(null);
   const vaultTimerRef = useRef(null);
+  const logoTimeoutRef = useRef(null);
 
   const playChime = () => {
     try {
@@ -125,6 +125,7 @@ export default function PublicCard() {
       setIsLogoExpanded(false);
     }, 3000);
   };
+  const [isLogoExpanded, setIsLogoExpanded] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -177,8 +178,8 @@ export default function PublicCard() {
           body: JSON.stringify({
             ownerId: profile.userId,
             familyId: profile.familyId || profile.userId,
-            title: `👀 ${profile.name}'s Tag Scanned!`,
-            body: `Someone just viewed ${profile.name}'s digital ID near ${cityStr}.`,
+            title: `👀 ${profile.name || 'Profile'}'s Tag Scanned!`,
+            body: `Someone just viewed the digital ID near ${cityStr}.`,
             link: `https://kintag.vercel.app/#/?view=notifications` 
           })
         });
@@ -229,7 +230,7 @@ export default function PublicCard() {
             profileId: profileId,
             ownerId: profile.userId,
             familyId: profile.familyId || profile.userId,
-            profileName: profile.name,
+            profileName: profile.name || 'Profile',
             type: 'active',
             latitude: latitude,
             longitude: longitude,
@@ -243,7 +244,7 @@ export default function PublicCard() {
             body: JSON.stringify({
               ownerId: profile.userId,
               familyId: profile.familyId || profile.userId,
-              title: `📍 URGENT: ${profile.name} FOUND!`,
+              title: `📍 URGENT: ${profile.name || 'PROFILE'} FOUND!`,
               body: `A Good Samaritan has shared their exact GPS location. TAP HERE to open details!`,
               link: `https://kintag.vercel.app/#/?view=notifications` 
             })
@@ -251,7 +252,7 @@ export default function PublicCard() {
 
           setActiveAlertSent(true);
           
-          // 🌟 FIXED 3: Audio and Vibration now trigger precisely on success!
+          // 🌟 FIXED 3: Sound & Vibration perfectly synced to the exact moment of success
           playChime();
           if (navigator.vibrate) {
             navigator.vibrate([100, 50, 100]); 
@@ -322,33 +323,37 @@ export default function PublicCard() {
     );
   }
 
-  let displayContacts = profile.contacts || [
-    { id: '1', name: profile.parent1Name, phone: profile.parent1Phone, countryCode: '', tag: 'Mother' },
-    ...(profile.parent2Name ? [{ id: '2', name: profile.parent2Name, phone: profile.parent2Phone, countryCode: '', tag: 'Father' }] : [])
-  ];
+  // 🌟 FIXED: Safe fallback if database has zero contacts saved
+  const displayContacts = profile.contacts?.length > 0 
+    ? profile.contacts 
+    : [
+        { id: '1', name: profile.parent1Name || 'Guardian', phone: profile.parent1Phone || '', countryCode: '', tag: 'Primary' },
+        ...(profile.parent2Name ? [{ id: '2', name: profile.parent2Name, phone: profile.parent2Phone, countryCode: '', tag: 'Secondary' }] : [])
+      ];
 
   const primaryContact = displayContacts.find(c => c.id === profile.primaryContactId) || displayContacts[0];
-  const encodedAddress = encodeURIComponent(profile.address);
-  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+  
+  const encodedAddress = encodeURIComponent(profile.address || '');
+  const googleMapsUrl = `https://maps.google.com/?q=${encodedAddress}`;
   
   const helplineNumber = profile.type === 'kid' ? '112' : '1962'; 
   const helplineText = profile.type === 'kid' ? 'National Emergency (112)' : 'Animal Helpline (1962)';
 
   const displayHeight = profile.heightUnit === 'ft' 
-    ? `${profile.heightMain}'${profile.heightSub}"` 
-    : (profile.heightMain ? `${profile.heightMain} cm` : profile.height);
+    ? `${profile.heightMain || 0}'${profile.heightSub || 0}"` 
+    : (profile.heightMain ? `${profile.heightMain} cm` : profile.height || 'N/A');
     
   const displayWeight = profile.weightMain 
     ? `${profile.weightMain} ${profile.weightUnit}` 
-    : profile.weight;
+    : profile.weight || 'N/A';
 
   const computedAge = getComputedAge(profile);
 
   return (
-    // 🌟 FIXED 4: pb-48 allows scrolling all the way to the bottom without the sticky bar blocking it
+    // 🌟 FIXED 4: Added pb-48 spacing so the bottom scroll clears the sticky bar completely
     <div className="min-h-[100dvh] bg-zinc-100 flex flex-col items-center font-sans relative selection:bg-brandGold selection:text-white pb-48 md:pb-52">
       
-      {/* 🌟 FIXED 1: Dynamic Island wrapper uses mode="wait" to prevent flexbox jumping issues! */}
+      {/* 🌟 FIXED 1: Flexbox centering and AnimatePresence to kill layout glitches */}
       <div className="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
         <motion.div 
           layout
@@ -368,7 +373,7 @@ export default function PublicCard() {
                 className="flex items-center justify-center gap-2"
               >
                 <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
-                <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type}?</span>
+                <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type || 'Profile'}?</span>
               </motion.div>
             ) : (
               <motion.div 
@@ -378,7 +383,7 @@ export default function PublicCard() {
                 exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
                 className="w-full"
               >
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex justify-between items-center mb-5">
                    <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
                    <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
                 </div>
@@ -402,14 +407,11 @@ export default function PublicCard() {
         </motion.div>
       </div>
 
-      {/* Desktop Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none hidden md:block"></div>
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0 hidden md:block"></div>
 
-      {/* Main Card Container */}
       <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] md:rounded-[3rem] md:my-10 md:overflow-hidden flex flex-col relative z-10 border border-zinc-200">
         
-        {/* Header Image Area */}
         <div className="relative h-[45vh] md:h-[350px] w-full shrink-0 bg-zinc-100">
           <img 
             src={profile.imageUrl} 
@@ -421,10 +423,10 @@ export default function PublicCard() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none"></div>
           
-          {/* 🌟 FIXED 5: Logo animation uses precise widths to transition smoothly */}
+          {/* 🌟 FIXED 5: Exact pixel widths fix the top-left logo clipping issue */}
           <div 
             onClick={handleLogoClick}
-            className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'w-[105px] px-2' : 'w-10 justify-center px-0'}`}
+            className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'max-w-[105px] px-2' : 'max-w-[40px] px-0 justify-center'}`}
           >
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
             <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm whitespace-nowrap transition-all duration-500 ${isLogoExpanded ? 'opacity-100 ml-2 max-w-[60px]' : 'opacity-0 ml-0 max-w-0'}`}>
@@ -440,8 +442,7 @@ export default function PublicCard() {
           </button>
         </div>
         
-        {/* Main Content Area (Clean iOS Grouped Style) */}
-        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6 pb-20">
+        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6">
           
           {profile.isLost && (
             <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-[4px] border-red-700 relative flex items-center h-16 -mx-6 md:-mx-8 -mt-6 md:-mt-8 mb-6 rounded-t-[2.5rem]">
@@ -463,13 +464,12 @@ export default function PublicCard() {
           <div className="text-center pb-2">
             <h1 className="text-[2.5rem] leading-none font-extrabold text-brandDark mb-2 tracking-tight drop-shadow-sm">{profile.name}</h1>
             <p className="text-xs text-brandGold font-extrabold uppercase tracking-[0.2em] bg-brandGold/10 inline-block px-4 py-1.5 rounded-full border border-brandGold/20 mt-1">
-              {computedAge.value} {computedAge.label} • {profile.typeSpecific} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
+              {computedAge.value} {computedAge.label} • {profile.typeSpecific || profile.type} {profile.type === 'kid' && profile.nationality ? `• ${profile.nationality}` : ''}
             </p>
           </div>
 
-          {/* Group 1: Critical Information */}
           <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] overflow-hidden shadow-sm divide-y divide-zinc-200">
-            {profile.allergies && profile.allergies.toLowerCase() !== 'none' && profile.allergies.toLowerCase() !== 'none known' && (
+            {profile.allergies && profile.allergies?.toLowerCase() !== 'none' && profile.allergies?.toLowerCase() !== 'none known' && (
               <div className="p-4 flex items-center gap-4 bg-amber-50/50">
                 <div className="w-10 h-10 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center shrink-0 border border-amber-200"><Activity size={20} /></div>
                 <div>
@@ -519,11 +519,10 @@ export default function PublicCard() {
             )}
           </div>
 
-          {/* Group 2: Physical Traits */}
           <div className="grid grid-cols-3 gap-2">
             <div className="bg-zinc-50 p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200">
               <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1">Gender</span>
-              <span className="font-extrabold text-brandDark text-sm">{profile.gender}</span>
+              <span className="font-extrabold text-brandDark text-sm">{profile.gender || 'N/A'}</span>
             </div>
             <div className="bg-zinc-50 p-4 rounded-2xl flex flex-col items-center text-center border border-zinc-200">
               <span className="text-[9px] text-zinc-400 font-extrabold uppercase tracking-widest mb-1">Height</span>
@@ -541,7 +540,6 @@ export default function PublicCard() {
              </div>
           )}
 
-          {/* Group 3: Contacts */}
           <div className="space-y-3">
              <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest ml-2">Emergency Contacts</h3>
              <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] p-2 space-y-2">
@@ -549,19 +547,19 @@ export default function PublicCard() {
                 <div key={contact.id} className="flex justify-between items-center bg-white p-3 rounded-3xl shadow-sm border border-zinc-100">
                   <div className="pl-2">
                     <div className="flex items-center space-x-2 mb-0.5">
-                      <p className="text-brandDark font-extrabold text-sm tracking-tight">{contact.name}</p>
+                      <p className="text-brandDark font-extrabold text-sm tracking-tight">{contact.name || 'Guardian'}</p>
                       <span className="px-2 py-0.5 bg-brandGold/10 border border-brandGold/20 text-brandGold text-[9px] font-extrabold uppercase tracking-widest rounded-md">
                         {contact.tag === 'Other' ? contact.customTag : contact.tag}
                       </span>
                     </div>
-                    <p className="text-zinc-500 text-xs font-bold tracking-wider">{contact.phone}</p>
+                    <p className="text-zinc-500 text-xs font-bold tracking-wider">{contact.phone || 'No phone set'}</p>
                   </div>
                   {isPreview ? (
                     <div className="bg-brandDark text-white p-3 rounded-2xl opacity-50 cursor-not-allowed shadow-sm shrink-0">
                       <Phone size={18} fill="currentColor" />
                     </div>
                   ) : (
-                    <a href={`tel:${contact.countryCode || ''}${contact.phone}`} onClick={() => unlockVault()} className="bg-brandDark text-white p-3 rounded-2xl hover:bg-brandAccent transition-colors shadow-sm shrink-0 active:scale-95">
+                    <a href={`tel:${contact.countryCode || ''}${contact.phone || ''}`} onClick={() => unlockVault()} className="bg-brandDark text-white p-3 rounded-2xl hover:bg-brandAccent transition-colors shadow-sm shrink-0 active:scale-95">
                       <Phone size={18} fill="currentColor" />
                     </a>
                   )}
@@ -570,8 +568,7 @@ export default function PublicCard() {
              </div>
           </div>
 
-          {/* Group 4: Vault & Location */}
-          <div className="space-y-3 pb-4">
+          <div className="space-y-3 pb-6">
              <h3 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest ml-2">Documents & Location</h3>
              <div className="bg-zinc-50 border border-zinc-200 rounded-[2rem] overflow-hidden divide-y divide-zinc-200">
                 {(profile.policeStation || profile.pincode) && (
@@ -624,7 +621,7 @@ export default function PublicCard() {
              </div>
           </div>
 
-          <div className="flex justify-center pt-6 pb-2">
+          <div className="flex justify-center">
             {isPreview ? (
               <div className="flex items-center space-x-2.5 bg-zinc-50 border border-zinc-200/80 px-5 py-2.5 rounded-full shadow-sm opacity-70 cursor-not-allowed">
                 <span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">Secured by</span>
@@ -647,19 +644,19 @@ export default function PublicCard() {
         </div>
       </div>
 
-      {/* 🌟 FIXED 2: True Sticky Bottom Action Bar */}
+      {/* 🌟 FIXED 2: Sticky Action bar is immune to scrolling and overlapping */}
       <div className="fixed bottom-0 left-0 right-0 z-[90] flex justify-center pointer-events-none px-4 pb-4 md:pb-8">
-        <div className="w-full max-w-md pointer-events-auto bg-white/90 backdrop-blur-2xl border border-zinc-200 shadow-[0_10px_40px_rgba(0,0,0,0.1)] p-3 rounded-3xl flex flex-col gap-2.5">
+        <div className="w-full max-w-md pointer-events-auto bg-white/95 backdrop-blur-2xl border border-zinc-200 shadow-[0_-5px_40px_rgba(0,0,0,0.1)] p-3 rounded-3xl flex flex-col gap-2.5">
           
           {isPreview ? (
             <div className={`w-full flex items-center justify-center space-x-2 py-4 px-4 rounded-2xl font-extrabold text-base shadow-sm opacity-50 cursor-not-allowed ${profile.isLost ? 'bg-red-600 text-white' : 'bg-brandDark text-white'}`}>
               <Phone size={20} />
-              <span className="truncate">{profile.isLost ? `CALL IMMEDIATELY` : `Call ${primaryContact.name}`}</span>
+              <span className="truncate">{profile.isLost ? `CALL IMMEDIATELY` : `Call ${primaryContact?.name || 'Guardian'}`}</span>
             </div>
           ) : (
-            <a href={`tel:${primaryContact.countryCode || ''}${primaryContact.phone}`} onClick={() => unlockVault()} className={`w-full flex items-center justify-center space-x-3 py-4 px-4 rounded-2xl font-black text-[1.1rem] shadow-sm transition-all active:scale-[0.98] ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
+            <a href={`tel:${primaryContact?.countryCode || ''}${primaryContact?.phone || ''}`} onClick={() => unlockVault()} className={`w-full flex items-center justify-center space-x-3 py-4 px-4 rounded-2xl font-black text-[1.1rem] shadow-sm transition-all active:scale-[0.98] ${profile.isLost ? 'bg-red-600 text-white animate-[pulse_1.5s_ease-in-out_infinite] border-2 border-red-400' : 'bg-brandDark text-white hover:bg-brandAccent'}`}>
               <Phone size={22} fill={profile.isLost ? "currentColor" : "none"} />
-              <span className="truncate">{profile.isLost ? `CALL ${primaryContact.name.toUpperCase()} IMMEDIATELY` : `Call ${primaryContact.name}`}</span>
+              <span className="truncate">{profile.isLost ? `CALL ${(primaryContact?.name || 'GUARDIAN').toUpperCase()} IMMEDIATELY` : `Call ${primaryContact?.name || 'Guardian'}`}</span>
             </a>
           )}
 
@@ -691,7 +688,6 @@ export default function PublicCard() {
         </div>
       </div>
 
-      {/* Modals */}
       {isImageEnlarged && !isPreview && (
         <div className="fixed inset-0 z-[200] bg-zinc-950/90 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-200">
           <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition z-[210] border border-white/10">
@@ -719,7 +715,7 @@ export default function PublicCard() {
              </button>
           </div>
           <div className="w-full max-w-md mx-auto h-full flex items-center justify-center pt-20 pb-6">
-            {viewingDocument.url.toLowerCase().includes('.doc') ? (
+            {viewingDocument.url?.toLowerCase().includes('.doc') ? (
               <div className="w-full h-full max-h-[80vh] rounded-[2rem] shadow-2xl relative z-[205] bg-white overflow-hidden border border-white/10">
                 <iframe 
                   src={`https://docs.google.com/gview?url=${encodeURIComponent(viewingDocument.url)}&embedded=true`} 
@@ -728,7 +724,7 @@ export default function PublicCard() {
               </div>
             ) : (
               <img 
-                src={viewingDocument.url.toLowerCase().includes('.pdf') ? viewingDocument.url.replace(/\.pdf/i, '.jpg') : viewingDocument.url} 
+                src={viewingDocument.url?.toLowerCase().includes('.pdf') ? viewingDocument.url.replace(/\.pdf/i, '.jpg') : viewingDocument.url} 
                 alt={viewingDocument.name} 
                 onContextMenu={(e) => e.preventDefault()} 
                 draggable="false" 
