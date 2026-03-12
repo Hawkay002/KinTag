@@ -32,6 +32,9 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
 
+  // Google Sign-Up Suspense State
+  const [pendingGoogleUser, setPendingGoogleUser] = useState(null);
+
   // OTP Verification State
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
@@ -52,7 +55,7 @@ export default function Signup() {
   const prevStep = () => goToStep(Math.max(activeStep - 1, 1));
 
   const isNextDisabled = () => {
-    if (activeStep === 1) return !isEmailVerified;
+    if (activeStep === 1) return !isEmailVerified && !pendingGoogleUser;
     if (activeStep === 2) return password.length < 8 || password !== confirmPassword || !password;
     if (activeStep === 3) return !firstName.trim() || !lastName.trim();
     if (activeStep === 4) return !captchaToken || loading;
@@ -183,39 +186,46 @@ export default function Signup() {
     }
   };
 
-  // --- SUBMISSION LOGIC ---
-  const handleEmailSignup = async () => {
-    setError('');
-    if (!captchaToken) return setError("Please complete the security check.");
-    
-    setLoading(true);
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
-      await processUserDatabase(userCredential.user, fullName);
-      navigate('/'); 
-    } catch (err) {
-      setError(err.message.replace('Firebase: ', ''));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // 🌟 Google Sign-Up (Moved to Step 1, bypasses Captcha requirements automatically!)
+  // --- GOOGLE SIGN-UP LOGIC ---
   const handleGoogleSignup = async () => {
     setError('');
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
       const result = await signInWithPopup(auth, provider);
-      const details = getAdditionalUserInfo(result);
+      setPendingGoogleUser(result.user);
+      
+      // Auto-advance rapidly through the steps to show visual completion
+      setDirection(1);
+      setTimeout(() => setActiveStep(2), 150);
+      setTimeout(() => setActiveStep(3), 400);
+      setTimeout(() => setActiveStep(4), 700);
 
-      if (details && details.isNewUser) {
-        await processUserDatabase(result.user, result.user.displayName || '');
-      }
-      navigate('/'); 
     } catch (err) {
       setError("Google sign-up failed. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // --- FINAL SUBMISSION LOGIC ---
+  const handleFinalizeSignup = async () => {
+    setError('');
+    if (!captchaToken) return setError("Please complete the security check.");
+    
+    setLoading(true);
+    try {
+      if (pendingGoogleUser) {
+        await processUserDatabase(pendingGoogleUser, pendingGoogleUser.displayName || '');
+        navigate('/'); 
+      } else {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
+        await processUserDatabase(userCredential.user, fullName);
+        navigate('/'); 
+      }
+    } catch (err) {
+      setError(err.message.replace('Firebase: ', ''));
     } finally {
       setLoading(false);
     }
@@ -282,11 +292,11 @@ export default function Signup() {
                <button
                  key={step.id}
                  onClick={() => {
-                   if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
+                   if (!pendingGoogleUser && (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled()))) {
                      goToStep(step.id);
                    }
                  }}
-                 disabled={step.id > activeStep && isNextDisabled()}
+                 disabled={(step.id > activeStep && isNextDisabled()) || pendingGoogleUser}
                  className={`relative flex items-center justify-center w-10 h-10 rounded-full font-extrabold text-sm transition-all duration-500 z-10 ${
                    isActive ? "bg-white border-[3px] border-brandDark text-brandDark shadow-md scale-110" 
                    : isPast ? "bg-brandDark text-white border-2 border-brandDark shadow-sm" 
@@ -368,16 +378,16 @@ export default function Signup() {
                   </div>
                 )}
 
-                {/* 🌟 GOOGLE SIGN-UP (Properly moved to Step 1) */}
+                {/* Google Sign-Up */}
                 {!isEmailVerified && !showOtpInput && (
                   <div className="animate-in fade-in duration-500">
                     <div className="relative flex items-center justify-center w-full my-6">
                       <hr className="w-full border-zinc-200" />
-                      <span className="absolute bg-white px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
+                      <span className="absolute bg-[#fafafa] px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
                     </div>
 
                     <button type="button" onClick={handleGoogleSignup} disabled={loading} className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm disabled:opacity-50">
-                      <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                      {loading ? <Loader2 size={20} className="animate-spin" /> : <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />}
                       <span>Continue with Google</span>
                     </button>
                   </div>
@@ -470,8 +480,8 @@ export default function Signup() {
                   <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
                     <ShieldCheck size={32} />
                   </div>
-                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Final Step</h2>
-                  <p className="text-zinc-500 text-sm font-medium px-4">Complete the security check below to create your KinTag account.</p>
+                  <h2 className="text-2xl font-extrabold text-brandDark mb-2">Security Check</h2>
+                  <p className="text-zinc-500 text-sm font-medium px-4">Complete the captcha below to finalize your account creation.</p>
                 </div>
 
                 <div className="flex justify-center w-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 shadow-inner overflow-hidden">
@@ -483,8 +493,8 @@ export default function Signup() {
                   </div>
                 </div>
 
-                <button type="button" onClick={handleEmailSignup} disabled={loading || !captchaToken} className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex justify-center items-center gap-2">
-                  {loading ? <Loader2 size={18} className="animate-spin" /> : 'Create Account'}
+                <button type="button" onClick={handleFinalizeSignup} disabled={loading || !captchaToken} className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex justify-center items-center gap-2">
+                  {loading ? <Loader2 size={18} className="animate-spin" /> : (pendingGoogleUser ? 'Complete Google Sign Up' : 'Create Account')}
                 </button>
               </motion.div>
             )}
@@ -493,7 +503,7 @@ export default function Signup() {
         </div>
 
         {/* Footer Navigation Buttons */}
-        {activeStep < 4 && (
+        {activeStep < 4 && !pendingGoogleUser && (
           <div className="flex justify-between w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
             <button 
               type="button" 
@@ -514,7 +524,7 @@ export default function Signup() {
         )}
 
         {/* Back to Login Global Link */}
-        {activeStep === 1 && (
+        {activeStep === 1 && !pendingGoogleUser && (
           <p className="text-center mt-8 text-sm text-zinc-500 font-medium">
             Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
           </p>
