@@ -84,9 +84,6 @@ export default function Dashboard() {
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
   const [allActiveAlerts, setAllActiveAlerts] = useState([]);
-  const [dismissedAlerts, setDismissedAlerts] = useState([]); 
-  const [foundPopups, setFoundPopups] = useState([]); 
-  const [dismissedFoundAlerts, setDismissedFoundAlerts] = useState([]);
 
   const isInitialScansLoad = useRef(true);
   const isInitialSysLoad = useRef(true);
@@ -178,7 +175,6 @@ export default function Dashboard() {
           fetchedScans.sort((a, b) => getTime(b.timestamp) - getTime(a.timestamp));
           setScans(fetchedScans);
           
-          // Refresh selection if scans are deleted elsewhere
           setSelectedScans(prev => prev.filter(id => fetchedScans.some(s => s.id === id)));
           isInitialScansLoad.current = false;
         });
@@ -220,13 +216,6 @@ export default function Dashboard() {
   }, [currentUser]);
 
   useEffect(() => {
-    if (scans.length > 0) {
-      const recentFound = scans.filter(s => s.type === 'kinAlert_found' && (Date.now() - new Date(s.timestamp).getTime() < 300000));
-      setFoundPopups(recentFound);
-    }
-  }, [scans]);
-
-  useEffect(() => {
     const markAsRead = async () => {
       if (!currentUser || !showNotifCenter) return;
       if (notifTab === 'personal' && scans.length > 0) {
@@ -247,7 +236,6 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // 🌟 FIXED: Mark as Lost logic
   const handleConfirmLost = async () => {
     if (!lostModalProfile) return;
     const profileToUpdate = lostModalProfile;
@@ -255,7 +243,6 @@ export default function Dashboard() {
     
     try {
       await updateDoc(doc(db, "profiles", profileToUpdate.id), { isLost: true });
-      // Proceed immediately to broadcast question
       const updatedProfile = { ...profileToUpdate, isLost: true };
       setBroadcastModalProfile(updatedProfile);
     } catch (e) {
@@ -263,7 +250,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 FIXED: Broadcast logic
   const handleConfirmBroadcast = async () => {
     if (!broadcastModalProfile) return;
     const profile = broadcastModalProfile;
@@ -458,7 +444,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 Single Delete
   const confirmDeleteScan = async () => {
     if (!scanToDelete) return;
     try {
@@ -471,7 +456,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 NEW: Bulk Delete Handlers
   const toggleScanSelection = (scanId) => {
     setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
   };
@@ -847,7 +831,6 @@ export default function Dashboard() {
               </button>
             </div>
             
-            {/* 🌟 Bulk Actions Header */}
             {notifTab === 'personal' && scans.length > 0 && (
               <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
                 <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
@@ -1062,7 +1045,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🌟 NEW: Bulk Delete Modal */}
+      {/* Bulk Delete Modal */}
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -1090,6 +1073,33 @@ export default function Dashboard() {
               <button onClick={processNotificationPermission} className="w-full bg-brandGold text-white py-4 rounded-full font-bold shadow-lg hover:bg-amber-500 hover:-translate-y-0.5 active:scale-95 transition-all">Proceed</button>
               <button onClick={() => setShowSoftAskModal(false)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Maybe Later</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Custom Alert Modal */}
+      {customAlert.isOpen && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className={`w-20 h-20 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border ${
+              customAlert.type === 'error' ? 'bg-red-50 text-red-600 border-red-100' :
+              customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+              customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500 border-amber-100' :
+              'bg-blue-50 text-blue-500 border-blue-100'
+            }`}>
+              {customAlert.type === 'error' ? <AlertOctagon size={36} /> :
+               customAlert.type === 'success' ? <CheckCircle2 size={36} /> :
+               customAlert.type === 'warning' ? <AlertTriangle size={36} /> :
+               <Info size={36} />}
+            </div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">{customAlert.title}</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">{customAlert.message}</p>
+            <button onClick={() => {
+              if (customAlert.onClose) customAlert.onClose();
+              setCustomAlert({ ...customAlert, isOpen: false });
+            }} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent active:scale-95 transition-all">
+              Okay
+            </button>
           </div>
         </div>
       )}
