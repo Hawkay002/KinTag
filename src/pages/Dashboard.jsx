@@ -729,7 +729,6 @@ export default function Dashboard() {
         )}
       </div>
 
-      {/* Floating Add Button */}
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40"></div>
       <Link to="/create" className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-[0_10px_40px_rgba(24,24,27,0.4)] hover:bg-brandAccent transition-all hover:scale-105 active:scale-95 z-50 pointer-events-auto border-4 border-white group">
         <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
