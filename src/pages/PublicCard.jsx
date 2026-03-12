@@ -26,7 +26,7 @@ const getComputedAge = (profile) => {
   };
 };
 
-// 🌟 FIXED & ENHANCED: Slide to Share Interactive Component
+// 🌟 FIXED 2: Slide to Share Interactive Component with perfect padding constraints
 const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
   const containerRef = useRef(null);
   const [width, setWidth] = useState(0);
@@ -46,8 +46,9 @@ const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
 
   const handleDragEnd = async (e, info) => {
     const threshold = width * 0.65; 
+    const maxTravel = width > 0 ? width - 60 : 0; // 48px thumb + 6px left + 6px right = 60px subtracted
     if (info.offset.x >= threshold) {
-      await controls.start({ x: width - 64 }); 
+      await controls.start({ x: maxTravel }); 
       onSlide(e);
     } else {
       controls.start({ x: 0 }); 
@@ -118,6 +119,13 @@ export default function PublicCard() {
     } catch (err) {}
   };
 
+  const startLogoTimer = () => {
+    if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
+    logoTimeoutRef.current = setTimeout(() => {
+      setIsLogoExpanded(false);
+    }, 3000);
+  };
+
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -130,11 +138,13 @@ export default function PublicCard() {
         console.error("Error fetching profile");
       } finally {
         setLoading(false);
+        startLogoTimer();
       }
     };
     fetchProfile();
 
     return () => {
+      if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
       if (vaultTimerRef.current) clearTimeout(vaultTimerRef.current);
     };
   }, [profileId]);
@@ -200,11 +210,6 @@ export default function PublicCard() {
     if (e && e.stopPropagation) e.stopPropagation(); 
     if (isPreview || profile?.isActive === false) return;
 
-    playChime();
-    if (navigator.vibrate) {
-      navigator.vibrate([100, 50, 100]); 
-    }
-
     setIsSendingAlert(true);
     setGpsError('');
 
@@ -245,6 +250,13 @@ export default function PublicCard() {
           });
 
           setActiveAlertSent(true);
+          
+          // 🌟 FIXED 3: Audio and Vibration now trigger precisely on success!
+          playChime();
+          if (navigator.vibrate) {
+            navigator.vibrate([100, 50, 100]); 
+          }
+          
           unlockVault(); 
         } catch (error) {
           setGpsError("Failed to send alert.");
@@ -258,6 +270,13 @@ export default function PublicCard() {
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
+  };
+
+  const handleLogoClick = (e) => {
+    e.stopPropagation();
+    if (isPreview) return; 
+    setIsLogoExpanded(true);
+    startLogoTimer();
   };
 
   if (!isVerified) {
@@ -285,7 +304,8 @@ export default function PublicCard() {
   if (profile.isActive === false) {
     return (
       <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 relative overflow-hidden">
-        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-200/80">
+        <div className="absolute inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+        <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-200/80 relative z-10">
           <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
             <ShieldAlert size={40} />
           </div>
@@ -325,52 +345,66 @@ export default function PublicCard() {
   const computedAge = getComputedAge(profile);
 
   return (
-    <div className="min-h-[100dvh] bg-zinc-100 flex flex-col items-center font-sans relative selection:bg-brandGold selection:text-white pb-36 md:pb-40">
+    // 🌟 FIXED 4: pb-48 allows scrolling all the way to the bottom without the sticky bar blocking it
+    <div className="min-h-[100dvh] bg-zinc-100 flex flex-col items-center font-sans relative selection:bg-brandGold selection:text-white pb-48 md:pb-52">
       
-      {/* 🌟 FIXED 1: Dynamic Island wrapper uses Flexbox centering to completely prevent animation jumps */}
+      {/* 🌟 FIXED 1: Dynamic Island wrapper uses mode="wait" to prevent flexbox jumping issues! */}
       <div className="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
         <motion.div 
           layout
           initial={{ borderRadius: 32 }}
           animate={{ padding: isIslandExpanded ? '24px' : '12px 20px' }}
-          transition={{ type: "spring", stiffness: 300, damping: 25 }}
+          transition={{ type: "spring", stiffness: 400, damping: 30 }}
           onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
-          className={`pointer-events-auto bg-black/90 backdrop-blur-2xl text-white shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-white/10 cursor-pointer overflow-hidden flex flex-col items-center justify-center w-full ${isIslandExpanded ? 'max-w-sm' : 'max-w-max'}`}
+          className={`pointer-events-auto bg-black/90 backdrop-blur-2xl text-white shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-white/10 cursor-pointer overflow-hidden flex flex-col items-center justify-center ${isIslandExpanded ? 'w-full max-w-sm' : 'w-auto'}`}
         >
-          {!isIslandExpanded ? (
-            <motion.div layout="position" className="flex items-center justify-center gap-2">
-              <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
-              <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type}?</span>
-            </motion.div>
-          ) : (
-            <motion.div 
-              initial={{ opacity: 0, filter: "blur(4px)" }} 
-              animate={{ opacity: 1, filter: "blur(0px)" }} 
-              transition={{ delay: 0.1, duration: 0.2 }}
-              className="w-full"
-            >
-              <div className="flex justify-between items-center mb-4">
-                 <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
-                 <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
-              </div>
-              
-              {!activeAlertSent ? (
-                <>
-                  <p className="text-sm text-white/80 font-medium mb-6 leading-relaxed">Slide the button below to securely send your exact GPS location directly to the owner's phone.</p>
-                  <SlideToShare onSlide={handleActiveAlert} isLoading={isSendingAlert} isPreview={isPreview} />
-                  {gpsError && <p className="text-red-400 text-xs font-bold mt-4 text-center bg-red-400/10 py-2 rounded-lg border border-red-400/20">{gpsError}</p>}
-                </>
-              ) : (
-                <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-6 space-y-3">
-                  <CheckCircle2 size={48} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]" />
-                  <h3 className="font-extrabold text-emerald-400 text-2xl tracking-tight">Owner Notified!</h3>
-                  <p className="text-white/70 text-sm text-center font-medium">Your exact location has been sent to their phone. Please stay nearby.</p>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
+          <AnimatePresence mode="wait">
+            {!isIslandExpanded ? (
+              <motion.div 
+                key="collapsed"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, transition: { duration: 0.1 } }}
+                className="flex items-center justify-center gap-2"
+              >
+                <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
+                <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type}?</span>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="expanded"
+                initial={{ opacity: 0, filter: "blur(4px)" }} 
+                animate={{ opacity: 1, filter: "blur(0px)" }} 
+                exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
+                className="w-full"
+              >
+                <div className="flex justify-between items-center mb-4">
+                   <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
+                   <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
+                </div>
+                
+                {!activeAlertSent ? (
+                  <>
+                    <p className="text-sm text-white/80 font-medium mb-6 leading-relaxed">Slide the button below to securely send your exact GPS location directly to the owner's phone.</p>
+                    <SlideToShare onSlide={handleActiveAlert} isLoading={isSendingAlert} isPreview={isPreview} />
+                    {gpsError && <p className="text-red-400 text-xs font-bold mt-4 text-center bg-red-400/10 py-2 rounded-lg border border-red-400/20">{gpsError}</p>}
+                  </>
+                ) : (
+                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-6 space-y-3">
+                    <CheckCircle2 size={48} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]" />
+                    <h3 className="font-extrabold text-emerald-400 text-2xl tracking-tight">Owner Notified!</h3>
+                    <p className="text-white/70 text-sm text-center font-medium">Your exact location has been sent to their phone. Please stay nearby.</p>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       </div>
+
+      {/* Desktop Background Elements */}
+      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none hidden md:block"></div>
+      <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0 hidden md:block"></div>
 
       {/* Main Card Container */}
       <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] md:rounded-[3rem] md:my-10 md:overflow-hidden flex flex-col relative z-10 border border-zinc-200">
@@ -387,6 +421,17 @@ export default function PublicCard() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none"></div>
           
+          {/* 🌟 FIXED 5: Logo animation uses precise widths to transition smoothly */}
+          <div 
+            onClick={handleLogoClick}
+            className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'w-[105px] px-2' : 'w-10 justify-center px-0'}`}
+          >
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
+            <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm whitespace-nowrap transition-all duration-500 ${isLogoExpanded ? 'opacity-100 ml-2 max-w-[60px]' : 'opacity-0 ml-0 max-w-0'}`}>
+              KinTag
+            </span>
+          </div>
+
           <button 
             onClick={() => { if(!isPreview) setIsImageEnlarged(true); }} 
             className={`absolute top-4 right-4 w-10 h-10 flex items-center justify-center bg-black/40 backdrop-blur-md border border-white/20 text-white rounded-full transition z-20 ${isPreview ? 'opacity-50 cursor-not-allowed' : 'hover:bg-black/60 shadow-lg hover:scale-105 active:scale-95'}`} 
@@ -396,7 +441,7 @@ export default function PublicCard() {
         </div>
         
         {/* Main Content Area (Clean iOS Grouped Style) */}
-        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6">
+        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6 pb-20">
           
           {profile.isLost && (
             <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-[4px] border-red-700 relative flex items-center h-16 -mx-6 md:-mx-8 -mt-6 md:-mt-8 mb-6 rounded-t-[2.5rem]">
@@ -569,7 +614,7 @@ export default function PublicCard() {
                             <div className="bg-white border border-zinc-200 p-2 rounded-xl shrink-0 shadow-sm"><FileText size={16} className="text-brandDark"/></div>
                           </button>
                         ))}
-                        <div className="flex items-center justify-center gap-1.5 text-[9px] text-emerald-600 font-extrabold uppercase tracking-widest mt-3">
+                        <div className="flex items-center justify-center gap-1.5 text-[9px] text-emerald-600 font-extrabold uppercase tracking-widest mt-3 bg-emerald-50 py-2 rounded-full border border-emerald-100 w-max mx-auto px-4">
                           <Unlock size={12} /><span>Unlocked (15m)</span>
                         </div>
                       </div>
@@ -579,12 +624,24 @@ export default function PublicCard() {
              </div>
           </div>
 
-          <div className="flex justify-center pb-2">
-            <div className="flex items-center space-x-2 opacity-50">
-              <span className="text-zinc-500 text-[10px] font-extrabold uppercase tracking-widest">Secured by</span>
-              <img src="/kintag-logo.png" className="w-4 h-4 rounded grayscale" alt="Logo" />
-              <span className="text-brandDark font-black text-xs tracking-tight">KinTag</span>
-            </div>
+          <div className="flex justify-center pt-6 pb-2">
+            {isPreview ? (
+              <div className="flex items-center space-x-2.5 bg-zinc-50 border border-zinc-200/80 px-5 py-2.5 rounded-full shadow-sm opacity-70 cursor-not-allowed">
+                <span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">Secured by</span>
+                <div className="flex items-center space-x-1.5">
+                  <img src="/kintag-logo.png" className="w-5 h-5 rounded shadow-sm" alt="Logo" />
+                  <span className="text-brandDark font-black text-sm tracking-tight">KinTag</span>
+                </div>
+              </div>
+            ) : (
+              <a href="/" target="_blank" rel="noopener noreferrer" className="flex items-center space-x-2.5 bg-zinc-50 border border-zinc-200/80 px-5 py-2.5 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all group active:scale-95">
+                <span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest group-hover:text-brandGold transition-colors">Secured by</span>
+                <div className="flex items-center space-x-1.5">
+                  <img src="/kintag-logo.png" className="w-5 h-5 rounded shadow-sm" alt="Logo" />
+                  <span className="text-brandDark font-black text-sm tracking-tight">KinTag</span>
+                </div>
+              </a>
+            )}
           </div>
 
         </div>
@@ -625,7 +682,7 @@ export default function PublicCard() {
                 <span className="text-[9px] text-center leading-tight tracking-widest uppercase font-extrabold">{helplineText}</span>
               </div>
             ) : (
-              <a href={`tel:${helplineNumber}`} className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/5 text-brandGold py-1.5 px-2 rounded-xl border border-brandGold/20 hover:bg-brandGold/10 transition-colors active:scale-[0.98]">
+              <a href={`tel:${helplineNumber}`} className="w-24 shrink-0 flex flex-col items-center justify-center bg-brandGold/5 text-brandGold py-1.5 px-2 rounded-xl border border-brandGold/20 hover:bg-brandGold/10 transition-colors active:scale-[0.98] shadow-sm">
                 <AlertTriangle size={18} className="mb-0.5" />
                 <span className="text-[9px] text-center leading-tight tracking-widest uppercase font-extrabold">{helplineText}</span>
               </a>
