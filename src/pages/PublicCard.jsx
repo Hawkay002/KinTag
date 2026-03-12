@@ -3,8 +3,7 @@ import { useParams, useLocation } from 'react-router-dom';
 import { db } from '../firebase';
 import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Turnstile } from '@marsidev/react-turnstile';
-import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren, FileText, Lock, Unlock, ArrowRight, ChevronRight } from 'lucide-react';
-import { motion, useAnimation, useMotionValue, AnimatePresence } from 'framer-motion';
+import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren, FileText, Lock, Unlock } from 'lucide-react';
 
 const getComputedAge = (profile) => {
   if (profile.dob) {
@@ -26,70 +25,6 @@ const getComputedAge = (profile) => {
   };
 };
 
-// 🌟 FIXED & BULLETPROOFED: Interactive Slider
-const SlideToShare = ({ onSlide, isLoading, isPreview }) => {
-  const containerRef = useRef(null);
-  const [width, setWidth] = useState(0);
-  const x = useMotionValue(0);
-  const controls = useAnimation();
-
-  useEffect(() => {
-    const updateWidth = () => {
-      if (containerRef.current) setWidth(containerRef.current.offsetWidth);
-    };
-    updateWidth();
-    window.addEventListener('resize', updateWidth);
-    return () => window.removeEventListener('resize', updateWidth);
-  }, [isLoading]); 
-
-  const handleDragEnd = async (e, info) => {
-    const threshold = width * 0.65; 
-    const maxTravel = width > 0 ? width - 60 : 0; // Exactly 60px accounts for the 48px thumb + 6px padding on both sides
-    
-    if (info.offset.x >= threshold) {
-      await controls.start({ x: maxTravel }); 
-      onSlide(e);
-    } else {
-      controls.start({ x: 0 }); 
-    }
-  };
-
-  return (
-    <div ref={containerRef} className="relative w-full h-[60px] bg-white/10 rounded-full overflow-hidden border border-white/20 shadow-inner group">
-      {isLoading ? (
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-          <Loader2 className="animate-spin text-white" size={24} />
-          <span className="ml-3 text-white font-extrabold tracking-widest uppercase text-xs">Locating...</span>
-        </div>
-      ) : (
-        <>
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none pr-4 pl-16">
-            <span className="text-white/60 font-extrabold uppercase tracking-widest text-[11px] sm:text-xs transition-opacity group-hover:text-white/90">
-              {isPreview ? "Disabled in Preview" : "Slide to Share Location"}
-            </span>
-            <ChevronRight size={16} className="text-white/30 ml-2 animate-pulse" />
-          </div>
-          
-          <motion.div
-            className="absolute top-1.5 left-1.5 bottom-1.5 w-[48px] bg-red-500 rounded-full shadow-lg flex items-center justify-center z-10 touch-none"
-            drag={isPreview ? false : "x"}
-            dragConstraints={{ left: 0, right: width > 0 ? width - 60 : 0 }}
-            dragElastic={0.05}
-            onDragEnd={handleDragEnd}
-            animate={controls}
-            style={{ x, cursor: isPreview ? 'not-allowed' : 'grab' }}
-            whileTap={{ scale: isPreview ? 1 : 0.95, cursor: isPreview ? 'not-allowed' : 'grabbing' }}
-          >
-            <div className="flex items-center justify-center w-full h-full text-white">
-              <ArrowRight size={22} strokeWidth={3} />
-            </div>
-          </motion.div>
-        </>
-      )}
-    </div>
-  );
-};
-
 export default function PublicCard() {
   const { profileId } = useParams();
   const location = useLocation(); 
@@ -102,6 +37,9 @@ export default function PublicCard() {
   const [isVerified, setIsVerified] = useState(isPreview);
   
   const [isIslandExpanded, setIsIslandExpanded] = useState(false);
+  const [isLogoExpanded, setIsLogoExpanded] = useState(true);
+  const logoTimeoutRef = useRef(null);
+
   const passiveAlertSent = useRef(false);
   const [isSendingAlert, setIsSendingAlert] = useState(false);
   const [activeAlertSent, setActiveAlertSent] = useState(false);
@@ -110,7 +48,6 @@ export default function PublicCard() {
   const [isVaultUnlocked, setIsVaultUnlocked] = useState(false);
   const [viewingDocument, setViewingDocument] = useState(null);
   const vaultTimerRef = useRef(null);
-  const logoTimeoutRef = useRef(null);
 
   const playChime = () => {
     try {
@@ -125,7 +62,6 @@ export default function PublicCard() {
       setIsLogoExpanded(false);
     }, 3000);
   };
-  const [isLogoExpanded, setIsLogoExpanded] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -208,7 +144,7 @@ export default function PublicCard() {
   };
 
   const handleActiveAlert = (e) => {
-    if (e && e.stopPropagation) e.stopPropagation(); 
+    e.stopPropagation(); 
     if (isPreview || profile?.isActive === false) return;
 
     setIsSendingAlert(true);
@@ -252,7 +188,7 @@ export default function PublicCard() {
 
           setActiveAlertSent(true);
           
-          // 🌟 FIXED 3: Sound & Vibration perfectly synced to the exact moment of success
+          // Sound & Vibration properly synced on success
           playChime();
           if (navigator.vibrate) {
             navigator.vibrate([100, 50, 100]); 
@@ -323,7 +259,6 @@ export default function PublicCard() {
     );
   }
 
-  // 🌟 FIXED: Safe fallback if database has zero contacts saved
   const displayContacts = profile.contacts?.length > 0 
     ? profile.contacts 
     : [
@@ -350,61 +285,47 @@ export default function PublicCard() {
   const computedAge = getComputedAge(profile);
 
   return (
-    // 🌟 FIXED 4: Added pb-48 spacing so the bottom scroll clears the sticky bar completely
     <div className="min-h-[100dvh] bg-zinc-100 flex flex-col items-center font-sans relative selection:bg-brandGold selection:text-white pb-48 md:pb-52">
       
-      {/* 🌟 FIXED 1: Flexbox centering and AnimatePresence to kill layout glitches */}
-      <div className="fixed top-4 left-0 right-0 z-[100] flex justify-center pointer-events-none px-4">
-        <motion.div 
-          layout
-          initial={{ borderRadius: 32 }}
-          animate={{ padding: isIslandExpanded ? '24px' : '12px 20px' }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-          onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
-          className={`pointer-events-auto bg-black/90 backdrop-blur-2xl text-white shadow-[0_20px_40px_rgba(0,0,0,0.4)] border border-white/10 cursor-pointer overflow-hidden flex flex-col items-center justify-center ${isIslandExpanded ? 'w-full max-w-sm' : 'w-auto'}`}
-        >
-          <AnimatePresence mode="wait">
-            {!isIslandExpanded ? (
-              <motion.div 
-                key="collapsed"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0, transition: { duration: 0.1 } }}
-                className="flex items-center justify-center gap-2"
-              >
-                <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
-                <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type || 'Profile'}?</span>
-              </motion.div>
+      {/* 🌟 RESTORED ORIGINAL: Dynamic Island / Share Button */}
+      <div 
+        onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
+        className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
+      >
+        {!isIslandExpanded ? (
+          <>
+            <BellRing size={16} className="text-red-400 animate-pulse shrink-0" />
+            <span className="font-extrabold text-sm tracking-tight whitespace-nowrap">Found this {profile.type}?</span>
+          </>
+        ) : (
+          <div className="animate-in fade-in zoom-in-95 duration-300">
+            <div className="flex justify-between items-center mb-3">
+               <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
+               <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
+            </div>
+            
+            {!activeAlertSent ? (
+              <>
+                <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
+                <button 
+                  onClick={handleActiveAlert} 
+                  disabled={isSendingAlert || isPreview}
+                  className={`w-full font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70 ${isPreview ? 'bg-zinc-500 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white'}`}
+                >
+                  {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <MapPin size={20} />}
+                  <span>{isPreview ? "Disabled in Preview" : (isSendingAlert ? "Locating..." : `Share My Location`)}</span>
+                </button>
+                {gpsError && <p className="text-red-400 text-xs font-bold mt-3 text-center">{gpsError}</p>}
+              </>
             ) : (
-              <motion.div 
-                key="expanded"
-                initial={{ opacity: 0, filter: "blur(4px)" }} 
-                animate={{ opacity: 1, filter: "blur(0px)" }} 
-                exit={{ opacity: 0, filter: "blur(4px)", transition: { duration: 0.1 } }}
-                className="w-full"
-              >
-                <div className="flex justify-between items-center mb-5">
-                   <h3 className="font-extrabold text-red-400 text-lg flex items-center gap-2"><BellRing size={18}/> Emergency Alert</h3>
-                   <button onClick={(e) => { e.stopPropagation(); setIsIslandExpanded(false); }} className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full transition-colors"><X size={18}/></button>
-                </div>
-                
-                {!activeAlertSent ? (
-                  <>
-                    <p className="text-sm text-white/80 font-medium mb-6 leading-relaxed">Slide the button below to securely send your exact GPS location directly to the owner's phone.</p>
-                    <SlideToShare onSlide={handleActiveAlert} isLoading={isSendingAlert} isPreview={isPreview} />
-                    {gpsError && <p className="text-red-400 text-xs font-bold mt-4 text-center bg-red-400/10 py-2 rounded-lg border border-red-400/20">{gpsError}</p>}
-                  </>
-                ) : (
-                  <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="flex flex-col items-center justify-center py-6 space-y-3">
-                    <CheckCircle2 size={48} className="text-emerald-400 drop-shadow-[0_0_15px_rgba(52,211,153,0.4)]" />
-                    <h3 className="font-extrabold text-emerald-400 text-2xl tracking-tight">Owner Notified!</h3>
-                    <p className="text-white/70 text-sm text-center font-medium">Your exact location has been sent to their phone. Please stay nearby.</p>
-                  </motion.div>
-                )}
-              </motion.div>
+              <div className="flex flex-col items-center justify-center py-4 space-y-2">
+                <CheckCircle2 size={40} className="text-emerald-400" />
+                <h3 className="font-extrabold text-emerald-400 text-xl">Owner Notified!</h3>
+                <p className="text-white/70 text-sm text-center">Your exact location has been sent to their phone. Please stay nearby.</p>
+              </div>
             )}
-          </AnimatePresence>
-        </motion.div>
+          </div>
+        )}
       </div>
 
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none hidden md:block"></div>
@@ -423,13 +344,13 @@ export default function PublicCard() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none"></div>
           
-          {/* 🌟 FIXED 5: Exact pixel widths fix the top-left logo clipping issue */}
+          {/* 🌟 RESTORED ORIGINAL: Top-Left KinTag Logo */}
           <div 
             onClick={handleLogoClick}
-            className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'max-w-[105px] px-2' : 'max-w-[40px] px-0 justify-center'}`}
+            className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'px-3.5' : 'w-10 justify-center px-0'}`}
           >
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-6 h-6 rounded-md shadow-sm shrink-0" />
-            <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm whitespace-nowrap transition-all duration-500 ${isLogoExpanded ? 'opacity-100 ml-2 max-w-[60px]' : 'opacity-0 ml-0 max-w-0'}`}>
+            <span className={`text-white font-bold text-sm tracking-tight drop-shadow-sm overflow-hidden whitespace-nowrap transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isLogoExpanded ? 'max-w-[100px] opacity-100 ml-2' : 'max-w-0 opacity-0 ml-0'}`}>
               KinTag
             </span>
           </div>
@@ -442,7 +363,8 @@ export default function PublicCard() {
           </button>
         </div>
         
-        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6">
+        {/* Main Content Area */}
+        <div className="flex-1 bg-white rounded-t-[2.5rem] p-6 md:p-8 z-10 relative -mt-10 space-y-6 pb-20">
           
           {profile.isLost && (
             <div className="overflow-hidden bg-red-600 text-white shadow-[0_5px_20px_rgba(239,68,68,0.4)] border-y-[4px] border-red-700 relative flex items-center h-16 -mx-6 md:-mx-8 -mt-6 md:-mt-8 mb-6 rounded-t-[2.5rem]">
@@ -621,7 +543,7 @@ export default function PublicCard() {
              </div>
           </div>
 
-          <div className="flex justify-center">
+          <div className="flex justify-center pt-6 pb-2">
             {isPreview ? (
               <div className="flex items-center space-x-2.5 bg-zinc-50 border border-zinc-200/80 px-5 py-2.5 rounded-full shadow-sm opacity-70 cursor-not-allowed">
                 <span className="text-zinc-400 text-[10px] font-extrabold uppercase tracking-widest">Secured by</span>
@@ -644,7 +566,7 @@ export default function PublicCard() {
         </div>
       </div>
 
-      {/* 🌟 FIXED 2: Sticky Action bar is immune to scrolling and overlapping */}
+      {/* Sticky Bottom Action Bar */}
       <div className="fixed bottom-0 left-0 right-0 z-[90] flex justify-center pointer-events-none px-4 pb-4 md:pb-8">
         <div className="w-full max-w-md pointer-events-auto bg-white/95 backdrop-blur-2xl border border-zinc-200 shadow-[0_-5px_40px_rgba(0,0,0,0.1)] p-3 rounded-3xl flex flex-col gap-2.5">
           
@@ -688,6 +610,7 @@ export default function PublicCard() {
         </div>
       </div>
 
+      {/* Modals */}
       {isImageEnlarged && !isPreview && (
         <div className="fixed inset-0 z-[200] bg-zinc-950/90 flex items-center justify-center p-4 backdrop-blur-xl animate-in fade-in duration-200">
           <button onClick={() => setIsImageEnlarged(false)} className="absolute top-6 right-6 text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition z-[210] border border-white/10">
