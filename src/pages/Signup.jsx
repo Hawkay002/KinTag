@@ -201,10 +201,9 @@ export default function Signup() {
     }
   };
 
+  // 🌟 Google Sign-Up (Moved to Step 1, bypasses Captcha requirements automatically!)
   const handleGoogleSignup = async () => {
     setError('');
-    if (!captchaToken) return setError("Please complete the security check first.");
-
     setLoading(true);
     const provider = new GoogleAuthProvider();
     try {
@@ -283,7 +282,6 @@ export default function Signup() {
                <button
                  key={step.id}
                  onClick={() => {
-                   // Allow navigation to past steps or the immediate next step if valid
                    if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
                      goToStep(step.id);
                    }
@@ -366,6 +364,21 @@ export default function Signup() {
                     </div>
                     <button type="button" onClick={handleVerifyOtp} disabled={verifyLoading || otpValues.join('').length !== 6} className="w-full bg-emerald-500 text-white p-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-md disabled:opacity-50 flex justify-center items-center gap-2">
                       {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code'}
+                    </button>
+                  </div>
+                )}
+
+                {/* 🌟 GOOGLE SIGN-UP (Properly moved to Step 1) */}
+                {!isEmailVerified && !showOtpInput && (
+                  <div className="animate-in fade-in duration-500">
+                    <div className="relative flex items-center justify-center w-full my-6">
+                      <hr className="w-full border-zinc-200" />
+                      <span className="absolute bg-white px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
+                    </div>
+
+                    <button type="button" onClick={handleGoogleSignup} disabled={loading} className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm disabled:opacity-50">
+                      <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
+                      <span>Continue with Google</span>
                     </button>
                   </div>
                 )}
@@ -461,25 +474,17 @@ export default function Signup() {
                   <p className="text-zinc-500 text-sm font-medium px-4">Complete the security check below to create your KinTag account.</p>
                 </div>
 
-                <div className="flex justify-center w-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 shadow-inner">
-                  <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
-                    onChange={(token) => setCaptchaToken(token)}
-                  />
+                <div className="flex justify-center w-full bg-zinc-50 p-4 rounded-2xl border border-zinc-200 shadow-inner overflow-hidden">
+                  <div className="scale-90 sm:scale-100 transform origin-center">
+                    <ReCAPTCHA
+                      sitekey={import.meta.env.VITE_GOOGLE_RECAPTCHA_KEY || "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI"}
+                      onChange={(token) => setCaptchaToken(token)}
+                    />
+                  </div>
                 </div>
 
                 <button type="button" onClick={handleEmailSignup} disabled={loading || !captchaToken} className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex justify-center items-center gap-2">
                   {loading ? <Loader2 size={18} className="animate-spin" /> : 'Create Account'}
-                </button>
-
-                <div className="relative flex items-center justify-center w-full my-2">
-                  <hr className="w-full border-zinc-200" />
-                  <span className="absolute bg-white px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
-                </div>
-
-                <button type="button" onClick={handleGoogleSignup} disabled={loading || !captchaToken} className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm disabled:opacity-50">
-                  <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
-                  <span>Sign up with Google</span>
                 </button>
               </motion.div>
             )}
@@ -487,7 +492,7 @@ export default function Signup() {
           </AnimatePresence>
         </div>
 
-        {/* Footer Navigation Buttons (Hidden on final step to force form submission) */}
+        {/* Footer Navigation Buttons */}
         {activeStep < 4 && (
           <div className="flex justify-between w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
             <button 
