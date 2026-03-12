@@ -6,6 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone } from 'lucide-react';
+import { avatars } from '../components/ui/avatar-picker'; // 🌟 NEW: Imported avatars
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -67,6 +68,7 @@ export default function Dashboard() {
   const [isEnablingPush, setIsEnablingPush] = useState(false);
   const [showSoftAskModal, setShowSoftAskModal] = useState(false);
   const [showNotifCenter, setShowNotifCenter] = useState(false);
+  // 🌟 FIXED 3: Changed default tab to 'personal' (labels updated in render)
   const [notifTab, setNotifTab] = useState('personal'); 
   const [customAlert, setCustomAlert] = useState({ isOpen: false, title: '', message: '', type: 'info', onClose: null });
   const [lastViewedPersonal, setLastViewedPersonal] = useState(null);
@@ -74,6 +76,8 @@ export default function Dashboard() {
 
   const [userFamilyId, setUserFamilyId] = useState(null);
   const [userZipCode, setUserZipCode] = useState(''); 
+  // 🌟 FIXED 2: State to hold user's avatar ID
+  const [userAvatarId, setUserAvatarId] = useState(null);
 
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
@@ -122,6 +126,7 @@ export default function Dashboard() {
           if (data.lastViewedPersonal) setLastViewedPersonal(data.lastViewedPersonal);
           if (data.lastViewedSystem) setLastViewedSystem(data.lastViewedSystem);
           setUserZipCode(data.zipCode || ''); 
+          setUserAvatarId(data.avatarId || null); // 🌟 Sync Avatar ID
           currentFamilyId = data.familyId || currentUser.uid;
         } else {
           await setDoc(userDocRef, { email: currentUser.email, familyId: currentUser.uid }, { merge: true });
@@ -236,17 +241,6 @@ export default function Dashboard() {
     };
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
-
-  const getFamiliesInPincode = async (pincode, excludeFamilyId) => {
-    const pQuery = query(collection(db, "profiles"), where("pincode", "==", pincode));
-    const snap = await getDocs(pQuery);
-    const families = new Set();
-    snap.forEach(d => {
-        const fam = d.data().familyId;
-        if (fam && fam !== excludeFamilyId) families.add(fam);
-    });
-    return Array.from(families);
-  };
 
   const handleConfirmLost = async () => {
     if (!lostModalProfile) return;
@@ -408,7 +402,6 @@ export default function Dashboard() {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
         let swRegistration = null;
         if ('serviceWorker' in navigator) {
-          // 🌟 FIXED: Instead of registering a conflicting Firebase SW, grab the existing PWA SW
           swRegistration = await navigator.serviceWorker.ready; 
         }
         const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swRegistration });
@@ -582,45 +575,58 @@ export default function Dashboard() {
     group.items.push(scan);
   });
 
+  // 🌟 Lookup the user's active avatar for the Dashboard icon
+  const currentAvatar = avatars.find(a => a.id === userAvatarId) || null;
+
   if (loading) return <DashboardSkeleton />;
 
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8 relative pb-32">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-32 selection:bg-brandGold selection:text-white">
+      
+      {/* 🌟 Premium Background Elements */}
+      <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
+      <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
+
+      <div className="max-w-5xl mx-auto relative z-10 animate-in fade-in duration-700 pt-4">
         
-        {/* HEADER */}
-        <div className="flex justify-between items-center gap-4 mb-6 bg-white p-5 rounded-3xl shadow-sm border border-zinc-100">
-          <div className="flex items-center space-x-3 w-full md:w-auto">
-            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
+        {/* 🌟 HEADER: Frosted Glass */}
+        <div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80">
+          <div className="flex items-center space-x-4 w-full md:w-auto">
+            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
             <div className="flex-1">
-              <h1 className="text-2xl font-extrabold text-brandDark tracking-tight">KinTags</h1>
+              {/* 🌟 FIXED 1: "KinTags" -> "KinTag" */}
+              <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight leading-none mb-0.5">KinTag</h1>
               <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">Family Dashboard</p>
             </div>
           </div>
           
-          <button onClick={() => navigate('/profile')} className="relative flex items-center justify-center space-x-2 text-white bg-brandDark hover:bg-brandAccent p-3 md:px-5 md:py-2.5 rounded-xl transition-all font-bold text-sm shadow-sm">
-            <User size={18} />
-            <span className="hidden md:inline">Profile & Family</span>
-            {!userZipCode && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse" title="Missing Zip Code"></span>}
+          <button onClick={() => navigate('/profile')} className="relative flex items-center justify-center bg-white border border-zinc-200 hover:border-brandDark/30 p-2 md:pr-5 md:pl-2 md:py-2 rounded-full transition-all shadow-sm hover:shadow-md group active:scale-95 shrink-0">
+            {/* 🌟 FIXED 2: Dynamic Avatar Support */}
+            <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-0.5 border border-zinc-200">
+               {currentAvatar ? currentAvatar.svg : <User size={20} />}
+            </div>
+            <span className="hidden md:inline ml-3 font-bold text-sm text-brandDark">Profile</span>
+            {!userZipCode && <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" title="Missing Zip Code"></span>}
           </button>
         </div>
 
-        <div className="flex gap-3 mb-8">
-          <button onClick={handleEnableAlertsClick} disabled={isEnablingPush} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-white p-4 rounded-2xl hover:bg-amber-500 transition-all font-bold shadow-md disabled:opacity-50">
-            {isEnablingPush ? <Loader2 size={18} className="animate-spin" /> : <BellRing size={18} />}
+        {/* 🌟 Action Buttons */}
+        <div className="flex gap-4 mb-10">
+          <button onClick={handleEnableAlertsClick} disabled={isEnablingPush} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-white p-4 md:py-5 rounded-[2rem] hover:bg-amber-500 transition-all font-bold shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0">
+            {isEnablingPush ? <Loader2 size={20} className="animate-spin" /> : <BellRing size={20} />}
             <span>Enable Alerts</span>
           </button>
           
-          <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 p-4 rounded-2xl hover:bg-zinc-100 transition-all font-bold shadow-sm relative">
-            <Bell size={18} />
+          <button onClick={() => setShowNotifCenter(true)} className="flex-1 flex items-center justify-center space-x-2 bg-white/80 backdrop-blur-md text-brandDark border border-zinc-200/80 p-4 md:py-5 rounded-[2rem] hover:bg-white transition-all font-bold shadow-sm hover:shadow-md hover:-translate-y-0.5 active:scale-95 relative">
+            <Bell size={20} />
             <span>Notifications</span>
-            {hasAnyUnread && <span className="absolute top-3.5 right-3.5 w-2.5 h-2.5 bg-red-500 rounded-full shadow-sm animate-pulse border border-white"></span>}
+            {hasAnyUnread && <span className="absolute top-4 right-4 w-3 h-3 bg-red-500 rounded-full shadow-sm animate-pulse border-2 border-white"></span>}
           </button>
         </div>
 
-        {/* 🌟 TRUE SEAMLESS MARQUEE FOR DASHBOARD */}
+        {/* 🌟 TRUE SEAMLESS MARQUEE */}
         {localAlerts.length > 0 && (
-          <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block mb-8 overflow-hidden bg-red-600 text-white rounded-2xl shadow-[0_0_20px_rgba(239,68,68,0.4)] border-4 border-red-500 relative h-16 group cursor-pointer hover:border-red-400 transition-all">
+          <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block mb-10 overflow-hidden bg-red-600 text-white rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] border-[6px] border-red-500 relative h-[72px] group cursor-pointer hover:border-red-400 transition-all active:scale-[0.98]">
             <style>{`
               @keyframes seamlessDash { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
               .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
@@ -629,8 +635,8 @@ export default function Dashboard() {
                {[...Array(4)].map((_, i) => (
                  <div key={i} className="flex items-center shrink-0">
                    {localAlerts.map(alert => (
-                     <span key={`${i}-${alert.id}`} className="mx-6 font-black text-xl tracking-[0.1em] uppercase flex items-center gap-3 whitespace-nowrap hover:underline">
-                       <AlertTriangle size={24} className="animate-pulse text-brandGold shrink-0" />
+                     <span key={`${i}-${alert.id}`} className="mx-8 font-black text-xl tracking-[0.1em] uppercase flex items-center gap-4 whitespace-nowrap hover:underline drop-shadow-sm">
+                       <AlertTriangle size={28} className="animate-pulse text-brandGold shrink-0" />
                        MISSING {alert.type}: {alert.name} IN YOUR AREA ({alert.pincode}) - TAP TO HELP!
                      </span>
                    ))}
@@ -641,77 +647,77 @@ export default function Dashboard() {
         )}
 
         {profiles.length > 0 && (
-          <div className="mb-8 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400" size={20} />
-            <input type="text" placeholder="Search profiles by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-12 pr-4 py-3.5 bg-white border border-zinc-200 rounded-2xl focus:border-brandDark focus:ring-2 focus:ring-brandDark/20 outline-none transition-all shadow-sm font-medium text-brandDark" />
+          <div className="mb-10 relative group">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark" size={20} />
+            <input type="text" placeholder="Search profiles by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-5 py-4 md:py-5 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all shadow-sm hover:shadow-md font-medium text-brandDark text-lg" />
           </div>
         )}
 
         {profiles.length === 0 ? (
-          <div className="text-center bg-white p-12 rounded-3xl border border-dashed border-zinc-300">
-            <div className="w-16 h-16 bg-brandMuted text-brandDark rounded-full flex items-center justify-center mx-auto mb-4"><QrCode size={28} /></div>
-            <h2 className="text-xl font-bold text-brandDark mb-2 tracking-tight">No Profiles Yet</h2>
-            <p className="text-zinc-500 mb-6 font-medium">Create your first digital contact card using the button below.</p>
+          <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm">
+            <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><QrCode size={36} /></div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">No Profiles Yet</h2>
+            <p className="text-zinc-500 mb-8 font-medium text-lg max-w-sm mx-auto leading-relaxed">Create your very first digital contact card using the big plus button below.</p>
           </div>
         ) : filteredProfiles.length === 0 ? (
-          <div className="text-center py-12 text-zinc-500 font-medium">No profiles match your search.</div>
+          <div className="text-center py-16 text-zinc-500 font-bold text-lg">No profiles match your search.</div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {filteredProfiles.map(profile => {
               const ageInfo = getComputedAge(profile);
               return (
-                <div key={profile.id} className={`bg-white rounded-3xl overflow-hidden shadow-premium border transition-all flex flex-col ${profile.isActive === false ? 'border-red-200 opacity-80 grayscale-[30%]' : profile.isLost ? 'border-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'border-zinc-100 hover:-translate-y-1'}`}>
-                  <div className="relative h-48 shrink-0">
-                    <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-brandDark/80 via-transparent to-transparent"></div>
+                <div key={profile.id} className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20'}`}>
+                  <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
+                    <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-brandDark/90 via-brandDark/20 to-transparent pointer-events-none"></div>
                     
                     {profile.isActive === false && (
-                      <div className="absolute top-3 left-3 bg-red-600/90 backdrop-blur text-white text-[10px] font-extrabold uppercase px-2 py-1 rounded-md tracking-widest shadow-sm">Disabled</div>
+                      <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-lg tracking-widest shadow-lg border border-white/20">Disabled</div>
                     )}
                     
-                    <div className="absolute top-3 right-3 flex gap-2 z-30">
+                    <div className="absolute top-4 right-4 flex gap-2 z-30">
                        <button 
                          disabled={!profile.isLost}
                          onClick={() => { if(profile.isLost && !profile.kinAlertActive) setBroadcastModalProfile(profile); }}
-                         className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all ${profile.kinAlertActive ? 'bg-emerald-500 text-white' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110' : 'bg-white/50 text-zinc-400 cursor-not-allowed'}`}
+                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
                          title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
                        >
-                          <Megaphone size={16} />
+                          <Megaphone size={18} />
                        </button>
                        <button 
                          onClick={() => profile.isLost ? handleDeactivateLost(profile) : setLostModalProfile(profile)}
-                         className={`p-2 rounded-full shadow-lg backdrop-blur-md transition-all hover:scale-110 ${profile.isLost ? 'bg-red-600 text-white animate-pulse' : 'bg-white/80 text-zinc-500 hover:text-red-500'}`}
+                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
                          title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
                        >
-                          <Siren size={16} />
+                          <Siren size={18} />
                        </button>
                     </div>
 
-                    <div className="absolute bottom-4 left-4 right-4 text-white">
-                      <h3 className="text-xl font-extrabold tracking-tight">{profile.name}</h3>
-                      <p className="text-sm text-zinc-200 font-medium capitalize flex items-center gap-1.5 mt-0.5">
-                        {profile.type === 'kid' ? <User size={12} /> : <PawPrint size={12} />}
+                    <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
+                      <h3 className="text-2xl font-extrabold tracking-tight mb-1 drop-shadow-sm">{profile.name}</h3>
+                      <p className="text-xs text-white/80 font-bold capitalize flex items-center gap-1.5">
+                        {profile.type === 'kid' ? <User size={14} /> : <PawPrint size={14} />}
                         {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
                       </p>
                     </div>
                   </div>
                   
-                  <div className="p-4 bg-white flex-1 flex flex-col justify-end">
-                    <div className="flex flex-wrap gap-2">
-                      <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-1.5 bg-brandMuted hover:bg-zinc-200 text-brandDark py-2.5 rounded-xl font-bold text-sm transition-colors" title="View Public Card">
+                  <div className="p-5 flex-1 flex flex-col justify-end">
+                    <div className="flex flex-wrap gap-2.5">
+                      <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 hover:bg-white hover:shadow-sm text-brandDark py-3 rounded-2xl font-bold text-sm transition-all active:scale-95" title="View Public Card">
                         <Eye size={16} />
                         <span>View</span>
                       </Link>
-                      <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-2.5 rounded-xl transition-colors ${profile.isActive === false ? 'bg-emerald-50 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
+                      <button onClick={() => toggleProfileStatus(profile.id, profile.isActive)} className={`flex items-center justify-center p-3 rounded-2xl transition-all shadow-sm active:scale-95 ${profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
                         {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
                       </button>
-                      <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 hover:bg-amber-100 text-brandGold p-2.5 rounded-xl transition-colors" title="Mobile ID & QR">
+                      <button onClick={() => setQrModalProfile(profile)} className="bg-amber-50 border border-amber-100 hover:bg-amber-100 text-amber-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Mobile ID & QR">
                         <Smartphone size={18} />
                       </button>
-                      <Link to={`/edit/${profile.id}`} className="bg-brandMuted hover:bg-zinc-200 text-brandDark p-2.5 rounded-xl transition-colors" title="Edit Profile">
+                      <Link to={`/edit/${profile.id}`} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Edit Profile">
                         <Edit size={18} />
                       </Link>
-                      <button onClick={() => setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl })} className="bg-red-50 hover:bg-red-100 text-red-600 p-2.5 rounded-xl transition-colors" title="Delete Profile">
+                      <button onClick={() => setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl })} className="bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-500 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Delete Profile">
                         <Trash2 size={18} />
                       </button>
                     </div>
@@ -723,28 +729,31 @@ export default function Dashboard() {
         )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-zinc-50 via-zinc-50/80 to-transparent pointer-events-none z-40"></div>
-      <Link to="/create" className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-2xl hover:bg-brandAccent transition-transform hover:scale-105 z-50 pointer-events-auto border-4 border-white">
-        <Plus size={32} strokeWidth={3} />
+      {/* Floating Add Button */}
+      <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40"></div>
+      <Link to="/create" className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-[0_10px_40px_rgba(24,24,27,0.4)] hover:bg-brandAccent transition-all hover:scale-105 active:scale-95 z-50 pointer-events-auto border-4 border-white group">
+        <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
       </Link>
 
-      {/* 🌟 COMPLETELY RESTORED QR MODAL */}
+      {/* --- MODALS (Upgraded to Glassmorphism) --- */}
+
+      {/* QR Modal */}
       {qrModalProfile && (
-        <div className="fixed inset-0 z-[100] bg-brandDark/95 backdrop-blur-lg overflow-y-auto flex p-4 md:p-8">
-          <button onClick={() => setQrModalProfile(null)} className="absolute top-4 right-4 md:fixed md:top-6 md:right-6 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-2.5 md:p-3 rounded-full transition shadow-lg backdrop-blur-md"><X size={24} /></button>
-          <div className="max-w-sm w-full relative m-auto pt-16 pb-8 md:py-8">
-            <div className="flex items-center justify-between gap-3 mb-5">
+        <div className="fixed inset-0 z-[100] bg-zinc-950/90 backdrop-blur-xl overflow-y-auto flex p-4 md:p-8 animate-in fade-in duration-200">
+          <button onClick={() => setQrModalProfile(null)} className="absolute top-6 right-6 md:fixed md:top-8 md:right-8 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-xl border border-white/10"><X size={24} /></button>
+          <div className="max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 animate-in zoom-in-95 duration-300">
+            <div className="flex items-center justify-between gap-3 mb-6">
               <div className="text-left">
-                 <h2 className="text-2xl font-extrabold text-white tracking-tight leading-tight">Mobile ID</h2>
-                 <p className="text-white/60 text-[10px] sm:text-xs font-medium mt-0.5 leading-snug">Download this card to save to your photos.</p>
+                 <h2 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">Mobile ID</h2>
+                 <p className="text-white/60 text-xs font-bold leading-snug">Download this to your photos.</p>
               </div>
-              <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="shrink-0 flex items-center justify-center space-x-1.5 bg-white text-brandDark px-4 py-2.5 rounded-xl font-bold shadow-lg hover:bg-zinc-200 transition-all disabled:opacity-50 text-sm">
-                {downloading ? <Loader2 className="animate-spin" size={16} /> : <Download size={16} />}
-                <span>{downloading ? 'Wait...' : 'Download ID'}</span>
+              <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="shrink-0 flex items-center justify-center space-x-2 bg-brandGold text-brandDark px-5 py-3 rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95">
+                {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
+                <span className="hidden sm:inline">{downloading ? 'Wait...' : 'Download ID'}</span>
               </button>
             </div>
 
-            <div className="bg-brandDark rounded-[2.5rem] overflow-hidden shadow-2xl border border-zinc-700 w-full aspect-[9/16] flex flex-col relative mx-auto">
+            <div className="bg-brandDark rounded-[3rem] overflow-hidden shadow-2xl border border-white/10 w-full aspect-[9/16] flex flex-col relative mx-auto group">
               <div className="h-[45%] w-full relative shrink-0">
                 <img src={qrModalProfile.imageUrl} alt="Profile" className="w-full h-full object-cover opacity-90" crossOrigin="anonymous" />
                 <div className="absolute inset-0 bg-gradient-to-t from-brandDark via-brandDark/20 to-transparent"></div>
@@ -752,185 +761,121 @@ export default function Dashboard() {
                    <img src="/kintag-logo.png" alt="Logo" className="w-5 h-5 rounded" />
                    <span className="text-white font-bold text-xs tracking-wide">KinTag</span>
                 </div>
-                <div className="absolute bottom-3 left-6 right-6">
-                  <h3 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">{qrModalProfile.name}</h3>
-                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-bold uppercase tracking-widest mb-1">
+                <div className="absolute bottom-4 left-6 right-6">
+                  <h3 className="text-4xl font-black text-white tracking-tight leading-none mb-1.5 drop-shadow-sm">{qrModalProfile.name}</h3>
+                  <div className="flex items-center space-x-2 text-brandGold text-[11px] font-extrabold uppercase tracking-widest mb-1 drop-shadow-sm">
                      <span>{qrModalProfile.typeSpecific}</span><span>•</span>
                      <span>{getComputedAge(qrModalProfile).value} {getComputedAge(qrModalProfile).label}</span>
                   </div>
-                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1">{qrModalProfile.specialNeeds}</p>}
+                  {qrModalProfile.type === 'kid' && qrModalProfile.specialNeeds && <p className="text-red-400 font-bold text-[10px] uppercase tracking-wider mt-1.5">{qrModalProfile.specialNeeds}</p>}
                   {qrModalProfile.type === 'pet' && (
                     <div className="space-y-0.5 mt-2">
-                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span></p>
-                       <p className="text-white text-[10px] font-bold uppercase tracking-wider">Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span></p>
-                       {qrModalProfile.microchip && <p className="text-white text-[10px] font-bold uppercase tracking-wider">Microchip - <span className="text-brandGold">{qrModalProfile.microchip}</span></p>}
+                       <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Temperament - <span className={qrModalProfile.temperament !== 'Friendly' ? 'text-red-400' : 'text-brandGold'}>{qrModalProfile.temperament}</span></p>
+                       <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Vaccination - <span className="text-brandGold">{qrModalProfile.vaccinationStatus}</span></p>
+                       {qrModalProfile.microchip && <p className="text-white/80 text-[10px] font-bold uppercase tracking-wider">Microchip - <span className="text-brandGold font-mono">{qrModalProfile.microchip}</span></p>}
                     </div>
                   )}
                 </div>
               </div>
               <div className="flex-1 bg-brandDark p-6 flex flex-col items-center justify-center text-center relative">
-                <div className={`bg-white p-4 rounded-3xl shadow-lg border-4 ${activeStyle.border}`}>
+                <div className={`bg-white p-4 rounded-[2rem] shadow-xl border-[6px] ${activeStyle.border} group-hover:scale-105 transition-transform duration-500`}>
                   <QRCodeCanvas id="qr-canvas-modal" value={`${window.location.origin}/#/id/${qrModalProfile.id}`} size={1024} style={{ width: '160px', height: '160px' }} level="H" includeMargin={false} fgColor={activeStyle.fg} bgColor={activeStyle.bg} imageSettings={{ src: "/kintag-logo.png", height: 224, width: 224, excavate: true }} />
                 </div>
-                <div className="mt-5 text-center px-4">
-                  <p className="text-white font-bold text-lg tracking-tight mb-1">Scan (if lost) for</p>
+                <div className="mt-6 text-center px-4">
+                  <p className="text-white font-extrabold text-xl tracking-tight mb-1">Scan (if lost) for</p>
                   <p className="text-white/50 text-[10px] uppercase tracking-widest font-bold leading-relaxed">Emergency Contact, Medical and Location<br/>Info</p>
                 </div>
-                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono">ID: {qrModalProfile.id.slice(0,8).toUpperCase()}</div>
+                <div className="absolute bottom-6 text-white/20 text-[10px] font-mono tracking-widest font-bold">ID: {qrModalProfile.id.slice(0,8).toUpperCase()}</div>
               </div>
             </div>
           </div>
         </div>
       )}
 
-      {localAlerts.filter(a => !dismissedAlerts.includes(`${a.id}-${a.kinAlertTimestamp}`)).map(alert => (
-        <div key={`popup-${alert.id}-${alert.kinAlertTimestamp}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-          <div className="bg-red-600 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-red-400 animate-in zoom-in-95 duration-300">
-             <Siren size={48} className="mx-auto mb-4 animate-pulse text-white" />
-             <h2 className="text-3xl font-black uppercase tracking-widest mb-2">URGENT KINALERT</h2>
-             <p className="text-lg font-bold mb-6 leading-snug">A {alert.type} named {alert.name} has gone missing in your exact area ({alert.pincode})!</p>
-             <img src={alert.imageUrl} className="w-full h-48 object-cover rounded-xl mb-6 shadow-inner border border-white/20" />
-             <div className="flex flex-col gap-3">
-               <Link to={`/id/${alert.id}`} target="_blank" onClick={() => setDismissedAlerts(prev => [...prev, `${alert.id}-${alert.kinAlertTimestamp}`])} className="w-full bg-white text-red-600 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] transition-transform">VIEW PROFILE & HELP</Link>
-               <button onClick={() => setDismissedAlerts(prev => [...prev, `${alert.id}-${alert.kinAlertTimestamp}`])} className="text-white/70 font-bold text-sm hover:text-white py-2 transition-colors">Close for now</button>
-             </div>
-          </div>
-        </div>
-      ))}
-
-      {foundPopups.filter(s => !dismissedFoundAlerts.includes(s.id)).slice(0, 1).map(scan => (
-        <div key={`found-popup-${scan.id}`} className="fixed inset-0 z-[250] flex items-center justify-center p-4 bg-black/90 backdrop-blur-sm">
-          <div className="bg-emerald-500 text-white rounded-[2rem] p-8 max-w-sm w-full text-center shadow-2xl border-4 border-emerald-300 animate-in zoom-in-95 duration-300">
-             <CheckCircle2 size={56} className="mx-auto mb-4 text-white drop-shadow-md" />
-             <h2 className="text-3xl font-black uppercase tracking-widest mb-2">SAFE & SOUND!</h2>
-             <p className="text-lg font-bold mb-8 leading-snug">{scan.message}</p>
-             <button onClick={() => setDismissedFoundAlerts(prev => [...prev, scan.id])} className="w-full bg-white text-emerald-600 py-4 rounded-xl font-black text-lg shadow-lg hover:scale-[1.02] transition-transform">Dismiss Update</button>
-          </div>
-        </div>
-      ))}
-
-      {customAlert.isOpen && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5 ${customAlert.type === 'success' ? 'bg-emerald-50 text-emerald-500' : customAlert.type === 'error' ? 'bg-red-50 text-red-600' : customAlert.type === 'warning' ? 'bg-amber-50 text-amber-500' : 'bg-brandMuted text-brandDark'}`}>
-              {customAlert.type === 'success' && <CheckCircle2 size={32} />}
-              {customAlert.type === 'error' && <AlertOctagon size={32} />}
-              {customAlert.type === 'warning' && <AlertTriangle size={32} />}
-              {customAlert.type === 'info' && <Info size={32} />}
-            </div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">{customAlert.title}</h2>
-            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">{customAlert.message}</p>
-            <button onClick={() => { if(customAlert.onClose) customAlert.onClose(); setCustomAlert({ ...customAlert, isOpen: false }); }} className="w-full bg-brandDark text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-brandAccent transition-colors">Okay</button>
-          </div>
-        </div>
-      )}
-
-      {lostModalProfile && (
-        <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-             <Siren size={40} className="mx-auto mb-4 text-red-600" />
-             <h2 className="text-2xl font-black uppercase text-brandDark tracking-widest mb-2">Mark as Lost?</h2>
-             <p className="text-zinc-500 font-medium mb-6 text-sm leading-relaxed">This will instantly change {lostModalProfile.name}'s public ID into a high-alert distress signal with pulsing warnings.</p>
-             <div className="flex gap-3">
-               <button onClick={() => setLostModalProfile(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
-               <button onClick={handleConfirmLost} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors animate-pulse">Yes, I'm Sure</button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {broadcastModalProfile && (
-        <div className="fixed inset-0 z-[160] flex items-center justify-center p-4 bg-brandDark/90 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-             <Megaphone size={40} className="mx-auto mb-4 text-amber-500" />
-             <h2 className="text-2xl font-black uppercase text-brandDark tracking-widest mb-2">Broadcast Alert?</h2>
-             <p className="text-zinc-500 font-medium mb-6 text-sm leading-relaxed">Would you like to send a KinAlert? This will instantly notify all other KinTag users in your exact Pincode ({broadcastModalProfile.pincode}) to keep an eye out.</p>
-             <div className="flex gap-3">
-               <button onClick={() => setBroadcastModalProfile(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Not Now</button>
-               <button onClick={handleConfirmBroadcast} className="flex-1 bg-amber-500 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-amber-600 transition-colors">Broadcast</button>
-             </div>
-          </div>
-        </div>
-      )}
-
-      {showSoftAskModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-brandGold/10 text-brandGold rounded-full flex items-center justify-center mx-auto mb-4"><BellRing size={32} /></div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2">Enable Alerts?</h2>
-            <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">KinTag needs permission to send you emergency push notifications when your tag is scanned.</p>
-            <div className="flex gap-3">
-              <button onClick={() => setShowSoftAskModal(false)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold">Maybe Later</button>
-              <button onClick={processNotificationPermission} className="flex-1 bg-brandGold text-white py-3.5 rounded-xl font-bold shadow-md">Proceed</button>
-            </div>
-          </div>
-        </div>
-      )}
-
+      {/* Notification Center */}
       {showNotifCenter && (
-        <div className="fixed inset-0 z-[100] flex justify-end bg-brandDark/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-md h-full shadow-2xl flex flex-col animate-in slide-in-from-right duration-300">
-            <div className="p-5 border-b border-zinc-100 flex justify-between items-center bg-zinc-50 shrink-0">
-              <h2 className="text-2xl font-extrabold text-brandDark tracking-tight">Notifications</h2>
-              <button onClick={() => setShowNotifCenter(false)} className="p-2 bg-white rounded-full text-zinc-500 hover:text-brandDark shadow-sm"><X size={20}/></button>
+        <div className="fixed inset-0 z-[100] flex justify-end bg-zinc-950/40 backdrop-blur-sm overflow-hidden">
+          <div className="bg-white w-full max-w-md h-full shadow-[auto_0_40px_rgba(0,0,0,0.2)] flex flex-col animate-in slide-in-from-right duration-300 relative border-l border-zinc-200/50">
+            <div className="p-6 md:p-8 pb-4 border-b border-zinc-100 flex justify-between items-center bg-white shrink-0">
+              <h2 className="text-3xl font-extrabold text-brandDark tracking-tight">Updates</h2>
+              <button onClick={() => setShowNotifCenter(false)} className="p-2.5 bg-zinc-50 rounded-full text-zinc-500 hover:text-brandDark hover:bg-zinc-100 transition-colors border border-zinc-200 shadow-sm"><X size={20}/></button>
             </div>
-            <div className="flex border-b border-zinc-200 shrink-0">
-              <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
-                Personal Scans {unreadPersonalCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadPersonalCount}</span>}
+            <div className="flex border-b border-zinc-200 shrink-0 px-4 pt-2 bg-white">
+              {/* 🌟 FIXED 3: Label is now "Personal" */}
+              <button onClick={() => setNotifTab('personal')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${notifTab === 'personal' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+                Personal {unreadPersonalCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm">{unreadPersonalCount}</span>}
               </button>
-              <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-1.5 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400'}`}>
-                System Updates {unreadSystemCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full">{unreadSystemCount}</span>}
+              <button onClick={() => setNotifTab('system')} className={`flex-1 py-4 font-bold text-sm transition-colors border-b-2 flex items-center justify-center gap-2 ${notifTab === 'system' ? 'border-brandDark text-brandDark' : 'border-transparent text-zinc-400 hover:text-zinc-600'}`}>
+                System {unreadSystemCount > 0 && <span className="bg-red-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm">{unreadSystemCount}</span>}
               </button>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-zinc-50">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-zinc-50">
               {pendingInvite && (
-                <div className="bg-brandGold/10 p-5 rounded-2xl border border-brandGold/30 mb-6 shadow-sm">
-                  <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-2"><Users size={18} className="text-brandGold"/> Co-Guardian Invite</h3>
-                  <p className="text-sm text-zinc-600 font-medium mb-4 leading-relaxed"><strong className="text-brandDark">{pendingInvite.invitedBy}</strong> invited you to accept this request to become their kid/pet's co-guardian.</p>
-                  <div className="flex gap-2">
-                    <button onClick={handleAcceptInvite} className="bg-brandDark hover:bg-brandAccent text-white px-4 py-2.5 rounded-xl font-bold flex-1 transition-colors">Accept</button>
-                    <button onClick={handleDeclineInvite} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 px-4 py-2.5 rounded-xl font-bold flex-1 transition-colors">Decline</button>
+                <div className="bg-brandGold/5 p-6 rounded-[2rem] border border-brandGold/20 mb-6 shadow-sm relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-brandGold/10 rounded-full blur-2xl pointer-events-none group-hover:bg-brandGold/20 transition-colors"></div>
+                  <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-3 text-lg"><Users size={20} className="text-brandGold"/> Co-Guardian Invite</h3>
+                  <p className="text-sm text-zinc-600 font-medium mb-6 leading-relaxed relative z-10"><strong className="text-brandDark">{pendingInvite.invitedBy}</strong> invited you to accept this request to become their kid/pet's co-guardian.</p>
+                  <div className="flex gap-3 relative z-10">
+                    <button onClick={handleAcceptInvite} className="bg-brandDark hover:bg-brandAccent text-white py-3.5 rounded-full font-bold flex-1 transition-all shadow-md active:scale-95">Accept</button>
+                    <button onClick={handleDeclineInvite} className="bg-white border border-red-200 text-red-600 hover:bg-red-50 py-3.5 rounded-full font-bold flex-1 transition-colors shadow-sm">Decline</button>
                   </div>
                 </div>
               )}
               {notifTab === 'personal' && (
-                groupedScans.length === 0 ? ( <div className="text-center mt-10 text-zinc-400 font-medium">No scans recorded yet.</div> ) : (
+                groupedScans.length === 0 ? ( 
+                  <div className="text-center mt-20">
+                     <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-400"><Bell size={24}/></div>
+                     <p className="text-zinc-500 font-medium text-lg tracking-tight">No scans recorded yet.</p>
+                  </div> 
+                ) : (
                   groupedScans.map(group => (
-                    <div key={group.date} className="mb-6 last:mb-2">
-                      <div className="flex items-center mb-4">
-                        <div className="h-px bg-zinc-200 flex-1"></div><span className="px-3 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest">{group.date}</span><div className="h-px bg-zinc-200 flex-1"></div>
+                    <div key={group.date} className="mb-8 last:mb-2">
+                      <div className="flex items-center mb-5">
+                        <div className="h-px bg-zinc-200 flex-1"></div><span className="px-3 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest bg-zinc-50">{group.date}</span><div className="h-px bg-zinc-200 flex-1"></div>
                       </div>
-                      <div className="space-y-3">
+                      <div className="space-y-4">
                         {group.items.map(scan => {
                           if (scan.type === 'kinAlert') {
                              return (
-                               <div key={scan.id} className="bg-red-50 p-4 rounded-2xl border border-red-200 shadow-sm relative group">
-                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-xl transition-colors"><Trash2 size={16} /></button>
-                                 <div className="flex items-center justify-between mb-2 pr-10"><span className="font-extrabold text-red-800 truncate">🚨 Local KinAlert</span><span className="text-[10px] text-red-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                                 <p className="text-sm text-red-900 font-bold mb-3 leading-relaxed">{scan.message}</p>
-                                 {scan.publicLink && <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm transition-colors"><Eye size={16}/> View Missing Profile</a>}
+                               <div key={scan.id} className="bg-red-50 p-5 rounded-[2rem] border border-red-200 shadow-sm relative group overflow-hidden">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
+                                 <div className="flex items-center justify-between mb-3 pr-10 relative z-10"><span className="font-extrabold text-red-800 text-lg flex items-center gap-2"><Siren size={18}/> KinAlert</span><span className="text-[10px] text-red-400 font-bold uppercase shrink-0 bg-red-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                 <p className="text-sm text-red-900 font-bold mb-4 leading-relaxed relative z-10">{scan.message}</p>
+                                 {scan.publicLink && <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md transition-all active:scale-95 relative z-10"><Eye size={18}/> View Profile</a>}
                                </div>
                              );
                           } else if (scan.type === 'kinAlert_found') {
                              return (
-                               <div key={scan.id} className="bg-emerald-50 p-4 rounded-2xl border border-emerald-200 shadow-sm relative group">
-                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-xl transition-colors"><Trash2 size={16} /></button>
-                                 <div className="flex items-center justify-between mb-2 pr-10"><span className="font-extrabold text-emerald-800 truncate">✅ Found Alert</span><span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
-                                 <p className="text-sm text-emerald-900 font-bold leading-relaxed">{scan.message}</p>
+                               <div key={scan.id} className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-200 shadow-sm relative group overflow-hidden">
+                                 <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
+                                 <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
+                                 <div className="flex items-center justify-between mb-3 pr-10 relative z-10"><span className="font-extrabold text-emerald-800 text-lg flex items-center gap-2"><CheckCircle2 size={18}/> Found Alert</span><span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0 bg-emerald-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                                 <p className="text-sm text-emerald-900 font-bold leading-relaxed relative z-10">{scan.message}</p>
                                </div>
                              );
                           }
                           return (
-                            <div key={scan.id} className="bg-white p-4 rounded-2xl shadow-sm border border-zinc-100 relative group">
-                              <button onClick={() => setScanToDelete(scan.id)} className="absolute top-3 right-3 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-colors"><Trash2 size={16} /></button>
-                              <div className="flex items-center justify-between mb-2 pr-10"><span className="font-extrabold text-brandDark truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span><span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span></div>
+                            <div key={scan.id} className="bg-white p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md">
+                              <button onClick={() => setScanToDelete(scan.id)} className="absolute top-4 right-4 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors z-10"><Trash2 size={16} /></button>
+                              <div className="flex items-center justify-between mb-3 pr-10">
+                                <span className="font-extrabold text-brandDark text-lg tracking-tight truncate">{scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}</span>
+                                <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0 bg-zinc-50 border border-zinc-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+                              </div>
                               {scan.type === 'active' ? (
-                                <div className="bg-red-50 p-3 rounded-xl border border-red-100 mt-2">
-                                  <p className="text-xs text-red-800 font-bold mb-3">A Good Samaritan pinpointed their exact location!</p>
-                                  <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white px-3 py-2.5 rounded-lg text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-sm"><MapPin size={16}/> Open in Google Maps</a>
+                                <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2">
+                                  <p className="text-xs text-red-800 font-bold mb-4 flex items-center gap-2"><MapPin size={16} className="text-red-500 shrink-0"/> A Good Samaritan pinpointed their exact location!</p>
+                                  <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className="bg-red-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-red-700 w-full shadow-md active:scale-95 transition-all">Open in Google Maps</a>
                                 </div>
-                              ) : scan.type === 'invite_response' ? ( <p className="text-xs text-emerald-600 font-bold flex items-start gap-1.5 mt-2 bg-emerald-50 p-3 rounded-xl border border-emerald-100 leading-relaxed"><Users size={14} className="shrink-0 mt-0.5"/> {scan.message}</p>
-                              ) : ( <p className="text-xs text-zinc-500 font-medium flex items-center gap-1.5 mt-2"><Info size={14} className="shrink-0 text-brandGold"/> Passive scan near {scan.city}, {scan.region}</p> )}
+                              ) : scan.type === 'invite_response' ? ( 
+                                <p className="text-sm text-emerald-700 font-bold flex items-start gap-2 mt-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 leading-relaxed">
+                                  <Users size={16} className="shrink-0 mt-0.5 text-emerald-500"/> {scan.message}
+                                </p>
+                              ) : ( 
+                                <p className="text-sm text-zinc-500 font-medium flex items-center gap-2 mt-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                  <Info size={16} className="shrink-0 text-brandGold"/> Passive scan near <strong className="text-brandDark font-bold">{scan.city}, {scan.region}</strong>
+                                </p> 
+                              )}
                             </div>
                           );
                         })}
@@ -940,12 +885,21 @@ export default function Dashboard() {
                 )
               )}
               {notifTab === 'system' && (
-                systemMessages.length === 0 ? ( <div className="text-center mt-10"><Bell size={32} className="mx-auto text-zinc-300 mb-3" /><p className="text-zinc-500 font-medium text-sm">System broadcast messages from KinTag Admin will appear here.</p></div> ) : (
-                  <div className="space-y-3">
+                systemMessages.length === 0 ? ( 
+                  <div className="text-center mt-20">
+                    <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-400"><BellRing size={24}/></div>
+                    <p className="text-zinc-500 font-medium text-lg tracking-tight">No system updates yet.</p>
+                  </div> 
+                ) : (
+                  <div className="space-y-4">
                     {systemMessages.map(msg => (
-                      <div key={msg.id} className="bg-brandDark text-white p-5 rounded-2xl shadow-md border border-brandDark">
-                        <div className="flex items-center justify-between mb-3 border-b border-white/10 pb-3"><span className="font-extrabold flex items-center gap-2 text-lg"><BellRing size={18} className="text-brandGold"/> {msg.title}</span><span className="text-[10px] text-white/50 font-bold uppercase tracking-wider">{new Date(getTime(msg.timestamp)).toLocaleDateString()}</span></div>
-                        <div className="text-sm text-white/80 font-medium leading-relaxed">{renderFormattedTextDark(msg.body)}</div>
+                      <div key={msg.id} className="bg-brandDark text-white p-6 rounded-[2rem] shadow-xl border border-zinc-800 relative overflow-hidden group">
+                        <div className="absolute top-0 right-0 w-40 h-40 bg-brandGold/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-brandGold/20 transition-colors"></div>
+                        <div className="flex items-center justify-between mb-4 border-b border-white/10 pb-4 relative z-10">
+                          <span className="font-extrabold flex items-center gap-2 text-lg tracking-tight"><BellRing size={20} className="text-brandGold"/> {msg.title}</span>
+                          <span className="text-[10px] text-white/50 font-bold uppercase tracking-widest bg-white/5 px-2 py-1 rounded-md border border-white/5">{new Date(getTime(msg.timestamp)).toLocaleDateString()}</span>
+                        </div>
+                        <div className="text-sm text-white/80 font-medium leading-relaxed relative z-10">{renderFormattedTextDark(msg.body)}</div>
                       </div>
                     ))}
                   </div>
@@ -956,24 +910,36 @@ export default function Dashboard() {
         </div>
       )}
 
+      {/* Delete Profile Modal */}
       {profileToDelete && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5"><AlertOctagon size={32} /></div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Profile?</h2>
-            <p className="text-zinc-500 mb-8 text-sm font-medium">This action cannot be undone. This profile and its associated QR code will be permanently deactivated.</p>
-            <div className="flex gap-3"><button onClick={() => setProfileToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button><button onClick={confirmDelete} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Delete</button></div>
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+              <AlertOctagon size={36} />
+            </div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Delete Profile?</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This action cannot be undone. This profile and its associated QR code will be permanently deactivated.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmDelete} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Delete It</button>
+              <button onClick={() => setProfileToDelete(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+            </div>
           </div>
         </div>
       )}
 
+      {/* Delete Scan Modal */}
       {scanToDelete && (
-        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-brandDark/80 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-zinc-100 animate-in zoom-in-95 duration-200">
-            <div className="w-16 h-16 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-5"><AlertOctagon size={32} /></div>
-            <h2 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">Delete Notification?</h2>
-            <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">This action cannot be undone. This scan record will be permanently removed from your history.</p>
-            <div className="flex gap-3"><button onClick={() => setScanToDelete(null)} className="flex-1 bg-brandMuted text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-200 transition-colors">Cancel</button><button onClick={confirmDeleteScan} className="flex-1 bg-red-600 text-white py-3.5 rounded-xl font-bold shadow-md hover:bg-red-700 transition-colors">Yes, Delete</button></div>
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
+          <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
+            <div className="w-20 h-20 bg-red-50 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner border border-red-100">
+              <Trash2 size={36} />
+            </div>
+            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Delete Record?</h2>
+            <p className="text-zinc-500 mb-8 text-base font-medium leading-relaxed">This action cannot be undone. This scan record will be permanently removed from your history.</p>
+            <div className="flex flex-col gap-3">
+              <button onClick={confirmDeleteScan} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Delete</button>
+              <button onClick={() => setScanToDelete(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
+            </div>
           </div>
         </div>
       )}
@@ -984,16 +950,19 @@ export default function Dashboard() {
 
 function DashboardSkeleton() {
   return (
-    <div className="min-h-screen bg-zinc-50 p-4 md:p-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        <div className="h-24 bg-zinc-200 animate-pulse rounded-3xl w-full"></div>
-        <div className="h-14 bg-zinc-200 animate-pulse rounded-2xl w-full"></div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-2">
+    <div className="min-h-screen bg-[#fafafa] p-4 md:p-8 pt-4">
+      <div className="max-w-5xl mx-auto space-y-8">
+        <div className="h-[88px] bg-zinc-200 animate-pulse rounded-[2.5rem] w-full"></div>
+        <div className="flex gap-4">
+           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2rem] w-1/2"></div>
+           <div className="h-[72px] bg-zinc-200 animate-pulse rounded-[2rem] w-1/2"></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {[1, 2, 3].map(i => (
-            <div key={i} className="h-[300px] bg-white rounded-3xl overflow-hidden shadow-sm border border-zinc-100 flex flex-col">
-              <div className="h-48 bg-zinc-200 animate-pulse w-full"></div>
-              <div className="p-4 flex-1 flex items-end">
-                <div className="h-10 bg-zinc-100 animate-pulse w-full rounded-xl"></div>
+            <div key={i} className="h-[360px] bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-zinc-200 flex flex-col">
+              <div className="h-56 bg-zinc-200 animate-pulse w-full"></div>
+              <div className="p-5 flex-1 flex items-end">
+                <div className="h-12 bg-zinc-100 animate-pulse w-full rounded-2xl"></div>
               </div>
             </div>
           ))}
