@@ -3,7 +3,8 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-import { Download, Plus, X, MapPin, Loader2, Check, Info } from 'lucide-react';
+// 🌟 FIXED: Added missing ShieldCheck and CheckCircle2 imports!
+import { Download, Plus, X, MapPin, Loader2, Check, CheckCircle2, Info, ShieldCheck } from 'lucide-react';
 import { sortedCountryCodes } from '../data/countryCodes';
 
 const QR_STYLES = {
@@ -76,7 +77,7 @@ export default function CreateCard() {
   };
 
   const addDocument = () => {
-    setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '' }]);
+    setDocuments([...documents, { id: Date.now().toString(), name: '', file: null, url: '', isEditingFile: false }]);
   };
 
   const removeDocument = (id) => {
@@ -192,6 +193,17 @@ export default function CreateCard() {
     downloadLink.click();
   };
 
+  const getSafePreviewUrl = (url) => {
+    if (!url) return '#';
+    if (url.toLowerCase().includes('.pdf')) {
+      return url.replace(/\.pdf$/i, '.jpg');
+    }
+    if (url.toLowerCase().includes('.doc') || url.toLowerCase().includes('.docx')) {
+      return `https://docs.google.com/gview?url=${encodeURIComponent(url)}&embedded=true`;
+    }
+    return url;
+  };
+
   const inputStyles = "w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium text-brandDark";
   const labelStyles = "block text-sm font-bold text-brandDark mb-2 ml-1";
   
@@ -200,7 +212,6 @@ export default function CreateCard() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
       
-      {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
 
@@ -386,7 +397,7 @@ export default function CreateCard() {
                     </button>
                   )}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 pr-6 md:pr-0">
-                    <input type="text" placeholder="Full Name" value={contact.name} required onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} className="w-full p-3.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium" />
+                    <input type="text" placeholder="Full Name" value={contact.name} onChange={(e) => handleContactChange(contact.id, 'name', e.target.value)} required className="w-full p-3.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium" />
                     
                     <div className="flex w-full border border-zinc-200 rounded-xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-white overflow-hidden transition-all relative">
                       <div className="relative flex items-center bg-zinc-50 hover:bg-zinc-100 border-r border-zinc-200 px-3 cursor-pointer shrink-0 transition-colors">
@@ -475,20 +486,35 @@ export default function CreateCard() {
                       required 
                       className="w-full p-3.5 bg-white border border-zinc-200 rounded-xl outline-none focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium" 
                     />
-                    <div className="relative">
-                      {doc.url && !doc.file && (
-                        <div className="absolute top-2 right-2 bg-emerald-100 text-emerald-700 text-[10px] font-bold uppercase px-2 py-1 rounded shadow-sm z-10 pointer-events-none">
-                           Uploaded
+                    
+                    <div className="relative flex items-center">
+                      {doc.url && !doc.isEditingFile ? (
+                        <div className="flex items-center justify-between w-full p-2.5 bg-emerald-50 border border-emerald-200 rounded-xl">
+                          <a href={getSafePreviewUrl(doc.url)} target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm font-bold text-emerald-700 hover:underline truncate mr-2">
+                            <CheckCircle2 size={16} className="shrink-0" /> <span className="truncate">View Uploaded</span>
+                          </a>
+                          <button type="button" onClick={() => handleDocumentChange(doc.id, 'isEditingFile', true)} className="shrink-0 text-xs bg-white border border-emerald-200 text-emerald-700 px-3 py-1.5 rounded-lg font-bold hover:bg-emerald-100 transition-colors">
+                            Replace
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="w-full flex items-center gap-2">
+                          <input 
+                            type="file" 
+                            accept="image/*,application/pdf,.doc,.docx" 
+                            onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
+                            required={!doc.url} 
+                            className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium shadow-sm" 
+                          />
+                          {doc.url && (
+                            <button type="button" onClick={() => { handleDocumentChange(doc.id, 'isEditingFile', false); handleDocumentChange(doc.id, 'file', null); }} className="shrink-0 p-2.5 bg-zinc-200 text-zinc-600 hover:text-brandDark rounded-xl transition-colors" title="Cancel Replace">
+                              <X size={18} />
+                            </button>
+                          )}
                         </div>
                       )}
-                      <input 
-                        type="file" 
-                        accept="image/*,application/pdf,.doc,.docx" 
-                        onChange={(e) => handleDocumentChange(doc.id, 'file', e.target.files[0])} 
-                        required={!doc.url} 
-                        className="w-full p-2.5 bg-white border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-2.5 file:px-5 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-zinc-100 file:text-brandDark hover:file:bg-zinc-200 transition-all cursor-pointer text-zinc-600 font-medium shadow-sm" 
-                      />
                     </div>
+
                   </div>
                 </div>
               ))}
