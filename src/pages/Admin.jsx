@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { db } from '../firebase';
 import { collection, addDoc, getDocs, deleteDoc, doc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Send, Trash2, ShieldAlert, Loader2, ArrowLeft, BellRing, CheckCircle2, AlertOctagon, AlertTriangle, Info, Edit2, X } from 'lucide-react'; 
 
 // Lightweight Markdown Parser for Admin Preview
@@ -52,7 +52,7 @@ export default function Admin() {
       return;
     }
     if (currentUser.email !== ADMIN_EMAIL) {
-      // 🌟 FIXED: Route to /dashboard if non-admin tries to access
+      // 🌟 ROUTING FIX: Unauthorized users kicked to dashboard, not home
       showMessage("Access Denied", "You are not authorized to view the admin control center.", "error", () => navigate('/dashboard'));
       return;
     }
@@ -160,17 +160,17 @@ export default function Admin() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-24 selection:bg-brandGold selection:text-white">
       
-      {/* Premium Background Elements */}
+      {/* 🌟 NEW: Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
       <div className="max-w-3xl mx-auto relative z-10 animate-in fade-in slide-in-from-bottom-4 duration-700 pt-4">
         
-        {/* 🌟 FIXED: Route back to /dashboard */}
-        <button onClick={() => navigate('/dashboard')} className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all mb-8 active:scale-95">
+        {/* 🌟 ROUTING FIX: Route back to /dashboard */}
+        <Link to="/dashboard" className="group inline-flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all mb-8 active:scale-95">
           <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
           <span>Back to Dashboard</span>
-        </button>
+        </Link>
 
         <div className="mb-10 text-center md:text-left">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-brandDark text-brandGold rounded-2xl shadow-lg mb-6 transform -rotate-6">
@@ -289,7 +289,6 @@ export default function Admin() {
       </div>
 
       {/* --- MODALS --- */}
-      
       {customAlert.isOpen && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
