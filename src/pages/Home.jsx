@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { CardStack } from '../components/ui/card-stack'; 
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
-import { useAuth } from '../context/AuthContext'; // 🌟 NEW: Imported Auth Context
+import { useAuth } from '../context/AuthContext';
+import Globe from '../components/ui/Globe'; // 🌟 NEW: Imported the Globe
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -35,7 +36,7 @@ const stackFeatures = [
 ];
 
 export default function Home() {
-  const { currentUser } = useAuth(); // 🌟 NEW: Get Auth State
+  const { currentUser } = useAuth();
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -138,7 +139,6 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-3 md:space-x-5">
-            {/* 🌟 NEW: Dynamic Navbar based on authentication */}
             {currentUser ? (
               <Link to="/dashboard" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
                 Go to Dashboard
@@ -155,11 +155,17 @@ export default function Home() {
         </nav>
       </div>
 
-      <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
+      {/* 🌟 HERO SECTION WITH GLOBE BACKGROUND */}
+      <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
+        
+        {/* Magic UI Globe embedded behind text with a fading mask */}
+        <div className="absolute top-10 left-0 right-0 bottom-0 flex items-center justify-center pointer-events-auto z-0 opacity-40 md:opacity-60 [mask-image:radial-gradient(ellipse_at_center_50%,black_30%,transparent_70%)]">
+           <Globe className="translate-y-24 md:translate-y-48 scale-[1.3] md:scale-[1.1]" />
+        </div>
+
+        <div className="max-w-5xl mx-auto text-center relative z-10 w-full">
           <ScrollReveal delay={0}>
             <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full mb-8 shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
               <span className="relative flex h-2.5 w-2.5">
@@ -184,20 +190,19 @@ export default function Home() {
           
           <ScrollReveal delay={300}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              {/* 🌟 NEW: Dynamic Hero Button based on authentication */}
               <Link to={currentUser ? "/dashboard" : "/signup"} className="group w-full sm:w-auto flex items-center justify-center space-x-3 bg-brandDark text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brandAccent transition-all shadow-[0_8px_30px_rgb(24,24,27,0.3)] hover:shadow-[0_8px_40px_rgb(24,24,27,0.4)] hover:-translate-y-1 active:scale-95 relative overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <span>{currentUser ? "Go to Dashboard" : "Try KinTag for Free"}</span>
+                <span>{currentUser ? "Go to your Dashboard" : "Try KinTag for Free"}</span>
                 <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
               </Link>
               
               {deferredPrompt ? (
-                <button onClick={handleInstallApp} className="group w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm hover:-translate-y-1 active:scale-95">
+                <button onClick={handleInstallApp} className="group w-full sm:w-auto flex items-center justify-center space-x-2 bg-white/80 backdrop-blur-md text-brandDark border border-zinc-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:border-zinc-300 transition-all shadow-sm hover:-translate-y-1 active:scale-95">
                   <Download size={18} />
                   <span>Install App</span>
                 </button>
               ) : (
-                <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white text-brandDark border border-zinc-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm hover:-translate-y-1 active:scale-95">
+                <button onClick={scrollToHowItWorks} className="w-full sm:w-auto flex items-center justify-center space-x-2 bg-white/80 backdrop-blur-md text-brandDark border border-zinc-200 px-8 py-4 rounded-full font-bold text-lg hover:bg-white hover:border-zinc-300 transition-all shadow-sm hover:-translate-y-1 active:scale-95">
                   How it works
                 </button>
               )}
@@ -206,15 +211,14 @@ export default function Home() {
 
           <ScrollReveal delay={400}>
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-16">
-              <span className="flex items-center gap-2"><CheckCircle2 size={16} className="text-emerald-500"/> 100% Free Forever</span>
-              <span className="flex items-center gap-2"><Lock size={16} className="text-brandGold"/> Secure & Encrypted</span>
-              <span className="flex items-center gap-2"><Shield size={16} className="text-blue-500"/> No App Required</span>
+              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><CheckCircle2 size={16} className="text-emerald-500"/> 100% Free Forever</span>
+              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><Lock size={16} className="text-brandGold"/> Secure & Encrypted</span>
+              <span className="flex items-center gap-2 bg-white/50 px-3 py-1.5 rounded-md"><Shield size={16} className="text-blue-500"/> No App Required</span>
             </div>
           </ScrollReveal>
 
           <ScrollReveal delay={500}>
-            <div className="relative mx-auto max-w-5xl mt-8">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brandGold/20 rounded-full blur-[100px] pointer-events-none"></div>
+            <div className="relative mx-auto max-w-5xl mt-12 md:mt-24">
               
               <div className="flex justify-center mb-10 relative z-40">
                 <div className="inline-flex items-center gap-2 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 text-white px-4 py-2 rounded-full shadow-2xl">
@@ -455,7 +459,6 @@ export default function Home() {
                   <li className="flex items-start text-zinc-600 font-bold text-lg gap-4"><Check size={24} className="text-emerald-500 shrink-0 mt-0.5 bg-emerald-50 rounded-full p-1"/> Built specifically for parents, by a parent</li>
                 </ul>
                 
-                {/* 🌟 NEW: Dynamic Story Button based on authentication */}
                 <Link to={currentUser ? "/dashboard" : "/signup"} className="w-full flex items-center justify-center gap-2 bg-brandDark text-white py-4 px-6 rounded-full font-bold text-base hover:bg-brandAccent hover:-translate-y-0.5 active:scale-95 transition-all shadow-lg group/btn relative overflow-hidden">
                   <span className="whitespace-nowrap z-10">{currentUser ? "Go to Dashboard" : "Create Your Free KinTag"}</span>
                   <ArrowRight size={18} className="transform transition-transform duration-300 group-hover/btn:translate-x-1.5 z-10" />
@@ -577,7 +580,6 @@ export default function Home() {
           <h2 className="text-5xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure them?</h2>
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
           
-          {/* 🌟 NEW: Dynamic Final CTA Button based on authentication */}
           <Link to={currentUser ? "/dashboard" : "/signup"} className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
             <span>{currentUser ? "Go to Dashboard" : "Get Started for Free"}</span>
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
