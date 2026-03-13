@@ -99,7 +99,7 @@ export default function Signup() {
           ownerId: inviterUid,
           title: `👥 Guardian Joined!`,
           body: `${displayName || emailLower} created an account and joined your family.`,
-          link: `https://kintag.vercel.app/#/?view=notifications` 
+          link: `https://kintag.vercel.app/#/dashboard?view=notifications` // 🌟 ROUTE UPDATED
         })
       }).catch(() => {});
     }
@@ -219,7 +219,7 @@ export default function Signup() {
       } else {
         await processUserDatabase(result.user, result.user.displayName || '');
       }
-      navigate('/'); 
+      navigate('/dashboard'); // 🌟 ROUTE UPDATED
     } catch (err) {
       setError("Google sign-up failed. Please try again.");
     } finally {
@@ -237,7 +237,7 @@ export default function Signup() {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
       await processUserDatabase(userCredential.user, fullName);
-      navigate('/'); 
+      navigate('/dashboard'); // 🌟 ROUTE UPDATED
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
     } finally {
