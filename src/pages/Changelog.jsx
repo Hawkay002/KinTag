@@ -139,7 +139,7 @@ export default function Changelog() {
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white pb-24 relative overflow-hidden">
       
-      {/* Premium Background Elements */}
+      {/* 🌟 NEW: Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
