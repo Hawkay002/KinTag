@@ -5,7 +5,8 @@ import { CardStack } from '../components/ui/card-stack';
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
-import SparklesText from '../components/ui/SparklesText'; // 🌟 NEW: Sparkles Component
+import SparklesText from '../components/ui/SparklesText'; 
+import GlassSurface from '../components/ui/GlassSurface'; // 🌟 NEW: Official GlassSurface Component
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -131,29 +132,36 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
+      {/* 🌟 REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
-        <nav className={`pointer-events-auto w-full max-w-5xl bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] px-5 py-3 md:py-4 md:px-8 flex items-center justify-between transition-all duration-500 ${isScrolled ? 'shadow-[0_8px_30px_rgb(0,0,0,0.06)] translate-y-0' : 'shadow-none'}`}>
-          <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
-            <div className="relative overflow-hidden rounded-xl">
-              <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-xl shadow-sm transform group-hover:scale-110 transition-transform duration-500" />
-            </div>
-            <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
-          </div>
-          <div className="flex items-center space-x-3 md:space-x-5">
-            {currentUser ? (
-              <Link to="/dashboard" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
-                Go to Dashboard
-              </Link>
-            ) : (
-              <>
-                <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-                <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
-                  Get Started
-                </Link>
-              </>
-            )}
-          </div>
-        </nav>
+        <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
+          <GlassSurface width="100%" borderRadius={40}>
+            <nav className="relative z-10 px-3 py-2 md:py-3 md:px-6 flex items-center justify-between w-full">
+              <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
+                <div className="relative overflow-hidden rounded-xl shadow-[0_4px_10px_rgba(0,0,0,0.05)] bg-white">
+                  <img src="/kintag-logo.png" alt="KinTag Logo" className="w-8 h-8 rounded-xl transform group-hover:scale-110 transition-transform duration-500" />
+                </div>
+                <span className="text-xl font-extrabold text-brandDark tracking-tight drop-shadow-sm">KinTag</span>
+              </div>
+              <div className="flex items-center space-x-3 md:space-x-5">
+                {currentUser ? (
+                  <Link to="/dashboard" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all relative overflow-hidden">
+                    <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1.5s_infinite]"></div>
+                    Go to Dashboard
+                  </Link>
+                ) : (
+                  <>
+                    <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors drop-shadow-sm">Log In</Link>
+                    <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all relative overflow-hidden">
+                      <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full hover:animate-[shimmer_1.5s_infinite]"></div>
+                      Get Started
+                    </Link>
+                  </>
+                )}
+              </div>
+            </nav>
+          </GlassSurface>
+        </div>
       </div>
 
       {/* HERO SECTION WITH MASSIVE EDGE-TO-EDGE BLENDED GLOBE */}
@@ -173,7 +181,7 @@ export default function Home() {
           </ScrollReveal>
         </div>
 
-        {/* 🌟 The Globe: Pulled outside of max-w limits so it can overflow screen edges */}
+        {/* The Globe: Pulled outside of max-w limits so it can overflow screen edges */}
         <ScrollReveal delay={50}>
           <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
             <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center">
@@ -588,7 +596,6 @@ export default function Home() {
           <h2 className="text-5xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure them?</h2>
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
           
-          {/* 🌟 NEW: The Sparkles component wraps the final CTA text */}
           <Link to={currentUser ? "/dashboard" : "/signup"} className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
             <SparklesText text={currentUser ? "Go to Dashboard" : "Get Started for Free"} />
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
