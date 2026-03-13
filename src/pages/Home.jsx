@@ -7,7 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
 import SparklesText from '../components/ui/SparklesText'; 
 import GlassSurface from '../components/ui/GlassSurface';
-import FloatingPhone from '../components/ui/FloatingPhone'; // 🌟 NEW: Imported the FloatingPhone component
+import FloatingPhone from '../components/ui/FloatingPhone'; 
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -164,7 +164,6 @@ export default function Home() {
         </div>
       </div>
 
-      {/* HERO SECTION WITH MASSIVE EDGE-TO-EDGE BLENDED GLOBE */}
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
@@ -181,7 +180,6 @@ export default function Home() {
           </ScrollReveal>
         </div>
 
-        {/* The Globe */}
         <ScrollReveal delay={50}>
           <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
             <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center">
@@ -190,7 +188,6 @@ export default function Home() {
           </div>
         </ScrollReveal>
         
-        {/* Headline & Buttons */}
         <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full">
           <ScrollReveal delay={100}>
             <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md">
@@ -233,7 +230,6 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* 🌟 NEW: Animated 3D Floating Phone Mockups replacing the static frames */}
           <ScrollReveal delay={500}>
             <div className="relative mx-auto max-w-5xl mt-12 md:mt-24">
               
@@ -246,25 +242,24 @@ export default function Home() {
                 </div>
               </div>
 
-              {/* 🌟 The new Flex container stacks vertically on mobile, side-by-side horizontally on desktop */}
               <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
-                
-                {/* Kid Profile (Faces Left) */}
                 <FloatingPhone 
                   iframeSrc="https://kintag.vercel.app/#/id/kJeMwTQgTnuARri1gwc3?preview=true"
                   facing="left"
                   className="w-[280px] md:w-[320px] aspect-[9/19.5]"
                   scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.8)]"
+                  iframeWidth="375px"
+                  iframeHeight="813px"
                 />
                 
-                {/* Pet Profile (Faces Right) */}
                 <FloatingPhone 
                   iframeSrc="https://kintag.vercel.app/#/id/OSCIDGkJXSIh9mTmOVtr?preview=true"
                   facing="right"
                   className="w-[280px] md:w-[310px] aspect-[9/20]"
                   scaleClass="max-md:[transform:scale(0.704)] md:[transform:scale(0.7733)]"
+                  iframeWidth="375px"
+                  iframeHeight="834px"
                 />
-                
               </div>
             </div>
           </ScrollReveal>
