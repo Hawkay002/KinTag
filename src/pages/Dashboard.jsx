@@ -64,7 +64,7 @@ export default function Dashboard() {
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
   
-  // 🌟 SCAN DELETION STATES
+  // SCAN DELETION STATES
   const [scanToDelete, setScanToDelete] = useState(null);
   const [selectedScans, setSelectedScans] = useState([]);
   const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
@@ -81,7 +81,7 @@ export default function Dashboard() {
   const [userZipCode, setUserZipCode] = useState(''); 
   const [userAvatarId, setUserAvatarId] = useState(null); 
 
-  // 🌟 ALERT MODAL STATES
+  // ALERT MODAL STATES
   const [lostModalProfile, setLostModalProfile] = useState(null);
   const [foundModalProfile, setFoundModalProfile] = useState(null);
   const [broadcastModalProfile, setBroadcastModalProfile] = useState(null);
@@ -110,7 +110,8 @@ export default function Dashboard() {
   useEffect(() => {
     if (window.location.hash.includes('view=notifications')) {
       setShowNotifCenter(true);
-      window.history.replaceState(null, '', '/#/'); 
+      // UPDATE: Changed to explicitly stay on /dashboard
+      window.history.replaceState(null, '', '/#/dashboard'); 
     }
   }, []);
 
@@ -248,7 +249,6 @@ export default function Dashboard() {
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // 🌟 ALERT BROADCAST LOGIC
   const handleConfirmLost = async () => {
     if (!lostModalProfile) return;
     const profileToUpdate = lostModalProfile;
@@ -256,7 +256,6 @@ export default function Dashboard() {
     
     try {
       await updateDoc(doc(db, "profiles", profileToUpdate.id), { isLost: true });
-      // Instantly open the broadcast modal
       const updatedProfile = { ...profileToUpdate, isLost: true };
       setBroadcastModalProfile(updatedProfile);
     } catch (e) {
@@ -371,7 +370,8 @@ export default function Dashboard() {
           ownerId: pendingInvite.inviterUid,
           title: `🤝 Guardian Joined!`,
           body: `${acceptName} accepted your invite.`,
-          link: `https://kintag.vercel.app/#/?view=notifications` 
+          // UPDATE: explicitly links to dashboard
+          link: `https://kintag.vercel.app/#/dashboard?view=notifications` 
         })
       }).catch(()=>{});
 
@@ -470,7 +470,6 @@ export default function Dashboard() {
     }
   };
 
-  // 🌟 BULK DELETE LOGIC
   const toggleScanSelection = (scanId) => {
     setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
   };
@@ -996,7 +995,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🌟 NEW: Mark as Found Modal */}
+      {/* Mark as Found Modal */}
       {foundModalProfile && (
         <div className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
           <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 md:p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
@@ -1047,7 +1046,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* 🌟 NEW: Local Community Alerts (Popup when someone else broadcasts) */}
+      {/* Local Community Alerts (Popup when someone else broadcasts) */}
       {activeAlertToDisplay && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md">
           <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden border border-red-500/20">
