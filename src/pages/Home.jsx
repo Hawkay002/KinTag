@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { CardStack } from '../components/ui/card-stack'; 
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
+import { useAuth } from '../context/AuthContext'; // 🌟 NEW: Imported Auth Context
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -34,6 +35,7 @@ const stackFeatures = [
 ];
 
 export default function Home() {
+  const { currentUser } = useAuth(); // 🌟 NEW: Get Auth State
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
   const [isVerified, setIsVerified] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
@@ -125,10 +127,8 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white relative w-full">
       
-      {/* Global Subtle Architectural Grid Background */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
-      {/* 🌟 FLOATING NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <nav className={`pointer-events-auto w-full max-w-5xl bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] px-5 py-3 md:py-4 md:px-8 flex items-center justify-between transition-all duration-500 ${isScrolled ? 'shadow-[0_8px_30px_rgb(0,0,0,0.06)] translate-y-0' : 'shadow-none'}`}>
           <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
@@ -138,16 +138,23 @@ export default function Home() {
             <span className="text-xl font-extrabold text-brandDark tracking-tight">KinTag</span>
           </div>
           <div className="flex items-center space-x-3 md:space-x-5">
-            {/* 🌟 FIXED 1: Login button is now always visible on mobile */}
-            <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
-            <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
-              Get Started
-            </Link>
+            {/* 🌟 NEW: Dynamic Navbar based on authentication */}
+            {currentUser ? (
+              <Link to="/dashboard" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
+                Go to Dashboard
+              </Link>
+            ) : (
+              <>
+                <Link to="/login" className="text-sm font-bold text-zinc-600 hover:text-brandDark transition-colors">Log In</Link>
+                <Link to="/signup" className="bg-brandDark text-white text-sm font-bold px-5 py-2 md:px-6 md:py-2.5 rounded-full hover:bg-brandAccent hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all">
+                  Get Started
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </div>
 
-      {/* 🌟 HERO SECTION */}
       <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
         
@@ -177,9 +184,10 @@ export default function Home() {
           
           <ScrollReveal delay={300}>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <Link to="/signup" className="group w-full sm:w-auto flex items-center justify-center space-x-3 bg-brandDark text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brandAccent transition-all shadow-[0_8px_30px_rgb(24,24,27,0.3)] hover:shadow-[0_8px_40px_rgb(24,24,27,0.4)] hover:-translate-y-1 active:scale-95 relative overflow-hidden">
+              {/* 🌟 NEW: Dynamic Hero Button based on authentication */}
+              <Link to={currentUser ? "/dashboard" : "/signup"} className="group w-full sm:w-auto flex items-center justify-center space-x-3 bg-brandDark text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-brandAccent transition-all shadow-[0_8px_30px_rgb(24,24,27,0.3)] hover:shadow-[0_8px_40px_rgb(24,24,27,0.4)] hover:-translate-y-1 active:scale-95 relative overflow-hidden">
                 <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/10 to-transparent -translate-x-full group-hover:animate-[shimmer_1.5s_infinite]"></div>
-                <span>Try KinTag for Free</span>
+                <span>{currentUser ? "Go to Dashboard" : "Try KinTag for Free"}</span>
                 <ArrowRight size={18} className="transform group-hover:translate-x-1 transition-transform" />
               </Link>
               
@@ -204,7 +212,6 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* Device Mockups */}
           <ScrollReveal delay={500}>
             <div className="relative mx-auto max-w-5xl mt-8">
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] bg-brandGold/20 rounded-full blur-[100px] pointer-events-none"></div>
@@ -242,7 +249,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 HOW IT WORKS */}
       <section id="how-it-works" className="py-32 bg-white relative scroll-mt-24 border-t border-zinc-100">
         <div className="max-w-6xl mx-auto px-4 md:px-8 relative z-10">
           <ScrollReveal>
@@ -290,7 +296,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 BENTO BOX USE CASES */}
       <section className="py-32 bg-zinc-50 relative overflow-hidden">
         <div className="absolute top-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent"></div>
         <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent"></div>
@@ -341,7 +346,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 INTERACTIVE CARD STACK FEATURES */}
       <section className="py-32 bg-white relative overflow-hidden">
         <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
@@ -366,7 +370,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NATIVE APP SECTION */}
       <section className="py-8 px-4 bg-white">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
@@ -400,7 +403,6 @@ export default function Home() {
                   )}
                 </div>
                 
-                {/* 🌟 FIXED 2: The info icon and text are cleanly wrapped to avoid layout break */}
                 <div className="flex items-start justify-center md:justify-start gap-2 mt-8 max-w-md mx-auto md:mx-0 text-zinc-500 text-sm font-medium">
                   <Info size={16} className="shrink-0 mt-0.5" />
                   <p className="text-left leading-tight">iOS Users: Tap Share in Safari → "Add to Home Screen".</p>
@@ -417,7 +419,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 THE PASSIONATE DEVELOPER STORY */}
       <section className="py-24 px-4 bg-white border-b border-zinc-100">
         <ScrollReveal>
           <div className="max-w-6xl mx-auto relative">
@@ -454,9 +455,9 @@ export default function Home() {
                   <li className="flex items-start text-zinc-600 font-bold text-lg gap-4"><Check size={24} className="text-emerald-500 shrink-0 mt-0.5 bg-emerald-50 rounded-full p-1"/> Built specifically for parents, by a parent</li>
                 </ul>
                 
-                {/* 🌟 FIXED 5: Developer story button is single line with forward/back hover physics */}
-                <Link to="/signup" className="w-full flex items-center justify-center gap-2 bg-brandDark text-white py-4 px-6 rounded-full font-bold text-base hover:bg-brandAccent hover:-translate-y-0.5 active:scale-95 transition-all shadow-lg group/btn relative overflow-hidden">
-                  <span className="whitespace-nowrap z-10">Create Your Free KinTag</span>
+                {/* 🌟 NEW: Dynamic Story Button based on authentication */}
+                <Link to={currentUser ? "/dashboard" : "/signup"} className="w-full flex items-center justify-center gap-2 bg-brandDark text-white py-4 px-6 rounded-full font-bold text-base hover:bg-brandAccent hover:-translate-y-0.5 active:scale-95 transition-all shadow-lg group/btn relative overflow-hidden">
+                  <span className="whitespace-nowrap z-10">{currentUser ? "Go to Dashboard" : "Create Your Free KinTag"}</span>
                   <ArrowRight size={18} className="transform transition-transform duration-300 group-hover/btn:translate-x-1.5 z-10" />
                   <div className="absolute inset-0 w-full h-full bg-white/10 -translate-x-full group-hover/btn:animate-[shimmer_1.5s_infinite]"></div>
                 </Link>
@@ -467,10 +468,8 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      {/* 🌟 MONOCHROME FAQ SECTION */}
       <FAQMonochrome faqs={faqData} />
 
-      {/* 🌟 COMMUNITY / CONTACT / OPEN SOURCE BENTO */}
       <section className="py-32 bg-zinc-50 border-t border-zinc-200 px-4">
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
@@ -498,7 +497,6 @@ export default function Home() {
                       <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                       <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                     </div>
-                    {/* 🌟 FIXED 4: Code block font size reduced and text wrapping applied to prevent scrollbar */}
                     <pre className="text-emerald-400 font-mono text-[11px] sm:text-xs overflow-x-hidden whitespace-pre-wrap">
                       <code>
 <span className="text-zinc-500"># Clone the repository</span><br/>
@@ -571,23 +569,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FINAL CALL TO ACTION */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
-          {/* 🌟 FIXED 3: Shield icon is no longer tilted */}
           <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
              <Shield size={40} className="text-brandGold" />
           </div>
           <h2 className="text-5xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure them?</h2>
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
-          <Link to="/signup" className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
-            <span>Get Started for Free</span>
+          
+          {/* 🌟 NEW: Dynamic Final CTA Button based on authentication */}
+          <Link to={currentUser ? "/dashboard" : "/signup"} className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
+            <span>{currentUser ? "Go to Dashboard" : "Get Started for Free"}</span>
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
           </Link>
         </ScrollReveal>
       </section>
 
-      {/* FOOTER */}
       <footer className="bg-[#fafafa] py-12 border-t border-zinc-200 text-center">
         <div className="flex items-center justify-center space-x-2 mb-4 opacity-40 hover:opacity-100 transition-opacity">
           <img src="/kintag-logo.png" alt="Logo" className="w-6 h-6 rounded-md grayscale" />
