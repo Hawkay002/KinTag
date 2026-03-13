@@ -5,6 +5,7 @@ import { CardStack } from '../components/ui/card-stack';
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
+import SparklesText from '../components/ui/SparklesText'; // 🌟 NEW: Sparkles Component
 import { 
   Shield, MapPin, BellRing, Heart, Smartphone, Github, ArrowRight, 
   CheckCircle2, PawPrint, User, Activity, Info, RefreshCw, Battery, Cloud, 
@@ -155,12 +156,11 @@ export default function Home() {
         </nav>
       </div>
 
-      {/* 🌟 HERO SECTION WITH MASSIVE EDGE-TO-EDGE BLENDED GLOBE */}
+      {/* HERO SECTION WITH MASSIVE EDGE-TO-EDGE BLENDED GLOBE */}
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
         
-        {/* V1.1.1 Badge (Inside safe container limits) */}
         <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full">
           <ScrollReveal delay={0}>
             <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
@@ -174,10 +174,9 @@ export default function Home() {
         </div>
 
         {/* 🌟 The Globe: Pulled outside of max-w limits so it can overflow screen edges */}
-        {/* The linear-gradient mask aggressively fades out the bottom so it blends with the background */}
         <ScrollReveal delay={50}>
           <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
-            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-auto shrink-0 flex justify-center">
+            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center">
                <Globe className="!max-w-none w-full" />
             </div>
           </div>
@@ -589,8 +588,9 @@ export default function Home() {
           <h2 className="text-5xl md:text-6xl font-extrabold text-brandDark tracking-tight mb-6">Ready to secure them?</h2>
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
           
+          {/* 🌟 NEW: The Sparkles component wraps the final CTA text */}
           <Link to={currentUser ? "/dashboard" : "/signup"} className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
-            <span>{currentUser ? "Go to Dashboard" : "Get Started for Free"}</span>
+            <SparklesText text={currentUser ? "Go to Dashboard" : "Get Started for Free"} />
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
           </Link>
         </ScrollReveal>
