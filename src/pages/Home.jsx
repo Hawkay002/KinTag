@@ -155,14 +155,15 @@ export default function Home() {
         </nav>
       </div>
 
-      <section className="pt-40 pb-20 md:pt-48 md:pb-32 px-4 relative overflow-hidden flex flex-col items-center">
+      {/* 🌟 HERO SECTION WITH MASSIVE BLENDED GLOBE */}
+      <section className="pt-32 md:pt-40 pb-20 px-4 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none z-0"></div>
         
         <div className="max-w-5xl mx-auto text-center relative w-full">
           
           <ScrollReveal delay={0}>
-            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full mb-6 md:mb-8 shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default relative z-20">
+            <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default relative z-30">
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
@@ -171,23 +172,29 @@ export default function Home() {
             </div>
           </ScrollReveal>
 
-          {/* 🌟 Magic UI Globe perfectly slotted between the text elements */}
+          {/* 🌟 Huge Zoomed-in Globe: 
+              - pointer-events-none on wrapper so text is clickable
+              - pointer-events-auto on globe to allow drag
+              - Negative margins pull the headline up to blend
+              - Linear gradient mask fades the bottom perfectly 
+          */}
           <ScrollReveal delay={50}>
-            <div className="w-full flex justify-center -my-8 md:-my-12 relative z-10 opacity-90 [mask-image:radial-gradient(ellipse_at_center_50%,black_50%,transparent_75%)]">
-              <div className="w-[300px] md:w-[500px]">
+            <div className="w-full flex justify-center relative z-10 -mt-12 md:-mt-24 -mb-32 md:-mb-64 [mask-image:linear-gradient(to_bottom,black_50%,transparent_90%)] pointer-events-none">
+              <div className="w-[600px] md:w-[1100px] opacity-80 pointer-events-auto">
                  <Globe />
               </div>
             </div>
           </ScrollReveal>
           
+          {/* 🌟 Headline is pulled up over the faded bottom of the globe */}
           <ScrollReveal delay={100}>
-            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] mb-8 relative z-20 mt-4 md:mt-8 drop-shadow-sm">
+            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] relative z-20 drop-shadow-sm px-4">
               The ultimate digital <br className="hidden md:block"/> safety net for your family.
             </h1>
           </ScrollReveal>
           
           <ScrollReveal delay={200}>
-            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mb-10 leading-relaxed relative z-20">
+            <p className="text-lg md:text-xl text-zinc-500 font-medium max-w-2xl mx-auto mt-8 mb-10 leading-relaxed relative z-20">
               Link custom QR codes or NFC tags to life-saving digital profiles for your kids and pets. If they ever wander off, a simple scan sends you their exact GPS location instantly.
             </p>
           </ScrollReveal>
