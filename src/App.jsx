@@ -34,15 +34,23 @@ function AppRoutes() {
   useEffect(() => {
     if (isAuthRefresh) {
       isAuthRefresh = false; 
-      navigate('/', { replace: true });
+      // 🌟 Updated to point to the new dedicated dashboard route
+      navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
   return (
     <Routes>
-      <Route path="/" element={currentUser ? <Dashboard /> : <Home />} />
-      <Route path="/login" element={currentUser ? <Navigate to="/" replace /> : <Login />} />
-      <Route path="/signup" element={currentUser ? <Navigate to="/" replace /> : <Signup />} />
+      {/* 🌟 Home page is now visible to everyone, logged in or not */}
+      <Route path="/" element={<Home />} />
+      
+      {/* 🌟 New dedicated protected route for the dashboard */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      
+      {/* 🌟 Logged in users trying to access login/signup go to dashboard */}
+      <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
+      <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      
       <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
       <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
