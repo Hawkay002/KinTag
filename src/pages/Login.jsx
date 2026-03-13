@@ -50,7 +50,7 @@ export default function Login() {
     try {
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       await syncUserDatabase(userCred.user);
-      navigate('/'); 
+      navigate('/dashboard'); 
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
     } finally {
@@ -73,7 +73,7 @@ export default function Login() {
     try {
       const result = await signInWithPopup(auth, provider);
       await syncUserDatabase(result.user);
-      navigate('/'); 
+      navigate('/dashboard'); 
     } catch (err) {
       setError("Google log-in failed. Please try again.");
     } finally {
