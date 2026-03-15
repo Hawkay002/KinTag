@@ -4,7 +4,6 @@ import { Turnstile } from '@marsidev/react-turnstile';
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
-import SparklesText from '../components/ui/SparklesText'; 
 import GlassSurface from '../components/ui/GlassSurface';
 import FloatingPhone from '../components/ui/FloatingPhone'; 
 import { ContainerScroll, CardSticky } from '../components/ui/CardsStack'; 
@@ -174,7 +173,6 @@ export default function Home() {
 
       <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
         
-        {/* 🌟 GPU FIX: Replaced heavy blur-[80px] with pre-rendered radial gradient */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
         <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full">
@@ -190,8 +188,9 @@ export default function Home() {
         </div>
 
         <ScrollReveal delay={50}>
-          <div className="w-full flex justify-center relative z-10 -mt-6 md:-mt-10 -mb-64 sm:-mb-72 md:-mb-[22rem] lg:-mb-[28rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
-            <div className="w-[180vw] sm:w-[150vw] md:w-[120vw] lg:w-[100vw] opacity-80 pointer-events-none shrink-0 flex justify-center">
+          {/* 🌟 GLOBE POSITION FIX: Adjusted widths and margins so the top 15% isn't cut out by overflow-hidden! */}
+          <div className="w-full flex justify-center relative z-10 mt-8 md:mt-12 -mb-48 sm:-mb-64 md:-mb-[18rem] lg:-mb-[22rem] [mask-image:linear-gradient(to_bottom,black_50%,transparent_85%)] pointer-events-none">
+            <div className="w-[140vw] sm:w-[120vw] md:w-[100vw] lg:w-[900px] opacity-80 pointer-events-none shrink-0 flex justify-center">
                <Globe className="!max-w-none w-full" />
             </div>
           </div>
@@ -347,7 +346,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
@@ -372,7 +371,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 THE CARDS STACK SECTION */}
       <section className="py-32 bg-white relative">
         <div className="w-full relative z-10 px-4">
           <ScrollReveal>
@@ -390,7 +388,6 @@ export default function Home() {
                 incrementY={20} 
                 className="mb-[20vh] md:mb-[24vh]"
               >
-                {/* 🌟 GPU FIX: Completely flat bg-white with no drop shadow multiplication! */}
                 <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
                   <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 text-brandDark">
                     {feature.icon}
@@ -410,7 +407,6 @@ export default function Home() {
         <div className="max-w-6xl mx-auto">
           <ScrollReveal>
             <div className="bg-zinc-950 rounded-[4rem] p-10 md:p-20 shadow-2xl relative overflow-hidden border border-zinc-800 flex flex-col md:flex-row items-center gap-16 group">
-              {/* 🌟 GPU FIX: Replaced heavy blurs with simple CSS radial gradients */}
               <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-brandGold/5 to-transparent rounded-full pointer-events-none transition-colors duration-700"></div>
               <div className="absolute -bottom-32 -left-32 w-[600px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-emerald-500/20 via-emerald-500/5 to-transparent rounded-full pointer-events-none transition-colors duration-700"></div>
 
@@ -605,6 +601,7 @@ export default function Home() {
         </div>
       </section>
 
+      {/* 🌟 SPARKLES REMOVED COMPLETELY */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
           <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
@@ -614,7 +611,7 @@ export default function Home() {
           <p className="text-zinc-500 font-medium text-xl mb-10 max-w-lg mx-auto">Join the platform and create your first highly-secured digital tag in under 2 minutes.</p>
           
           <Link to={currentUser ? "/dashboard" : "/signup"} className="inline-flex items-center justify-center space-x-3 bg-brandDark text-white px-12 py-5 rounded-full font-bold text-xl hover:bg-brandAccent transition-all shadow-[0_10px_40px_rgb(24,24,27,0.3)] hover:-translate-y-1 active:scale-95 group">
-            <SparklesText text={currentUser ? "Go to Dashboard" : "Get Started for Free"} />
+            <span>{currentUser ? "Go to Dashboard" : "Get Started for Free"}</span>
             <ArrowRight size={20} className="group-hover:translate-x-1.5 transition-transform duration-300" />
           </Link>
         </ScrollReveal>
