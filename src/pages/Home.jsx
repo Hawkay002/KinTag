@@ -48,10 +48,17 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setIsScrolled(window.scrollY > 20);
-    window.addEventListener('scroll', handleScroll);
+    // 🌟 FIX: Check if state actually needs to change before calling setState 
+    // This stops React from re-rendering the DOM excessively while scrolling
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 20;
+      if (isScrolled !== scrolled) {
+        setIsScrolled(scrolled);
+      }
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isScrolled]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -135,6 +142,7 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
+      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -340,7 +348,7 @@ export default function Home() {
             </ScrollReveal>
             
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
                 <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
@@ -365,7 +373,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 NEW: THE CARDS STACK SECTION WITH NO SHADOWS */}
+      {/* 🌟 THE CARDS STACK SECTION - GPU OPTIMIZED (No heavy blurs!) */}
       <section className="py-32 bg-white relative">
         <div className="w-full relative z-10 px-4">
           <ScrollReveal>
@@ -383,8 +391,8 @@ export default function Home() {
                 incrementY={20} 
                 className="mb-[20vh] md:mb-[24vh]"
               >
-                {/* 🌟 FIXED: Completely removed `shadow-[...]` and `boxShadow` styles for a clean, flat stacking deck! */}
-                <div className="bg-white/95 backdrop-blur-xl rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 shadow-none flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
+                {/* 🌟 FIX: Changed bg-white/95 backdrop-blur-xl to bg-white to instantly stop GPU crashing */}
+                <div className="bg-white rounded-[2.5rem] p-8 md:p-10 border border-zinc-200 flex flex-col sm:flex-row items-center sm:items-start text-center sm:text-left gap-6 relative overflow-hidden transition-colors">
                   <div className="w-16 h-16 rounded-2xl bg-zinc-50 border border-zinc-100 flex items-center justify-center shrink-0 text-brandDark">
                     {feature.icon}
                   </div>
