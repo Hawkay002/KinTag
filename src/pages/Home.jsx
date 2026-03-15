@@ -139,6 +139,7 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
+      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
         <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
           <GlassSurface width="100%" borderRadius={40}>
@@ -170,19 +171,19 @@ export default function Home() {
         </div>
       </div>
 
-      <section className="pt-32 md:pt-40 pb-20 relative overflow-hidden flex flex-col items-center min-h-[90vh]">
+      <section className="relative w-full overflow-hidden flex flex-col items-center pt-32 md:pt-40 pb-20 bg-[#fafafa]">
         
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
         
-        {/* 🌟 GLOBE FIX: Forced absolute positioning completely detaches it from the flex flow. 
-            top-48 guarantees the top boundary renders inside the visible area, so it's impossible to cut off! */}
-        <div className="absolute top-48 sm:top-40 md:top-32 left-1/2 -translate-x-1/2 w-[160vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] z-10 pointer-events-none [mask-image:linear-gradient(to_bottom,black_40%,transparent_80%)] opacity-80">
-          <ScrollReveal delay={50} className="w-full flex justify-center">
+        {/* 🌟 THE GLOBE FIX: Absolutely centered at the top of the section.
+            No margins fighting the view box. Fades out perfectly starting at 45% (the equator). */}
+        <div className="absolute top-0 left-0 w-full h-[70vh] md:h-[85vh] flex items-center justify-center pointer-events-none z-0 [mask-image:linear-gradient(to_bottom,black_45%,transparent_60%)]">
+          <div className="w-[160vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] opacity-80 mt-10 md:mt-20">
              <Globe className="!max-w-none w-full" />
-          </ScrollReveal>
+          </div>
         </div>
-
-        <div className="max-w-5xl mx-auto text-center relative z-30 px-4 w-full mb-10">
+        
+        <div className="relative z-10 max-w-5xl mx-auto text-center px-4 w-full">
           <ScrollReveal delay={0}>
             <div className="inline-flex items-center space-x-2.5 bg-white/50 backdrop-blur-sm border border-zinc-200 px-4 py-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all cursor-default">
               <span className="relative flex h-2.5 w-2.5">
@@ -192,11 +193,9 @@ export default function Home() {
               <span className="text-xs font-extrabold uppercase tracking-widest text-zinc-600">V1.1.1 is now live!</span>
             </div>
           </ScrollReveal>
-        </div>
-        
-        <div className="max-w-5xl mx-auto text-center relative z-20 px-4 w-full mt-4 md:mt-0">
+          
           <ScrollReveal delay={100}>
-            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md">
+            <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md mt-8">
               The ultimate digital <br className="hidden md:block"/> safety net for your family.
             </h1>
           </ScrollReveal>
@@ -237,30 +236,27 @@ export default function Home() {
           </ScrollReveal>
 
           <ScrollReveal delay={500}>
-            <div className="relative mx-auto max-w-5xl mt-12 md:mt-24">
-              
-              <div className="flex justify-center mb-10 relative z-40">
-                <div className="inline-flex items-center gap-2 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 text-white px-4 py-2 rounded-full shadow-2xl">
-                  <Info size={14} className="text-brandGold shrink-0" />
-                  <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase">
-                    Live Preview: Action buttons disabled
-                  </span>
-                </div>
+            <div className="flex justify-center mb-10">
+              <div className="inline-flex items-center gap-2 bg-zinc-900/90 backdrop-blur-xl border border-zinc-700 text-white px-4 py-2 rounded-full shadow-2xl">
+                <Info size={14} className="text-brandGold shrink-0" />
+                <span className="text-[10px] md:text-xs font-bold tracking-widest uppercase">
+                  Live Preview: Action buttons disabled
+                </span>
               </div>
+            </div>
 
-              <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
-                <FloatingPhone 
-                  imageSrc="/preview-left.jpg" 
-                  facing="left"
-                  className="w-[280px] md:w-[320px] aspect-[9/19.5]"
-                />
-                
-                <FloatingPhone 
-                  imageSrc="/preview-right.jpg" 
-                  facing="right"
-                  className="w-[280px] md:w-[310px] aspect-[9/20]"
-                />
-              </div>
+            <div className="flex flex-col md:flex-row justify-center items-center gap-16 md:gap-24 perspective-[1200px] w-full pb-10 md:pb-0 relative z-30 mt-12">
+              <FloatingPhone 
+                imageSrc="/preview-left.jpg" 
+                facing="left"
+                className="w-[280px] md:w-[320px] aspect-[9/19.5]"
+              />
+              
+              <FloatingPhone 
+                imageSrc="/preview-right.jpg" 
+                facing="right"
+                className="w-[280px] md:w-[310px] aspect-[9/20]"
+              />
             </div>
           </ScrollReveal>
         </div>
@@ -593,7 +589,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 🌟 SPARKLES COMPLETELY REMOVED */}
       <section className="py-32 bg-white text-center px-4 border-t border-zinc-100">
         <ScrollReveal>
           <div className="w-20 h-20 bg-brandGold/10 rounded-[2rem] flex items-center justify-center mx-auto mb-8">
@@ -620,7 +615,7 @@ export default function Home() {
   );
 }
 
-function ScrollReveal({ children, delay = 0, className = "" }) {
+function ScrollReveal({ children, delay = 0 }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
 
@@ -647,7 +642,7 @@ function ScrollReveal({ children, delay = 0, className = "" }) {
     <div 
       ref={ref} 
       style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'} ${className}`}
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'}`}
     >
       {children}
     </div>
