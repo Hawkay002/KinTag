@@ -110,7 +110,7 @@ export default function Admin() {
           timestamp: serverTimestamp() 
         });
 
-        // 🌟 FIX: Trigger the existing notify.js endpoint with the 'broadcast' type
+        // 🌟 UPDATED: Triggers notify.js instead of broadcast.js
         await fetch('/api/notify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
