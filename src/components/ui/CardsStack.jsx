@@ -7,7 +7,6 @@ const ContainerScroll = React.forwardRef(({ children, className, ...props }, ref
   return (
     <div
       ref={ref}
-      // 🌟 FIX: Removed perspective! Transforms on parents break sticky positioning.
       className={`relative w-full ${className || ""}`}
       {...props}
     >
@@ -30,23 +29,29 @@ const CardSticky = React.forwardRef(
     ref
   ) => {
     return (
-      <motion.div
+      // 🌟 WRAPPER 1: Pure CSS for bulletproof sticky positioning
+      <div
         ref={ref}
-        // 🌟 FIX: Added smooth entry animations and removed buggy layout constraints
-        initial={{ opacity: 0, y: 60 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true, margin: "-50px" }}
+        className={`sticky ${className || ""}`}
         style={{
-          // 🌟 Calculates the exact top offset so they stack neatly under the navbar like a deck of cards
+          // Calculates the exact top offset so they stack neatly under the navbar
           top: `calc(15vh + ${index * incrementY}px)`, 
           zIndex: index,
           ...style,
         }}
-        className={`sticky ${className || ""}`}
         {...props}
       >
-        {children}
-      </motion.div>
+        {/* 🌟 WRAPPER 2: Framer motion for the slide-up reveal (isolated from sticky) */}
+        <motion.div
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.5, ease: "easeOut" }}
+          className="w-full h-full"
+        >
+          {children}
+        </motion.div>
+      </div>
     )
   }
 )
