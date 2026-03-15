@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   try {
     const db = admin.firestore();
 
-    // 🌟 THE NEW GLOBAL BROADCAST LOGIC
+    // 🌟 GLOBAL BROADCAST LOGIC (System Messages)
     if (type === 'broadcast') {
       const usersSnap = await db.collection('users').get();
       const tokens = [];
@@ -40,26 +40,39 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: "No tokens found." });
       }
 
-      const message = {
-        notification: { title, body },
-        webpush: {
-          notification: {
-            icon: "https://kintag.vercel.app/kintag-logo.png",
-            data: { url: "https://kintag.vercel.app/#/?view=notifications" }
-          },
-          fcmOptions: {
-            link: "https://kintag.vercel.app/#/?view=notifications"
-          }
-        },
-        tokens: tokens, // Array of all tokens in database
-      };
+      // Firebase limits Multicast to 500 tokens per request. This safely chunks them.
+      const batches = [];
+      for (let i = 0; i < tokens.length; i += 500) {
+        batches.push(tokens.slice(i, i + 500));
+      }
 
-      const response = await admin.messaging().sendMulticast(message);
-      return res.status(200).json({ success: true, sentCount: response.successCount });
+      let sentCount = 0;
+
+      for (const batch of batches) {
+        // EXACT same payload as specific scans to ensure Mobile PWA compatibility
+        const message = {
+          notification: { title, body },
+          webpush: {
+            notification: {
+              icon: "https://kintag.vercel.app/kintag-logo.png"
+            },
+            fcmOptions: {
+              link: "https://kintag.vercel.app/#/?view=notifications"
+            }
+          },
+          tokens: batch, 
+        };
+
+        // sendEachForMulticast is the modern, highly-stable method for broadcasting
+        const response = await admin.messaging().sendEachForMulticast(message);
+        sentCount += response.successCount;
+      }
+
+      return res.status(200).json({ success: true, sentCount });
     }
 
     // ---------------------------------------------------------
-    // ORIGINAL LOGIC FOR SCANS / ALERTS (Specific User)
+    // 🌟 ORIGINAL LOGIC FOR SPECIFIC SCANS (Kids/Pets Found)
     // ---------------------------------------------------------
     if (!ownerId) {
       return res.status(400).json({ error: "Owner ID required for direct notifications" });
@@ -71,6 +84,7 @@ export default async function handler(req, res) {
     const fcmToken = userDoc.data().fcmToken;
     if (!fcmToken) return res.status(400).json({ error: "Owner has no FCM token saved" });
 
+    // This exact payload works perfectly on mobile
     const message = {
       notification: { title, body },
       webpush: {
@@ -90,7 +104,7 @@ export default async function handler(req, res) {
   } catch (error) {
     console.error("Push Error Details:", error);
     
-    // Automatically clean up dead tokens to prevent crashes
+    // Automatically clean up dead tokens to prevent server crashes
     if (error.code === 'messaging/registration-token-not-registered') {
         if (ownerId) {
             const db = admin.firestore();
