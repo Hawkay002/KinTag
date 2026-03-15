@@ -5,7 +5,6 @@ export default function Globe({ className }) {
   const canvasRef = useRef();
   const inViewRef = useRef(true);
 
-  // 🌟 Smart Observer: Pauses the globe's heavy WebGL rendering when scrolled out of view
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { inViewRef.current = entry.isIntersecting; },
@@ -26,7 +25,8 @@ export default function Globe({ className }) {
     if (!canvasRef.current) return;
 
     const globe = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
+      // 🌟 GPU FIX: Capped pixel ratio to prevent memory crashes on super-retina mobile screens
+      devicePixelRatio: Math.min(window.devicePixelRatio, 1.2),
       width: width * 2,
       height: width * 2,
       phi: phi,
@@ -49,7 +49,6 @@ export default function Globe({ className }) {
         { location: [35.6895, 139.6917], size: 0.08 },  
       ],
       onRender: (state) => {
-        // 🌟 If out of view, return immediately to free up the CPU/GPU thread!
         if (!inViewRef.current) return; 
 
         phi += 0.003;
