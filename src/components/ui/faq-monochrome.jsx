@@ -3,7 +3,6 @@ import { ChevronDown } from "lucide-react";
 
 const INTRO_STYLE_ID = "faq1-animations";
 
-// Locked exclusively to the Dark palette
 const palette = {
   surface: "bg-zinc-950 text-zinc-100",
   panel: "bg-zinc-900/50",
@@ -31,16 +30,15 @@ export function FAQMonochrome({ faqs = [] }) {
     const style = document.createElement("style");
     style.id = INTRO_STYLE_ID;
     
-    // Cleaned up CSS: Only dark mode animations remaining
+    // 🌟 GPU FIX: Removed heavy filters and mix-blend-modes from keyframes!
     style.innerHTML = `
       @keyframes faq1-fade-up {
-        0% { transform: translate3d(0, 20px, 0); opacity: 0; filter: blur(6px); }
-        60% { filter: blur(0); }
-        100% { transform: translate3d(0, 0, 0); opacity: 1; filter: blur(0); }
+        0% { transform: translate3d(0, 20px, 0); opacity: 0; }
+        100% { transform: translate3d(0, 0, 0); opacity: 1; }
       }
       @keyframes faq1-beam-spin {
-        0% { transform: rotate(0deg) scale(1); }
-        100% { transform: rotate(360deg) scale(1); }
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
       @keyframes faq1-pulse {
         0% { transform: scale(0.7); opacity: 0.55; }
@@ -74,17 +72,14 @@ export function FAQMonochrome({ faqs = [] }) {
         width: 100%;
         max-width: 24rem;
         margin: 0 auto;
-        mix-blend-mode: screen;
         opacity: 0;
         transform: translate3d(0, 12px, 0);
-        filter: blur(8px);
-        transition: opacity 720ms ease, transform 720ms ease, filter 720ms ease;
+        transition: opacity 720ms ease, transform 720ms ease;
         isolation: isolate;
       }
       .faq1-intro--active {
         opacity: 1;
         transform: translate3d(0, 0, 0);
-        filter: blur(0);
       }
       .faq1-intro__beam,
       .faq1-intro__pulse {
@@ -133,8 +128,7 @@ export function FAQMonochrome({ faqs = [] }) {
       .faq1-fade {
         opacity: 0;
         transform: translate3d(0, 24px, 0);
-        filter: blur(12px);
-        transition: opacity 700ms ease, transform 700ms ease, filter 700ms ease;
+        transition: opacity 700ms ease, transform 700ms ease;
       }
       .faq1-fade--ready {
         animation: faq1-fade-up 860ms cubic-bezier(0.22, 0.68, 0, 1) forwards;
@@ -164,6 +158,8 @@ export function FAQMonochrome({ faqs = [] }) {
   const toggleQuestion = (index) => setActiveIndex((prev) => (prev === index ? -1 : index));
 
   const setCardGlow = (event) => {
+    // Disable hover glows on mobile to prevent paint thrashing
+    if (window.innerWidth < 768) return;
     const target = event.currentTarget;
     const rect = target.getBoundingClientRect();
     target.style.setProperty("--faq-x", `${event.clientX - rect.left}px`);
@@ -219,7 +215,8 @@ export function FAQMonochrome({ faqs = [] }) {
             return (
               <li
                 key={index}
-                className={`group relative overflow-hidden rounded-[2rem] border backdrop-blur-xl transition-all duration-500 hover:-translate-y-0.5 focus-within:-translate-y-0.5 ${palette.border} ${palette.panel} ${palette.shadow}`}
+                // Removed backdrop-blur-xl from list items for mobile performance
+                className={`group relative overflow-hidden rounded-[2rem] border bg-zinc-900/90 transition-all duration-500 hover:-translate-y-0.5 focus-within:-translate-y-0.5 ${palette.border} ${palette.shadow}`}
                 onMouseMove={setCardGlow}
                 onMouseLeave={clearCardGlow}
               >
