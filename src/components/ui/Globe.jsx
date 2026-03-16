@@ -5,6 +5,7 @@ export default function Globe({ className }) {
   const canvasRef = useRef();
   const inViewRef = useRef(true);
 
+  // Smart Observer: Pauses the globe's heavy WebGL rendering when scrolled out of view
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { inViewRef.current = entry.isIntersecting; },
@@ -24,9 +25,10 @@ export default function Globe({ className }) {
     
     if (!canvasRef.current) return;
 
+    // 🌟 FIX: Restored hardcoded devicePixelRatio to 2. 
+    // Changing this previously caused the cobe library to miscalculate and chop the top off!
     const globe = createGlobe(canvasRef.current, {
-      // 🌟 GPU FIX: Capped pixel ratio to prevent memory crashes on super-retina mobile screens
-      devicePixelRatio: Math.min(window.devicePixelRatio, 1.2),
+      devicePixelRatio: 2,
       width: width * 2,
       height: width * 2,
       phi: phi,
