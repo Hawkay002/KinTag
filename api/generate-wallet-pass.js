@@ -5,7 +5,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  const { profileId, petName, petImageUrl } = req.body;
+  const { profileId, petName } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
@@ -13,11 +13,8 @@ export default async function handler(req, res) {
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 THE CACHE KILLER: We attach a random 6-character string to the ID.
-    // Google's servers will now treat every single click as a brand new pass
-    // and will be forced to download the image fresh.
-    const randomString = Math.random().toString(36).substring(2, 8);
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${randomString}`;
+    // Forces a fresh pass every time
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     const passObject = {
       id: uniquePassId,
@@ -33,10 +30,13 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
-      // EXACT CODE YOU PROVED WORKED FOR THE KID
+      // 🛑 DIAGNOSTIC TEST: Using a static, guaranteed-to-work Google URL
       heroImage: {
         sourceUri: { 
-          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+          uri: "https://storage.googleapis.com/wallet-lab-tools-codelab-artifacts-public/pass_google_logo.jpg" 
+        },
+        contentDescription: {
+          defaultValue: { language: "en", value: "Google Test Image" }
         }
       },
       barcode: {
@@ -60,6 +60,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Wallet Generation Error:", error);
-    return res.status(500).json({ error: "Failed to generate pass. Check server logs." });
+    return res.status(500).json({ error: "Failed to generate pass." });
   }
 }
