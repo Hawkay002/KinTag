@@ -1,5 +1,12 @@
 import jwt from 'jsonwebtoken';
 
+// 🌟 FIX 1: Changed f_auto to f_jpg. Google Wallet strictly requires JPEGs or PNGs. 
+// WebP will crash the pass instantly!
+function optimizeImageForWallet(url) {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  return url.replace('/upload/', '/upload/w_1032,h_336,c_fill,g_auto,q_auto,f_jpg/');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
@@ -13,9 +20,8 @@ export default async function handler(req, res) {
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // 🌟 CACHE BUSTER: Appending Date.now() forces Google to generate a brand NEW pass
-    // instead of showing you the old, cached version without the picture!
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
+    // Creates a unique ID so Google is forced to fetch the newest photo
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Math.floor(Date.now() / 1000)}`;
 
     const passObject = {
       id: uniquePassId,
@@ -31,22 +37,25 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
-      // 🌟 ACCESSIBILITY FIX: Added contentDescription. 
-      // Google silently deletes images that don't have alt-text for screen readers!
-      heroImage: {
-        sourceUri: { 
-          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
-        },
-        contentDescription: {
-          defaultValue: { language: "en", value: `${petName}'s Profile Picture` }
-        }
-      },
       barcode: {
         type: "QR_CODE",
         value: `https://kintag.vercel.app/#/id/${profileId}`,
         alternateText: "Scan to view emergency profile"
       }
     };
+
+    // 🌟 FIX 2: Only attach the heroImage if the petImageUrl actually exists.
+    // This prevents Google from crashing due to a 404 placeholder image.
+    if (petImageUrl) {
+      passObject.heroImage = {
+        sourceUri: { 
+          uri: optimizeImageForWallet(petImageUrl)
+        },
+        contentDescription: {
+          defaultValue: { language: "en", value: `${petName || 'Profile'} Picture` }
+        }
+      };
+    }
 
     const claims = {
       iss: credentials.client_email,
