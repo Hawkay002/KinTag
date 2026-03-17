@@ -1,22 +1,26 @@
 import jwt from 'jsonwebtoken';
 
+// 🌟 MAGIC FIX: Auto-compresses and crops the image precisely for Google Wallet
+function optimizeImageForWallet(url) {
+  if (!url || !url.includes('cloudinary.com')) return url;
+  // Resizes to 1032x336, crops to focus on the subject's face (g_auto), and optimizes file size (q_auto)
+  return url.replace('/upload/', '/upload/w_1032,h_336,c_fill,g_auto,q_auto,f_auto/');
+}
+
 export default async function handler(req, res) {
   // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
-  // Accept petImageUrl from the dashboard
   const { profileId, petName, petImageUrl } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     const CLASS_ID = `${ISSUER_ID}.kintag_id`; 
     
-    // Parse the JSON string from your environment variables
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // Build the specific pass for this user
     const passObject = {
       id: `${ISSUER_ID}.${profileId}`,
       classId: CLASS_ID,
@@ -31,12 +35,10 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
-      // 🌟 FIX: We explicitly include the heroImage module data here.
-      // Once you enable the module in the console, this image will appear.
       heroImage: {
         sourceUri: { 
-          // Use the real image URL if available, otherwise use a placeholder
-          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+          // 🌟 We run the image through the optimizer before sending it to Google!
+          uri: optimizeImageForWallet(petImageUrl) || "https://kintag.vercel.app/placeholder-hero.png" 
         }
       },
       barcode: {
@@ -46,7 +48,6 @@ export default async function handler(req, res) {
       }
     };
 
-    // The required Google payload structure
     const claims = {
       iss: credentials.client_email,
       aud: "google",
@@ -55,10 +56,8 @@ export default async function handler(req, res) {
       payload: { genericObjects: [passObject] }
     };
 
-    // Cryptographically sign the token using the private key
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
 
-    // Send the token back to the frontend
     return res.status(200).json({ success: true, token });
 
   } catch (error) {
