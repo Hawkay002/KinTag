@@ -1,14 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-// 🌟 MAGIC FIX: Auto-compresses and crops the image precisely for Google Wallet
-function optimizeImageForWallet(url) {
-  if (!url || !url.includes('cloudinary.com')) return url;
-  // Resizes to 1032x336, crops to focus on the subject's face (g_auto), and optimizes file size (q_auto)
-  return url.replace('/upload/', '/upload/w_1032,h_336,c_fill,g_auto,q_auto,f_auto/');
-}
-
 export default async function handler(req, res) {
-  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
@@ -21,8 +13,12 @@ export default async function handler(req, res) {
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
+    // 🌟 CACHE BUSTER: Appending Date.now() forces Google to generate a brand NEW pass
+    // instead of showing you the old, cached version without the picture!
+    const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
+
     const passObject = {
-      id: `${ISSUER_ID}.${profileId}`,
+      id: uniquePassId,
       classId: CLASS_ID,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: "#18181b", 
@@ -35,10 +31,14 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
+      // 🌟 ACCESSIBILITY FIX: Added contentDescription. 
+      // Google silently deletes images that don't have alt-text for screen readers!
       heroImage: {
         sourceUri: { 
-          // 🌟 We run the image through the optimizer before sending it to Google!
-          uri: optimizeImageForWallet(petImageUrl) || "https://kintag.vercel.app/placeholder-hero.png" 
+          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+        },
+        contentDescription: {
+          defaultValue: { language: "en", value: `${petName}'s Profile Picture` }
         }
       },
       barcode: {
@@ -62,6 +62,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Wallet Generation Error:", error);
-    return res.status(500).json({ error: "Failed to generate pass. Check server logs." });
+    return res.status(500).json({ error: "Failed to generate pass." });
   }
 }
