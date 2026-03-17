@@ -1,30 +1,24 @@
 import jwt from 'jsonwebtoken';
 
-// 🌟 FIX 1: Changed f_auto to f_jpg. Google Wallet strictly requires JPEGs or PNGs. 
-// WebP will crash the pass instantly!
-function optimizeImageForWallet(url) {
-  if (!url || !url.includes('cloudinary.com')) return url;
-  return url.replace('/upload/', '/upload/w_1032,h_336,c_fill,g_auto,q_auto,f_jpg/');
-}
-
 export default async function handler(req, res) {
+  // Only allow POST requests
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
   
+  // Accept petImageUrl from the dashboard
   const { profileId, petName, petImageUrl } = req.body;
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     const CLASS_ID = `${ISSUER_ID}.kintag_id`; 
     
+    // Parse the JSON string from your environment variables
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // Creates a unique ID so Google is forced to fetch the newest photo
-    const uniquePassId = `${ISSUER_ID}.${profileId}-${Math.floor(Date.now() / 1000)}`;
-
+    // Build the specific pass for this user
     const passObject = {
-      id: uniquePassId,
+      id: `${ISSUER_ID}.${profileId}`,
       classId: CLASS_ID,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
       hexBackgroundColor: "#18181b", 
@@ -37,6 +31,14 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
+      // 🌟 FIX: We explicitly include the heroImage module data here.
+      // Once you enable the module in the console, this image will appear.
+      heroImage: {
+        sourceUri: { 
+          // Use the real image URL if available, otherwise use a placeholder
+          uri: petImageUrl || "https://kintag.vercel.app/placeholder-hero.png" 
+        }
+      },
       barcode: {
         type: "QR_CODE",
         value: `https://kintag.vercel.app/#/id/${profileId}`,
@@ -44,19 +46,7 @@ export default async function handler(req, res) {
       }
     };
 
-    // 🌟 FIX 2: Only attach the heroImage if the petImageUrl actually exists.
-    // This prevents Google from crashing due to a 404 placeholder image.
-    if (petImageUrl) {
-      passObject.heroImage = {
-        sourceUri: { 
-          uri: optimizeImageForWallet(petImageUrl)
-        },
-        contentDescription: {
-          defaultValue: { language: "en", value: `${petName || 'Profile'} Picture` }
-        }
-      };
-    }
-
+    // The required Google payload structure
     const claims = {
       iss: credentials.client_email,
       aud: "google",
@@ -65,12 +55,14 @@ export default async function handler(req, res) {
       payload: { genericObjects: [passObject] }
     };
 
+    // Cryptographically sign the token using the private key
     const token = jwt.sign(claims, credentials.private_key, { algorithm: 'RS256' });
 
+    // Send the token back to the frontend
     return res.status(200).json({ success: true, token });
 
   } catch (error) {
     console.error("Wallet Generation Error:", error);
-    return res.status(500).json({ error: "Failed to generate pass." });
+    return res.status(500).json({ error: "Failed to generate pass. Check server logs." });
   }
 }
