@@ -21,7 +21,7 @@ export default async function handler(req, res) {
       id: uniquePassId,
       classId: CLASS_ID,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
-      hexBackgroundColor: "#18181b", 
+      hexBackgroundColor: "#2596be", 
       logo: {
         sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
         contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
