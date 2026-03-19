@@ -3,9 +3,10 @@ import { db, auth } from '../firebase';
 import { collection, addDoc, doc, getDoc } from 'firebase/firestore';
 import { QRCodeCanvas } from 'qrcode.react';
 import { useNavigate } from 'react-router-dom';
-// 🌟 FIXED: Added missing ShieldCheck and CheckCircle2 imports!
 import { Download, Plus, X, MapPin, Loader2, Check, CheckCircle2, Info, ShieldCheck } from 'lucide-react';
 import { sortedCountryCodes } from '../data/countryCodes';
+import Cropper from 'react-easy-crop';
+import imageCompression from 'browser-image-compression';
 
 const QR_STYLES = {
   obsidian: { name: 'Classic Obsidian', fg: '#18181b', bg: '#ffffff', border: 'border-zinc-200', hexBorder: '#e4e4e7' },
@@ -16,10 +17,58 @@ const QR_STYLES = {
   sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200', hexBorder: '#fde68a' },
 };
 
+// --- CROPPER UTILITY FUNCTIONS ---
+const createImage = (url) =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', (error) => reject(error));
+    image.setAttribute('crossOrigin', 'anonymous');
+    image.src = url;
+  });
+
+async function getCroppedImg(imageSrc, pixelCrop) {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+
+  if (!ctx) return null;
+
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  return new Promise((resolve) => {
+    canvas.toBlob((blob) => {
+      resolve(blob);
+    }, 'image/jpeg', 1);
+  });
+}
+// ----------------------------------
+
 export default function CreateCard() {
   const navigate = useNavigate();
   const [type, setType] = useState('kid');
   const [imageFile, setImageFile] = useState(null);
+  
+  // Crop & Compress States
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [imageSrc, setImageSrc] = useState(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState(null);
+
   const [loading, setLoading] = useState(false);
   const [isFetchingLoc, setIsFetchingLoc] = useState(false);
   const [generatedUrl, setGeneratedUrl] = useState('');
@@ -133,6 +182,50 @@ export default function CreateCard() {
       throw new Error("Upload failed");
     }
   };
+
+  // --- IMAGE PIPELINE LOGIC ---
+  const handleImageSelect = async (e) => {
+    if (e.target.files && e.target.files.length > 0) {
+      const file = e.target.files[0];
+      const reader = new FileReader();
+      reader.addEventListener('load', () => {
+        setImageSrc(reader.result);
+        setShowCropModal(true);
+      });
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  };
+
+  const handleCropSave = async () => {
+    try {
+      // 1. Get the cropped image blob
+      const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      
+      // 2. Compress the cropped image down to ~200KB, max width 1000px
+      const options = {
+        maxSizeMB: 0.2, 
+        maxWidthOrHeight: 1000,
+        useWebWorker: true,
+      };
+      
+      const compressedFile = await imageCompression(croppedBlob, options);
+      
+      // 3. Create final File object for Cloudinary
+      const finalFile = new File([compressedFile], "profile_pic.jpg", { type: "image/jpeg" });
+      
+      setImageFile(finalFile);
+      setShowCropModal(false);
+    } catch (e) {
+      console.error(e);
+      setError("Failed to crop and compress image.");
+      setShowCropModal(false);
+    }
+  };
+  // -----------------------------
 
   const handleSave = async (e) => {
     e.preventDefault();
@@ -253,7 +346,14 @@ export default function CreateCard() {
 
             <div>
               <label className={labelStyles}>Profile Image (Optional)</label>
-              <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files[0])} className="w-full p-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandDark file:text-white hover:file:bg-brandAccent transition-all cursor-pointer text-zinc-500 font-medium" />
+              <div className="flex items-center gap-4">
+                <input type="file" accept="image/*" onChange={handleImageSelect} className="flex-1 p-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm file:mr-4 file:py-3 file:px-6 file:rounded-lg file:border-0 file:text-sm file:font-bold file:bg-brandDark file:text-white hover:file:bg-brandAccent transition-all cursor-pointer text-zinc-500 font-medium" />
+                {imageFile && (
+                  <div className="w-12 h-12 rounded-xl bg-zinc-200 overflow-hidden shrink-0 shadow-inner border border-zinc-300">
+                    <img src={URL.createObjectURL(imageFile)} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -600,6 +700,46 @@ export default function CreateCard() {
             </div>
           </div>
         )}
+
+        {/* --- CROP MODAL --- */}
+        {showCropModal && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-md">
+            <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
+              <div className="p-6 border-b border-zinc-100 flex justify-between items-center">
+                <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Crop Photo</h3>
+                <button onClick={() => setShowCropModal(false)} className="p-2 bg-zinc-50 rounded-full text-zinc-400 hover:text-red-500 transition-colors"><X size={20}/></button>
+              </div>
+              <div className="relative w-full h-80 bg-zinc-900">
+                <Cropper
+                  image={imageSrc}
+                  crop={crop}
+                  zoom={zoom}
+                  aspect={1}
+                  onCropChange={setCrop}
+                  onCropComplete={onCropComplete}
+                  onZoomChange={setZoom}
+                  cropShape="rect"
+                  showGrid={false}
+                />
+              </div>
+              <div className="p-6">
+                <input 
+                  type="range" 
+                  value={zoom} 
+                  min={1} 
+                  max={3} 
+                  step={0.1} 
+                  aria-labelledby="Zoom" 
+                  onChange={(e) => setZoom(e.target.value)} 
+                  className="w-full mb-6 accent-brandDark"
+                />
+                <button onClick={handleCropSave} className="w-full bg-brandDark text-white py-4 rounded-xl font-bold text-lg shadow-lg hover:bg-brandAccent active:scale-95 transition-all">Apply & Compress</button>
+              </div>
+            </div>
+          </div>
+        )}
+        {/* ------------------ */}
+
       </div>
     </div>
   );
