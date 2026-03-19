@@ -17,7 +17,6 @@ const QR_STYLES = {
   sunshine: { name: 'Sunshine Orange', fg: '#d97706', bg: '#fffbeb', border: 'border-amber-200', hexBorder: '#fde68a' },
 };
 
-// --- CROPPER UTILITY FUNCTIONS ---
 const createImage = (url) =>
   new Promise((resolve, reject) => {
     const image = new Image();
@@ -39,12 +38,10 @@ async function getCroppedImg(imageSrc, pixelCrop) {
     canvas.toBlob((blob) => { resolve(blob); }, 'image/jpeg', 1);
   });
 }
-// ----------------------------------
 
 export default function CreateCard() {
   const navigate = useNavigate();
   
-  // STEPPER STATE
   const [currentStep, setCurrentStep] = useState(0);
   const stepTitles = ["Basic Info", "Health Details", "Location Info", "Emergency Contacts", "Vault & Style"];
   const totalSteps = stepTitles.length;
@@ -52,7 +49,6 @@ export default function CreateCard() {
   const [type, setType] = useState('kid');
   const [imageFile, setImageFile] = useState(null);
   
-  // Crop & Compress States
   const [showCropModal, setShowCropModal] = useState(false);
   const [imageSrc, setImageSrc] = useState(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -138,15 +134,14 @@ export default function CreateCard() {
     } catch (err) { throw new Error("Upload failed"); }
   };
 
-  // --- IMAGE PIPELINE LOGIC ---
   const handleImageSelect = async (e) => {
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       const reader = new FileReader();
-      reader.addEventListener('load', () => {
+      reader.onload = () => {
         setImageSrc(reader.result);
         setShowCropModal(true);
-      });
+      };
       reader.readAsDataURL(file);
     }
   };
@@ -155,7 +150,11 @@ export default function CreateCard() {
     setShowCropModal(false);
     setImageSrc(null);
     const fileInput = document.getElementById('image-upload-input');
-    if (fileInput) fileInput.value = '';
+    if (fileInput) fileInput.value = ''; 
+  };
+
+  const onCropComplete = (croppedArea, croppedAreaPixels) => {
+    setCroppedAreaPixels(croppedAreaPixels);
   };
 
   const handleCropSave = async () => {
@@ -175,13 +174,11 @@ export default function CreateCard() {
       setIsCompressing(false);
     }
   };
-  // -----------------------------
 
   const handleNextStep = (e) => {
     e.preventDefault();
     setError('');
     
-    // Step-specific validations before moving next
     if (currentStep === 3) {
       if (contacts.some(c => !c.name || !c.phone || (c.tag === 'Other' && !c.customTag))) {
         return setError("Please fill out all contact names, phone numbers, and custom tags before continuing.");
@@ -255,14 +252,19 @@ export default function CreateCard() {
       <div className="max-w-3xl mx-auto w-full bg-white/90 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-6 md:p-10 border border-zinc-200/80 relative z-10">
         
         {!generatedUrl && (
-          <button type="button" onClick={() => navigate('/dashboard')} className="absolute top-6 right-6 md:top-8 md:right-8 p-2.5 bg-white text-zinc-400 hover:text-brandDark border border-zinc-200 hover:border-zinc-300 hover:shadow-sm rounded-full transition-all active:scale-95 z-20" title="Cancel & Go Back">
-            <X size={20} />
-          </button>
+          <div className="flex justify-between items-start mb-10">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-brandDark tracking-tight mb-2">Create Identity</h1>
+              <p className="text-zinc-500 font-medium">Register a new digital contact card for your loved one.</p>
+            </div>
+            <button type="button" onClick={() => navigate('/dashboard')} className="p-2.5 bg-white text-zinc-400 hover:text-brandDark border border-zinc-200 hover:border-zinc-300 hover:shadow-sm rounded-full transition-all active:scale-95" title="Cancel & Go Back">
+              <X size={20} />
+            </button>
+          </div>
         )}
 
-        {/* --- STEPPER PROGRESS BAR --- */}
         {!generatedUrl && (
-          <div className="mb-10 pt-2">
+          <div className="mb-10">
             <div className="flex justify-between items-center relative max-w-lg mx-auto px-4">
               <div className="absolute left-6 right-6 top-1/2 h-1 bg-zinc-200 -z-10 -translate-y-1/2 rounded-full"></div>
               <div className="absolute left-6 top-1/2 h-1 bg-brandDark -z-10 -translate-y-1/2 rounded-full transition-all duration-500" style={{ width: `calc(${(currentStep / (totalSteps - 1)) * 100}% - 48px)` }}></div>
@@ -274,7 +276,7 @@ export default function CreateCard() {
               ))}
             </div>
             <div className="text-center mt-6">
-              <h1 className="text-3xl font-extrabold text-brandDark tracking-tight mb-1">{stepTitles[currentStep]}</h1>
+              <h1 className="text-2xl font-extrabold text-brandDark tracking-tight mb-1">{stepTitles[currentStep]}</h1>
               <p className="text-sm font-medium text-zinc-500">Step {currentStep + 1} of {totalSteps}</p>
             </div>
           </div>
@@ -285,7 +287,6 @@ export default function CreateCard() {
         {!generatedUrl ? (
           <form onSubmit={handleNextStep} className="space-y-6">
             
-            {/* STEP 1: BASIC INFO */}
             {currentStep === 0 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -354,7 +355,6 @@ export default function CreateCard() {
               </div>
             )}
 
-            {/* STEP 2: HEALTH DETAILS */}
             {currentStep === 1 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -392,7 +392,6 @@ export default function CreateCard() {
               </div>
             )}
 
-            {/* STEP 3: LOCATION INFO */}
             {currentStep === 2 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500 space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -412,7 +411,6 @@ export default function CreateCard() {
               </div>
             )}
 
-            {/* STEP 4: EMERGENCY CONTACTS */}
             {currentStep === 3 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500 space-y-6">
                 <div className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
@@ -462,7 +460,6 @@ export default function CreateCard() {
               </div>
             )}
 
-            {/* STEP 5: VAULT & STYLE */}
             {currentStep === 4 && (
               <div className="animate-in slide-in-from-right-8 fade-in duration-500 space-y-6">
                 
@@ -516,7 +513,6 @@ export default function CreateCard() {
               </div>
             )}
 
-            {/* --- STEPPER CONTROLS --- */}
             <div className="flex flex-col-reverse sm:flex-row gap-4 pt-8 mt-8 border-t border-zinc-200/80">
               {currentStep === 0 ? (
                 <button type="button" onClick={() => navigate('/dashboard')} className="w-full sm:w-1/3 bg-white border border-zinc-200 text-brandDark p-4 rounded-xl font-bold hover:bg-zinc-50 transition-colors text-center shadow-sm active:scale-95">Cancel</button>
@@ -551,7 +547,6 @@ export default function CreateCard() {
         )}
       </div>
 
-      {/* --- CROP MODAL (FIXED POSITIONING & CANCELLATION) --- */}
       {showCropModal && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-zinc-950/90 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] w-full max-w-md overflow-hidden shadow-2xl flex flex-col animate-in zoom-in-95 duration-300">
@@ -559,7 +554,7 @@ export default function CreateCard() {
               <h3 className="text-xl font-extrabold text-brandDark tracking-tight">Crop Photo</h3>
               <button onClick={handleCancelCrop} className="p-2 bg-zinc-50 rounded-full text-zinc-400 hover:text-red-500 hover:bg-red-50 transition-colors"><X size={20}/></button>
             </div>
-            <div className="relative w-full h-80 bg-zinc-900">
+            <div className="relative w-full h-[400px] bg-zinc-900">
               <Cropper image={imageSrc} crop={crop} zoom={zoom} aspect={1} onCropChange={setCrop} onCropComplete={onCropComplete} onZoomChange={setZoom} cropShape="rect" showGrid={false} />
             </div>
             <div className="p-6">
@@ -571,7 +566,6 @@ export default function CreateCard() {
           </div>
         </div>
       )}
-      {/* ------------------ */}
     </div>
   );
 }
