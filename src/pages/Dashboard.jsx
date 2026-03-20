@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import GoogleWalletIcon from '../components/ui/GoogleWalletIcon';
-import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone } from 'lucide-react';
+import { Plus, User, QrCode, PawPrint, Trash2, Edit, Download, X, Eye, Search, AlertOctagon, Smartphone, Loader2, BellRing, Bell, MapPin, Info, CheckCircle2, AlertTriangle, EyeOff, Users, Siren, Megaphone, Settings, HeartHandshake, Phone } from 'lucide-react';
 import { avatars } from '../components/ui/avatar-picker'; 
 
 const QR_STYLES = {
@@ -55,16 +55,20 @@ const renderFormattedTextDark = (text) => {
 
 export default function Dashboard() {
   const [profiles, setProfiles] = useState([]);
+  const [caretakerProfiles, setCaretakerProfiles] = useState([]); 
+  const [mainTab, setMainTab] = useState('own'); 
+  
   const [scans, setScans] = useState([]);
   const [systemMessages, setSystemMessages] = useState([]);
   const [pendingInvite, setPendingInvite] = useState(null); 
 
   const [loading, setLoading] = useState(true);
   const [qrModalProfile, setQrModalProfile] = useState(null); 
+  const [caretakerViewProfile, setCaretakerViewProfile] = useState(null); 
   const [searchTerm, setSearchTerm] = useState(''); 
   const [profileToDelete, setProfileToDelete] = useState(null); 
   const [downloading, setDownloading] = useState(false);
-  const [generatingWallet, setGeneratingWallet] = useState(false); // Google Wallet Loading State
+  const [generatingWallet, setGeneratingWallet] = useState(false);
   
   // SCAN DELETION STATES
   const [scanToDelete, setScanToDelete] = useState(null);
@@ -116,10 +120,17 @@ export default function Dashboard() {
     }
   }, []);
 
+  // Force Tab Reset if Caretaker sessions expire/empty
+  useEffect(() => {
+    if (caretakerProfiles.length === 0 && mainTab !== 'own') {
+      setMainTab('own');
+    }
+  }, [caretakerProfiles, mainTab]);
+
   useEffect(() => {
     if (!currentUser) return;
 
-    let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts;
+    let unsubProfiles, unsubScans, unsubSys, unsubInvite, unsubAlerts, unsubCare;
 
     const setupListeners = async () => {
       try {
@@ -140,35 +151,47 @@ export default function Dashboard() {
         
         setUserFamilyId(currentFamilyId);
 
-        const legacyProfilesQuery = query(collection(db, "profiles"), where("userId", "==", currentUser.uid));
-        const legacySnaps = await getDocs(legacyProfilesQuery);
-        legacySnaps.forEach(async (d) => {
-           const data = d.data();
-           if (!data.familyId || data.isActive === undefined) {
-             await updateDoc(doc(db, "profiles", d.id), { familyId: currentFamilyId, isActive: data.isActive !== undefined ? data.isActive : true });
-           }
-        });
-
-        const legacyScansQuery = query(collection(db, "scans"), where("ownerId", "==", currentUser.uid));
-        const legacyScanSnaps = await getDocs(legacyScansQuery);
-        legacyScanSnaps.forEach(async (d) => {
-           if (!d.data().familyId) await updateDoc(doc(db, "scans", d.id), { familyId: currentFamilyId });
-        });
-
-        const inviteRef = doc(db, "invites", currentUser.email.toLowerCase());
-        unsubInvite = onSnapshot(inviteRef, (docSnap) => {
-           if (docSnap.exists() && docSnap.data().status === 'pending') {
-              setPendingInvite({ id: docSnap.id, ...docSnap.data() });
-           } else {
-              setPendingInvite(null);
-           }
-        });
-
+        // Core Own Profiles Listener
         const qProfiles = query(collection(db, "profiles"), where("familyId", "==", currentFamilyId));
         unsubProfiles = onSnapshot(qProfiles, (snap) => {
           const fetchedProfiles = snap.docs.map(doc => ({ id: doc.id, ...doc.data() }));
           fetchedProfiles.sort((a, b) => getTime(b.createdAt) - getTime(a.createdAt));
           setProfiles(fetchedProfiles);
+        });
+
+        // Caretaker Profiles Listener
+        const qCare = query(collection(db, "care_sessions"), where("caretakerUid", "==", currentUser.uid), where("status", "==", "active"));
+        unsubCare = onSnapshot(qCare, async (snap) => {
+          let allProfileIds = new Set();
+          const now = new Date().getTime();
+          
+          snap.docs.forEach(d => {
+            const data = d.data();
+            if (new Date(data.expiresAt).getTime() > now) {
+              (data.selectedProfiles || []).forEach(id => allProfileIds.add(id));
+            }
+          });
+          
+          const uniqueIds = Array.from(allProfileIds);
+          if (uniqueIds.length === 0) {
+            setCaretakerProfiles([]);
+            return;
+          }
+          
+          try {
+            // Firestore 'in' query has a max of 10, so we chunk it just in case
+            const chunks = [];
+            for (let i = 0; i < uniqueIds.length; i += 10) chunks.push(uniqueIds.slice(i, i + 10));
+            let fetched = [];
+            for (const chunk of chunks) {
+              const qP = query(collection(db, "profiles"), where("__name__", "in", chunk));
+              const pSnap = await getDocs(qP);
+              pSnap.forEach(p => fetched.push({ id: p.id, ...p.data() }));
+            }
+            setCaretakerProfiles(fetched);
+          } catch(e) {
+            console.error("Error fetching care profiles", e);
+          }
         });
 
         const qScans = query(collection(db, "scans"), where("familyId", "==", currentFamilyId));
@@ -199,6 +222,15 @@ export default function Dashboard() {
           isInitialSysLoad.current = false;
         });
 
+        const inviteRef = doc(db, "invites", currentUser.email.toLowerCase());
+        unsubInvite = onSnapshot(inviteRef, (docSnap) => {
+           if (docSnap.exists() && docSnap.data().status === 'pending') {
+              setPendingInvite({ id: docSnap.id, ...docSnap.data() });
+           } else {
+              setPendingInvite(null);
+           }
+        });
+
         const qAlerts = query(collection(db, "profiles"), where("kinAlertActive", "==", true));
         unsubAlerts = onSnapshot(qAlerts, (snap) => {
            setAllActiveAlerts(snap.docs.map(doc => ({ id: doc.id, ...doc.data() })));
@@ -219,6 +251,7 @@ export default function Dashboard() {
       if (unsubSys) unsubSys();
       if (unsubInvite) unsubInvite();
       if (unsubAlerts) unsubAlerts();
+      if (unsubCare) unsubCare();
     };
   }, [currentUser]);
 
@@ -254,14 +287,11 @@ export default function Dashboard() {
     if (!lostModalProfile) return;
     const profileToUpdate = lostModalProfile;
     setLostModalProfile(null); 
-    
     try {
       await updateDoc(doc(db, "profiles", profileToUpdate.id), { isLost: true });
       const updatedProfile = { ...profileToUpdate, isLost: true };
       setBroadcastModalProfile(updatedProfile);
-    } catch (e) {
-      showMessage("Error", "Failed to activate Lost Mode.", "error");
-    }
+    } catch (e) { showMessage("Error", "Failed to activate Lost Mode.", "error"); }
   };
 
   const handleConfirmBroadcast = async () => {
@@ -287,35 +317,17 @@ export default function Dashboard() {
       });
       
       targetFamilies.forEach(async (familyId) => {
-          await addDoc(collection(db, "scans"), {
-              familyId: familyId,
-              type: 'kinAlert',
-              profileName: profile.name,
-              message: `🚨 MISSING ${profile.type.toUpperCase()}: ${profile.name} in your area (${profile.pincode}). Please keep an eye out!`,
-              timestamp: new Date().toISOString(),
-              publicLink: `${window.location.origin}/#/id/${profile.id}`
-          });
+          await addDoc(collection(db, "scans"), { familyId: familyId, type: 'kinAlert', profileName: profile.name, message: `🚨 MISSING ${profile.type.toUpperCase()}: ${profile.name} in your area (${profile.pincode}). Please keep an eye out!`, timestamp: new Date().toISOString(), publicLink: `${window.location.origin}/#/id/${profile.id}` });
       });
 
       uSnap.forEach(uDoc => {
           const token = uDoc.data().fcmToken;
           if (token && (uDoc.data().familyId || uDoc.id) !== profile.familyId) {
-              fetch('/api/notify', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                      ownerId: uDoc.id,
-                      title: `🚨 Local KinAlert: ${profile.name} is missing!`,
-                      body: `Missing near ${profile.pincode}. Tap to view details and help.`
-                  })
-              }).catch(()=>{});
+              fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerId: uDoc.id, title: `🚨 Local KinAlert: ${profile.name} is missing!`, body: `Missing near ${profile.pincode}. Tap to view details and help.` }) }).catch(()=>{});
           }
       });
-
       showMessage("KinAlert Active", `Broadcasted alert to guardians in Zip Code ${profile.pincode}.`, "success");
-    } catch (e) {
-      showMessage("Error", "Failed to broadcast KinAlert.", "error");
-    }
+    } catch (e) { showMessage("Error", "Failed to broadcast KinAlert.", "error"); }
   };
 
   const handleDeactivateLost = async (profile) => {
@@ -330,21 +342,12 @@ export default function Dashboard() {
               const fam = d.data().familyId || d.id;
               if (fam !== profile.familyId) targetFamilies.add(fam);
           });
-
           targetFamilies.forEach(async (familyId) => {
-              await addDoc(collection(db, "scans"), {
-                  familyId: familyId,
-                  type: 'kinAlert_found',
-                  profileName: profile.name,
-                  message: `✅ SAFE AND SOUND! ${profile.name} (${profile.pincode}) has been found. Thank you for your vigilance.`,
-                  timestamp: new Date().toISOString(),
-              });
+              await addDoc(collection(db, "scans"), { familyId: familyId, type: 'kinAlert_found', profileName: profile.name, message: `✅ SAFE AND SOUND! ${profile.name} (${profile.pincode}) has been found. Thank you for your vigilance.`, timestamp: new Date().toISOString(), });
           });
       }
       showMessage("Safe and Sound", `${profile.name} has been marked as found.`, "success");
-    } catch (e) {
-      showMessage("Error", "Failed to deactivate Lost Mode.", "error");
-    }
+    } catch (e) { showMessage("Error", "Failed to deactivate Lost Mode.", "error"); }
   };
 
   const handleAcceptInvite = async () => {
@@ -356,25 +359,8 @@ export default function Dashboard() {
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const acceptName = userDoc.exists() && userDoc.data().name ? userDoc.data().name : currentUser.email;
 
-      await addDoc(collection(db, "scans"), {
-        familyId: pendingInvite.familyId,
-        type: 'invite_response',
-        profileName: 'Family Update',
-        message: `${acceptName} accepted your co-guardian request and can now manage your profiles.`,
-        timestamp: new Date().toISOString()
-      });
-
-      await fetch('/api/notify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ownerId: pendingInvite.inviterUid,
-          title: `🤝 Guardian Joined!`,
-          body: `${acceptName} accepted your invite.`,
-          link: `https://kintag.vercel.app/#/dashboard?view=notifications` 
-        })
-      }).catch(()=>{});
-
+      await addDoc(collection(db, "scans"), { familyId: pendingInvite.familyId, type: 'invite_response', profileName: 'Family Update', message: `${acceptName} accepted your co-guardian request and can now manage your profiles.`, timestamp: new Date().toISOString() });
+      await fetch('/api/notify', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerId: pendingInvite.inviterUid, title: `🤝 Guardian Joined!`, body: `${acceptName} accepted your invite.`, link: `https://kintag.vercel.app/#/dashboard?view=notifications` }) }).catch(()=>{});
       window.location.reload(); 
     } catch(e) { console.error(e); }
   };
@@ -385,28 +371,15 @@ export default function Dashboard() {
       await deleteDoc(doc(db, "invites", currentUser.email.toLowerCase()));
       const userDoc = await getDoc(doc(db, "users", currentUser.uid));
       const declineName = userDoc.exists() && userDoc.data().name ? userDoc.data().name : currentUser.email;
-      await addDoc(collection(db, "scans"), {
-        familyId: pendingInvite.familyId,
-        type: 'invite_response',
-        profileName: 'Family Update',
-        message: `${declineName} declined your co-guardian request.`,
-        timestamp: new Date().toISOString()
-      });
+      await addDoc(collection(db, "scans"), { familyId: pendingInvite.familyId, type: 'invite_response', profileName: 'Family Update', message: `${declineName} declined your co-guardian request.`, timestamp: new Date().toISOString() });
     } catch(e) { console.error(e); }
   };
 
   const handleEnableAlertsClick = () => {
-    if (!('Notification' in window)) {
-      showMessage("Not Supported", "Your browser does not support notifications.", "error");
-      return;
-    }
-    if (Notification.permission === 'granted') {
-      processNotificationPermission();
-    } else if (Notification.permission === 'denied') {
-      showMessage("Permission Blocked", "You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.", "warning");
-    } else {
-      setShowSoftAskModal(true);
-    }
+    if (!('Notification' in window)) { showMessage("Not Supported", "Your browser does not support notifications.", "error"); return; }
+    if (Notification.permission === 'granted') { processNotificationPermission(); } 
+    else if (Notification.permission === 'denied') { showMessage("Permission Blocked", "You previously blocked notifications. To fix this: tap the Lock icon 🔒 next to the URL bar, go to Site Settings, allow notifications, and reload the page.", "warning"); } 
+    else { setShowSoftAskModal(true); }
   };
 
   const processNotificationPermission = async () => {
@@ -417,22 +390,15 @@ export default function Dashboard() {
       if (permission === 'granted') {
         const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY;
         let swRegistration = null;
-        if ('serviceWorker' in navigator) {
-          swRegistration = await navigator.serviceWorker.ready; 
-        }
+        if ('serviceWorker' in navigator) swRegistration = await navigator.serviceWorker.ready; 
         const currentToken = await getToken(messaging, { vapidKey, serviceWorkerRegistration: swRegistration });
         if (currentToken) {
           await setDoc(doc(db, "users", currentUser.uid), { fcmToken: currentToken, email: currentUser.email, lastUpdated: new Date().toISOString() }, { merge: true }); 
           showMessage("Connected!", "Your device is now securely connected to Emergency Alerts.", "success");
         }
-      } else {
-        showMessage("Permission Denied", "You won't receive emergency popups.", "warning");
-      }
-    } catch (error) {
-      showMessage("Connection Error", error.message, "error");
-    } finally {
-      setIsEnablingPush(false);
-    }
+      } else { showMessage("Permission Denied", "You won't receive emergency popups.", "warning"); }
+    } catch (error) { showMessage("Connection Error", error.message, "error"); } 
+    finally { setIsEnablingPush(false); }
   };
 
   const extractPublicId = (url) => {
@@ -446,16 +412,11 @@ export default function Dashboard() {
     if (!profileToDelete) return;
     try {
       const publicId = extractPublicId(profileToDelete.imageUrl);
-      if (publicId) {
-        await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicId }) }).catch(()=>console.log("Image delete skipped"));
-      }
+      if (publicId) await fetch('/api/delete-image', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ publicId }) }).catch(()=>console.log("Image delete skipped"));
       await deleteDoc(doc(db, "profiles", profileToDelete.id));
       setProfiles(profiles.filter(p => p.id !== profileToDelete.id)); 
-    } catch (error) {
-      showMessage("Error", "Failed to delete profile.", "error");
-    } finally {
-      setProfileToDelete(null); 
-    }
+    } catch (error) { showMessage("Error", "Failed to delete profile.", "error"); } 
+    finally { setProfileToDelete(null); }
   };
 
   const confirmDeleteScan = async () => {
@@ -463,23 +424,15 @@ export default function Dashboard() {
     try {
       await deleteDoc(doc(db, "scans", scanToDelete));
       setScans(scans.filter(s => s.id !== scanToDelete)); 
-    } catch (error) {
-      showMessage("Error", "Failed to delete notification.", "error");
-    } finally {
-      setScanToDelete(null); 
-    }
+    } catch (error) { showMessage("Error", "Failed to delete notification.", "error"); } 
+    finally { setScanToDelete(null); }
   };
 
-  const toggleScanSelection = (scanId) => {
-    setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
-  };
-
+  const toggleScanSelection = (scanId) => setSelectedScans(prev => prev.includes(scanId) ? prev.filter(id => id !== scanId) : [...prev, scanId]);
+  
   const handleSelectAll = () => {
-    if (selectedScans.length === scans.length) {
-      setSelectedScans([]);
-    } else {
-      setSelectedScans(scans.map(s => s.id));
-    }
+    if (selectedScans.length === scans.length) setSelectedScans([]);
+    else setSelectedScans(scans.map(s => s.id));
   };
 
   const confirmBulkDelete = async () => {
@@ -489,43 +442,23 @@ export default function Dashboard() {
       setSelectedScans([]);
       setShowBulkDeleteModal(false);
       showMessage("Success", "Selected notifications have been deleted.", "success");
-    } catch (error) {
-      showMessage("Error", "Failed to delete selected notifications.", "error");
-    }
+    } catch (error) { showMessage("Error", "Failed to delete selected notifications.", "error"); }
   };
 
   const toggleProfileStatus = async (profileId, currentStatus) => {
-    try {
-      await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus });
-    } catch (error) {
-      showMessage("Error", "Failed to change profile status.", "error");
-    }
+    try { await updateDoc(doc(db, "profiles", profileId), { isActive: !currentStatus }); } 
+    catch (error) { showMessage("Error", "Failed to change profile status.", "error"); }
   };
 
-  // Google Wallet Backend Caller
   const handleAddToWallet = async (profile) => {
     setGeneratingWallet(true);
     try {
-      const response = await fetch('/api/generate-wallet-pass', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ profileId: profile.id, petName: profile.name })
-      });
-      
+      const response = await fetch('/api/generate-wallet-pass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profileId: profile.id, petName: profile.name }) });
       const data = await response.json();
-      
-      if (data.token) {
-        window.location.href = `https://pay.google.com/gp/v/save/${data.token}`;
-      } else {
-        showMessage("Wallet Generation Failed", "Failed to generate the Google Wallet pass. Please check your backend keys.", "error");
-        console.error(data.error);
-      }
-    } catch (error) {
-      console.error("Wallet Error:", error);
-      showMessage("Network Error", "Something went wrong connecting to the Google Wallet server.", "error");
-    } finally {
-      setGeneratingWallet(false);
-    }
+      if (data.token) window.location.href = `https://pay.google.com/gp/v/save/${data.token}`;
+      else showMessage("Wallet Generation Failed", "Failed to generate the Google Wallet pass. Please check your backend keys.", "error");
+    } catch (error) { showMessage("Network Error", "Something went wrong connecting to the Google Wallet server.", "error"); } 
+    finally { setGeneratingWallet(false); }
   };
 
   const downloadFullPass = async (profile) => {
@@ -620,7 +553,8 @@ export default function Dashboard() {
     }
   };
 
-  const filteredProfiles = profiles.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
+  const activeProfilesToDisplay = mainTab === 'own' ? profiles : caretakerProfiles;
+  const filteredProfiles = activeProfilesToDisplay.filter(p => p.name.toLowerCase().includes(searchTerm.toLowerCase()));
   const activeStyle = qrModalProfile ? QR_STYLES[qrModalProfile.qrStyle || 'obsidian'] : QR_STYLES.obsidian;
   
   const unreadPersonalCount = lastViewedPersonal ? scans.filter(scan => getTime(scan.timestamp) > new Date(lastViewedPersonal).getTime()).length : scans.length;
@@ -643,14 +577,11 @@ export default function Dashboard() {
     group.items.push(scan);
   });
 
-  const currentAvatar = avatars.find(a => a.id === userAvatarId) || null;
-
   if (loading) return <DashboardSkeleton />;
 
   return (
     <div className="min-h-[100dvh] bg-[#fafafa] p-4 md:p-8 relative pb-32 selection:bg-brandGold selection:text-white">
       
-      {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="fixed top-0 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-b from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0"></div>
 
@@ -658,21 +589,13 @@ export default function Dashboard() {
         
         {/* HEADER */}
         <div className="flex justify-between items-center gap-4 mb-8 bg-white/80 backdrop-blur-xl p-5 md:px-8 md:py-6 rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80">
-          <div className="flex items-center space-x-4 w-full md:w-auto">
+          <div className="flex items-center space-x-4 w-full">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-[1rem] shadow-sm" />
             <div className="flex-1">
               <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight leading-none mb-0.5">KinTag</h1>
-              <p className="text-sm text-zinc-500 font-medium truncate max-w-[200px] md:max-w-full">Family Dashboard</p>
+              <p className="text-sm text-zinc-500 font-medium truncate">Family Dashboard</p>
             </div>
           </div>
-          
-          <button onClick={() => navigate('/profile')} className="relative flex items-center justify-center bg-white border border-zinc-200 hover:border-brandDark/30 p-2 md:pr-5 md:pl-2 md:py-2 rounded-full transition-all shadow-sm hover:shadow-md group active:scale-95 shrink-0">
-            <div className="w-10 h-10 bg-zinc-50 rounded-full flex items-center justify-center text-zinc-400 shrink-0 overflow-hidden shadow-inner group-hover:scale-105 transition-transform duration-300 p-0.5 border border-zinc-200">
-               {currentAvatar ? currentAvatar.svg : <User size={20} />}
-            </div>
-            <span className="hidden md:inline ml-3 font-bold text-sm text-brandDark">Profile</span>
-            {!userZipCode && <span className="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" title="Missing Zip Code"></span>}
-          </button>
         </div>
 
         {/* Action Buttons */}
@@ -711,95 +634,196 @@ export default function Dashboard() {
           </Link>
         )}
 
-        {profiles.length > 0 && (
-          <div className="mb-10 relative group">
+        {(profiles.length > 0 || caretakerProfiles.length > 0) && (
+          <div className="mb-8 relative group">
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark" size={20} />
             <input type="text" placeholder="Search profiles by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-5 py-4 md:py-5 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all shadow-sm hover:shadow-md font-medium text-brandDark text-lg" />
+            
+            {/* DYNAMIC TABS FOR CARETAKER MODE */}
+            {caretakerProfiles.length > 0 && (
+              <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200 mt-4">
+                 <button onClick={() => setMainTab('own')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${mainTab === 'own' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
+                   Own ({profiles.length})
+                 </button>
+                 <button onClick={() => setMainTab('take-caring')} className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${mainTab === 'take-caring' ? 'bg-white shadow-sm text-indigo-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
+                   <HeartHandshake size={18} /> Take-Caring ({caretakerProfiles.length})
+                 </button>
+              </div>
+            )}
           </div>
         )}
 
-        {profiles.length === 0 ? (
-          <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm">
-            <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><QrCode size={36} /></div>
-            <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">No Profiles Yet</h2>
-            <p className="text-zinc-500 mb-8 font-medium text-lg max-w-sm mx-auto leading-relaxed">Create your very first digital contact card using the big plus button below.</p>
-          </div>
-        ) : filteredProfiles.length === 0 ? (
-          <div className="text-center py-16 text-zinc-500 font-bold text-lg">No profiles match your search.</div>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filteredProfiles.map(profile => {
-              const ageInfo = getComputedAge(profile);
-              return (
-                <div key={profile.id} className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20'}`}>
-                  <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
-                    <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-brandDark/90 via-brandDark/20 to-transparent pointer-events-none"></div>
-                    
-                    {profile.isActive === false && (
-                      <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-lg tracking-widest shadow-lg border border-white/20">Disabled</div>
-                    )}
-                    
-                    <div className="absolute top-4 right-4 flex gap-2 z-30">
-                       <button 
-                         disabled={!profile.isLost || profile.kinAlertActive}
-                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBroadcastModalProfile(profile); }}
-                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white cursor-default' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
-                         title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
-                       >
-                          <Megaphone size={18} />
-                       </button>
-                       <button 
-                         onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? setFoundModalProfile(profile) : setLostModalProfile(profile); }}
-                         className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
-                         title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
-                       >
-                          <Siren size={18} />
-                       </button>
+        {/* SCROLLABLE PROFILE WRAPPER */}
+        <div className="max-h-[60vh] overflow-y-auto pb-40 pr-2 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+          {profiles.length === 0 && caretakerProfiles.length === 0 ? (
+            <div className="text-center bg-white/50 backdrop-blur-md p-16 rounded-[3rem] border-2 border-dashed border-zinc-300 shadow-sm">
+              <div className="w-20 h-20 bg-zinc-100 text-zinc-400 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><QrCode size={36} /></div>
+              <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">No Profiles Yet</h2>
+              <p className="text-zinc-500 mb-8 font-medium text-lg max-w-sm mx-auto leading-relaxed">Create your very first digital contact card using the big plus button below.</p>
+            </div>
+          ) : filteredProfiles.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500 font-bold text-lg">No profiles match your search.</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProfiles.map(profile => {
+                const ageInfo = getComputedAge(profile);
+                
+                // CARETAKER PROFILE CARD UI
+                if (mainTab === 'take-caring') {
+                  return (
+                    <div key={profile.id} className="bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border border-indigo-200 shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-indigo-300">
+                      <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
+                        <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
+                        <div className="absolute inset-0 bg-gradient-to-t from-indigo-950/90 via-indigo-900/20 to-transparent pointer-events-none"></div>
+                        <div className="absolute top-4 left-4 bg-indigo-500 text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-lg tracking-widest shadow-sm">Babysitting</div>
+                        <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
+                          <h3 className="text-2xl font-extrabold tracking-tight mb-1 drop-shadow-sm">{profile.name}</h3>
+                          <p className="text-xs text-white/80 font-bold capitalize flex items-center gap-1.5">
+                            {profile.type === 'kid' ? <User size={14} /> : <PawPrint size={14} />}
+                            {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="p-5 flex-1 flex flex-col justify-end">
+                        <div className="flex gap-3">
+                          <button onClick={() => setCaretakerViewProfile(profile)} className="flex-1 flex items-center justify-center space-x-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-100 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 shadow-sm">
+                            <Eye size={18} /><span>View Details</span>
+                          </button>
+                          <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 py-4 rounded-2xl font-bold text-sm transition-all active:scale-95 shadow-sm">
+                            <Siren size={18} /><span>Emergency</span>
+                          </Link>
+                        </div>
+                      </div>
                     </div>
+                  );
+                }
 
-                    <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
-                      <h3 className="text-2xl font-extrabold tracking-tight mb-1 drop-shadow-sm">{profile.name}</h3>
-                      <p className="text-xs text-white/80 font-bold capitalize flex items-center gap-1.5">
-                        {profile.type === 'kid' ? <User size={14} /> : <PawPrint size={14} />}
-                        {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
-                      </p>
+                // OWN PROFILE CARD UI
+                return (
+                  <div key={profile.id} className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] transition-all duration-500 flex flex-col group ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20'}`}>
+                    <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
+                      <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-brandDark/90 via-brandDark/20 to-transparent pointer-events-none"></div>
+                      
+                      {profile.isActive === false && (
+                        <div className="absolute top-4 left-4 bg-red-600/90 backdrop-blur-md text-white text-[10px] font-extrabold uppercase px-3 py-1.5 rounded-lg tracking-widest shadow-lg border border-white/20">Disabled</div>
+                      )}
+                      
+                      <div className="absolute top-4 right-4 flex gap-2 z-30">
+                         <button 
+                           disabled={!profile.isLost || profile.kinAlertActive}
+                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setBroadcastModalProfile(profile); }}
+                           className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.kinAlertActive ? 'bg-emerald-500 text-white cursor-default' : profile.isLost ? 'bg-amber-500 text-white hover:scale-110 hover:bg-amber-400' : 'bg-white/50 text-zinc-500 cursor-not-allowed'}`}
+                           title={profile.kinAlertActive ? "KinAlert Active" : "Broadcast KinAlert"}
+                         >
+                            <Megaphone size={18} />
+                         </button>
+                         <button 
+                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); profile.isLost ? setFoundModalProfile(profile) : setLostModalProfile(profile); }}
+                           className={`p-2.5 rounded-xl shadow-lg backdrop-blur-md transition-all active:scale-95 ${profile.isLost ? 'bg-red-600 text-white animate-pulse hover:bg-red-500' : 'bg-white/80 text-zinc-600 hover:text-red-600 hover:bg-white'}`}
+                           title={profile.isLost ? "Mark as Found" : "Mark as Lost"}
+                         >
+                            <Siren size={18} />
+                         </button>
+                      </div>
+
+                      <div className="absolute bottom-5 left-5 right-5 text-white pointer-events-none">
+                        <h3 className="text-2xl font-extrabold tracking-tight mb-1 drop-shadow-sm">{profile.name}</h3>
+                        <p className="text-xs text-white/80 font-bold capitalize flex items-center gap-1.5">
+                          {profile.type === 'kid' ? <User size={14} /> : <PawPrint size={14} />}
+                          {profile.type} • {ageInfo.value} {ageInfo.label} • {profile.gender}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="p-5 flex-1 flex flex-col justify-end">
+                      <div className="flex flex-wrap gap-2.5">
+                        <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 hover:bg-white hover:shadow-sm text-brandDark py-3 rounded-2xl font-bold text-sm transition-all active:scale-95" title="View Public Card">
+                          <Eye size={16} />
+                          <span>View</span>
+                        </Link>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleProfileStatus(profile.id, profile.isActive); }} className={`flex items-center justify-center p-3 rounded-2xl transition-all shadow-sm active:scale-95 ${profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
+                          {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
+                        </button>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQrModalProfile(profile); }} className="bg-amber-50 border border-amber-100 hover:bg-amber-100 text-amber-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Mobile ID & QR">
+                          <Smartphone size={18} />
+                        </button>
+                        <Link to={`/edit/${profile.id}`} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Edit Profile">
+                          <Edit size={18} />
+                        </Link>
+                        <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl }); }} className="bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-500 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Delete Profile">
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
                     </div>
                   </div>
-                  
-                  <div className="p-5 flex-1 flex flex-col justify-end">
-                    <div className="flex flex-wrap gap-2.5">
-                      <Link to={`/id/${profile.id}`} target="_blank" className="flex-1 flex items-center justify-center space-x-2 bg-zinc-50 border border-zinc-200 hover:bg-white hover:shadow-sm text-brandDark py-3 rounded-2xl font-bold text-sm transition-all active:scale-95" title="View Public Card">
-                        <Eye size={16} />
-                        <span>View</span>
-                      </Link>
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleProfileStatus(profile.id, profile.isActive); }} className={`flex items-center justify-center p-3 rounded-2xl transition-all shadow-sm active:scale-95 ${profile.isActive === false ? 'bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100' : 'bg-red-50 border border-red-100 text-red-600 hover:bg-red-100'}`} title={profile.isActive === false ? 'Enable Profile' : 'Disable Profile'}>
-                        {profile.isActive === false ? <Eye size={18} /> : <EyeOff size={18} />}
-                      </button>
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setQrModalProfile(profile); }} className="bg-amber-50 border border-amber-100 hover:bg-amber-100 text-amber-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Mobile ID & QR">
-                        <Smartphone size={18} />
-                      </button>
-                      <Link to={`/edit/${profile.id}`} className="bg-blue-50 border border-blue-100 hover:bg-blue-100 text-blue-600 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Edit Profile">
-                        <Edit size={18} />
-                      </Link>
-                      <button onClick={(e) => { e.preventDefault(); e.stopPropagation(); setProfileToDelete({ id: profile.id, imageUrl: profile.imageUrl }); }} className="bg-zinc-50 border border-zinc-200 hover:bg-zinc-100 text-zinc-500 p-3 rounded-2xl transition-all shadow-sm active:scale-95" title="Delete Profile">
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40"></div>
-      <Link to="/create" className="fixed bottom-10 left-1/2 -translate-x-1/2 bg-brandDark text-white p-5 rounded-full shadow-[0_10px_40px_rgba(24,24,27,0.4)] hover:bg-brandAccent transition-all hover:scale-105 active:scale-95 z-50 pointer-events-auto border-4 border-white group">
-        <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
-      </Link>
+      
+      {/* 🌟 NEW FLOATING ACTION BAR (FAB) */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-8 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-center gap-10 z-50 pointer-events-auto">
+        
+        <Link to="/settings" className="text-zinc-400 hover:text-brandDark p-2 transition-colors active:scale-95 group">
+          <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
+        </Link>
+
+        <Link to="/create" className="w-16 h-16 bg-brandDark text-white rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 hover:-translate-y-1 hover:bg-brandAccent transition-all active:scale-95 group relative z-10">
+          <Plus size={32} strokeWidth={3} className="group-hover:rotate-90 transition-transform duration-300" />
+        </Link>
+
+        <Link to="/profile" className="text-zinc-400 hover:text-brandDark p-2 transition-colors active:scale-95 relative group">
+          <User size={28} className="group-hover:scale-110 transition-transform duration-300" />
+          {!userZipCode && <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10"></span>}
+        </Link>
+
+      </div>
 
       {/* --- MODALS --- */}
+
+      {/* Caretaker View Modal (Safe Read-Only View) */}
+      {caretakerViewProfile && (
+        <div className="fixed inset-0 z-[100] bg-zinc-950/40 backdrop-blur-md overflow-y-auto flex p-4 animate-in fade-in duration-200">
+          <div className="bg-white max-w-md w-full m-auto rounded-[3rem] overflow-hidden shadow-2xl relative animate-in zoom-in-95 duration-300">
+            <button onClick={() => setCaretakerViewProfile(null)} className="absolute top-6 right-6 z-20 text-white/70 hover:text-white bg-black/20 hover:bg-black/40 p-2.5 rounded-full transition-colors backdrop-blur-md"><X size={20} /></button>
+            <div className="h-64 relative bg-zinc-100">
+              <img src={caretakerViewProfile.imageUrl} alt="Profile" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-brandDark/90 to-transparent"></div>
+              <div className="absolute bottom-6 left-6 text-white">
+                <h2 className="text-3xl font-extrabold tracking-tight mb-1">{caretakerViewProfile.name}</h2>
+                <p className="text-sm text-white/80 font-bold uppercase tracking-widest">{caretakerViewProfile.typeSpecific} • {getComputedAge(caretakerViewProfile).value} {getComputedAge(caretakerViewProfile).label}</p>
+              </div>
+            </div>
+            <div className="p-8 space-y-6">
+              <div>
+                 <h4 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-2 flex items-center gap-2"><AlertOctagon size={14}/> Allergies & Needs</h4>
+                 <div className="bg-red-50 p-4 rounded-2xl border border-red-100 text-red-700 font-bold text-sm leading-relaxed">{caretakerViewProfile.allergies}</div>
+                 {caretakerViewProfile.specialNeeds && <div className="mt-2 bg-amber-50 p-4 rounded-2xl border border-amber-100 text-amber-700 font-bold text-sm leading-relaxed">{caretakerViewProfile.specialNeeds}</div>}
+              </div>
+              <div>
+                 <h4 className="text-xs font-extrabold text-zinc-400 uppercase tracking-widest mb-3 flex items-center gap-2"><Phone size={14}/> Emergency Contacts</h4>
+                 <div className="space-y-3">
+                   {caretakerViewProfile.contacts?.map((c, i) => (
+                     <div key={i} className="flex justify-between items-center bg-zinc-50 p-4 rounded-2xl border border-zinc-200">
+                        <div>
+                          <p className="font-bold text-brandDark">{c.name}</p>
+                          <p className="text-xs text-zinc-500 font-medium">{c.tag === 'Other' ? c.customTag : c.tag}</p>
+                        </div>
+                        <a href={`tel:${c.countryCode}${c.phone}`} className="bg-emerald-100 text-emerald-700 p-2.5 rounded-full hover:bg-emerald-200 transition-colors shadow-sm"><Phone size={16}/></a>
+                     </div>
+                   ))}
+                 </div>
+              </div>
+              <button onClick={() => setCaretakerViewProfile(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Close View</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* QR Modal (WITH WALLET BUTTON) */}
       {qrModalProfile && (
@@ -807,7 +831,6 @@ export default function Dashboard() {
           <button onClick={() => setQrModalProfile(null)} className="absolute top-6 right-6 md:fixed md:top-8 md:right-8 z-[110] text-white/70 hover:text-white bg-white/10 hover:bg-white/20 p-3 rounded-full transition shadow-xl border border-white/10"><X size={24} /></button>
           <div className="max-w-sm w-full relative m-auto pt-20 pb-8 md:py-8 animate-in zoom-in-95 duration-300">
             
-            {/* Modal Header with Dual Buttons */}
             <div className="flex flex-col gap-4 mb-6">
               <div className="text-center sm:text-left">
                  <h2 className="text-3xl font-extrabold text-white tracking-tight leading-none mb-1">Mobile ID</h2>
@@ -815,21 +838,13 @@ export default function Dashboard() {
               </div>
               
               <div className="flex flex-row items-center gap-3 w-full">
-
                 <button 
-  onClick={() => handleAddToWallet(qrModalProfile)} 
-  disabled={generatingWallet} 
-  className="flex-1 relative flex items-center justify-center space-x-2 h-[46px] px-4 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 transition-all shadow-md disabled:opacity-50 active:scale-95 text-white font-bold text-sm"
->
-  {generatingWallet ? (
-    <Loader2 className="animate-spin text-white" size={20} />
-  ) : (
-    <>
-      <GoogleWalletIcon />
-      <span>Add to Google Wallet</span>
-    </>
-  )}
-</button>
+                  onClick={() => handleAddToWallet(qrModalProfile)} 
+                  disabled={generatingWallet} 
+                  className="flex-1 relative flex items-center justify-center space-x-2 h-[46px] px-4 rounded-full border border-zinc-700 bg-zinc-950 hover:bg-zinc-800 transition-all shadow-md disabled:opacity-50 active:scale-95 text-white font-bold text-sm"
+                >
+                  {generatingWallet ? <Loader2 className="animate-spin text-white" size={20} /> : <><GoogleWalletIcon /><span>Add to Google Wallet</span></>}
+                </button>
                 
                 <button onClick={() => downloadFullPass(qrModalProfile)} disabled={downloading} className="flex-1 flex items-center justify-center space-x-2 bg-brandGold text-brandDark h-[46px] rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all disabled:opacity-50 text-sm active:scale-95">
                   {downloading ? <Loader2 className="animate-spin" size={18} /> : <Download size={18} />}
@@ -894,7 +909,6 @@ export default function Dashboard() {
               </button>
             </div>
             
-            {/* BULK DELETE UI */}
             {notifTab === 'personal' && scans.length > 0 && (
               <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
                 <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
@@ -1093,7 +1107,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Local Community Alerts (Popup when someone else broadcasts) */}
+      {/* Local Community Alerts */}
       {activeAlertToDisplay && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-red-950/80 backdrop-blur-md">
           <div className="bg-white rounded-[3rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-300 relative overflow-hidden border border-red-500/20">
