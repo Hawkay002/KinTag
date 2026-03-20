@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert } from 'lucide-react'; 
+import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
@@ -105,21 +105,18 @@ export default function Settings() {
           console.error("Failed to fetch family", e);
         }
 
-        // 🌟 ULTRA-ROBUST PROFILE FETCHING LOGIC
+        // ULTRA-ROBUST PROFILE FETCHING LOGIC
         try {
-          // 1. Try to fetch modern profiles attached to the familyId
           const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
           const profilesSnaps = await getDocs(profilesQuery);
           let fetchedProfiles = profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
 
-          // 2. If none found, fetch legacy profiles attached strictly to the userId
           if (fetchedProfiles.length === 0) {
             const legacyQuery = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
             const legacySnaps = await getDocs(legacyQuery);
             fetchedProfiles = legacySnaps.docs.map(d => ({ id: d.id, ...d.data() }));
           }
 
-          // 3. Filter out explicitly disabled profiles, but allow missing/undefined isActive tags
           const finalProfiles = fetchedProfiles.filter(p => p.isActive !== false);
           setProfiles(finalProfiles);
         } catch (e) {
@@ -176,6 +173,7 @@ export default function Settings() {
         name: careForm.name.trim(),
         phone: careForm.phone,
         countryCode: careForm.countryCode,
+        countryIso: careForm.countryIso,
         selectedProfiles: careForm.selectedProfiles,
         familyId: userData.familyId,
         createdAt: new Date().toISOString(),
@@ -202,6 +200,20 @@ export default function Settings() {
       setCareSessions(prev => prev.map(s => s.id === session.id ? { ...s, status: 'history', endedAt: new Date().toISOString() } : s));
     } catch (err) {
       alert("Failed to end session.");
+    }
+  };
+
+  const addTimeToSession = async (sessionId, additionalMs) => {
+    try {
+      const sessionToUpdate = careSessions.find(s => s.id === sessionId);
+      if (!sessionToUpdate) return;
+      const currentExpires = new Date(sessionToUpdate.expiresAt).getTime();
+      const newExpiresAt = new Date(currentExpires + additionalMs).toISOString();
+      
+      await updateDoc(doc(db, "care_sessions", sessionId), { expiresAt: newExpiresAt });
+      setCareSessions(prev => prev.map(s => s.id === sessionId ? { ...s, expiresAt: newExpiresAt } : s));
+    } catch(err) {
+      alert("Failed to add time.");
     }
   };
 
@@ -476,22 +488,19 @@ export default function Settings() {
 
         {/* --- CARETAKER / BABYSITTER MODE --- */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8">
-          <div className="flex justify-between items-start mb-6">
+          
+          <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm">
+              <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm shrink-0">
                 <ShieldAlert size={24} />
               </div>
-              <div>
-                <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight flex items-center gap-3">
-                  Caretaker Mode
-                  <button onClick={() => { setCareForm({ name: '', countryCode: '+1', countryIso: 'us', phone: '', selectedProfiles: [], days: 0, hours: 0, minutes: 0 }); setShowCareModal(true); }} className="w-8 h-8 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent hover:scale-105 transition-all shadow-md active:scale-95">
-                    <User size={16} />
-                  </button>
-                </h2>
-                <p className="text-sm text-zinc-500 font-medium">Temporary, view-only access bundles for babysitters.</p>
-              </div>
+              <h2 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight">Caretaker Mode</h2>
             </div>
+            <button onClick={() => { setCareForm({ name: '', countryCode: '+1', countryIso: 'us', phone: '', selectedProfiles: [], days: 0, hours: 0, minutes: 0 }); setShowCareModal(true); }} className="w-10 h-10 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent hover:scale-105 transition-all shadow-md active:scale-95 shrink-0">
+              <Plus size={20} />
+            </button>
           </div>
+          <p className="text-zinc-500 font-medium mb-6 leading-relaxed text-sm md:text-base">Temporary, view-only access bundles for babysitters.</p>
 
           <div className="flex bg-zinc-100 p-1.5 rounded-2xl border border-zinc-200 mb-6">
              <button onClick={() => setCareTab('active')} className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
@@ -517,15 +526,24 @@ export default function Settings() {
                   const sharedNames = profiles.filter(p => session.selectedProfiles.includes(p.id)).map(p => p.name).join(", ");
 
                   return (
-                    <div key={session.id} className="bg-white border border-zinc-200 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
+                    <div key={session.id} className="bg-white border border-zinc-200 p-5 rounded-2xl shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4 transition-all">
+                      <div className="flex-1 w-full md:w-auto pr-4">
                         <h3 className="font-extrabold text-brandDark flex items-center gap-2">{session.name} <span className="text-xs bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-md font-bold uppercase tracking-widest border border-indigo-100">Watching</span></h3>
-                        <p className="text-sm text-zinc-500 font-medium mb-1">Profiles: <strong className="text-brandDark">{sharedNames || 'None'}</strong></p>
+                        <p className="text-sm text-zinc-500 font-medium mb-1 truncate">Profiles: <strong className="text-brandDark">{sharedNames || 'None'}</strong></p>
                         <p className="text-xs text-amber-600 font-bold flex items-center gap-1"><Timer size={14}/> Expires in: {hoursLeft}h {minsLeft}m</p>
                       </div>
-                      <button onClick={() => handleEndCareSession(session)} className="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-colors shadow-sm active:scale-95 text-sm">
-                        End Access
-                      </button>
+                      
+                      <div className="flex flex-wrap items-center gap-2 w-full md:w-auto shrink-0">
+                        <button onClick={() => addTimeToSession(session.id, 3600000)} className="flex-1 md:flex-none px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-600 border border-amber-200 font-bold rounded-xl transition-colors shadow-sm active:scale-95 text-xs flex justify-center items-center gap-1" title="Add 1 Hour">
+                          <Plus size={14}/> 1 Hr
+                        </button>
+                        <button onClick={() => { setGeneratedCareLink(`${window.location.origin}/#/care/${session.id}`); setShowCareModal(false); }} className="flex-1 md:flex-none px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border border-indigo-200 font-bold rounded-xl transition-colors shadow-sm active:scale-95 text-xs flex justify-center items-center gap-1">
+                          <Share2 size={14}/> Share
+                        </button>
+                        <button onClick={() => handleEndCareSession(session)} className="w-full md:w-auto px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-bold rounded-xl transition-colors shadow-sm active:scale-95 text-xs text-center">
+                          End Access
+                        </button>
+                      </div>
                     </div>
                   );
                 })
@@ -557,10 +575,27 @@ export default function Settings() {
                   return (
                     <div key={session.id} className={`bg-white border p-4 rounded-2xl shadow-sm flex items-center gap-4 transition-colors cursor-pointer ${isSelected ? 'border-brandDark bg-zinc-50' : 'border-zinc-200'}`} onClick={() => toggleHistorySelection(session.id)}>
                       {isSelected ? <CheckSquare size={20} className="text-brandDark shrink-0"/> : <Square size={20} className="text-zinc-300 shrink-0"/>}
-                      <div>
-                        <h3 className="font-bold text-zinc-700">{session.name} <span className="text-xs text-zinc-400 font-medium">({session.phone})</span></h3>
-                        <p className="text-xs text-zinc-500 font-medium">Watched: {sharedNames || 'None'}</p>
-                        <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1 flex items-center gap-1"><CalendarDays size={12}/> {new Date(session.createdAt).toLocaleDateString()}</p>
+                      <div className="flex-1">
+                        <div className="flex justify-between items-start mb-1">
+                          <h3 className="font-bold text-zinc-700 flex items-center gap-2 truncate pr-2">
+                            {session.name}
+                          </h3>
+                          <div className="flex gap-2 shrink-0">
+                             <a href={`tel:${session.countryCode || ''}${session.phone}`} onClick={e => e.stopPropagation()} className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100 transition-colors active:scale-95">
+                               <Phone size={14} />
+                             </a>
+                             <button onClick={(e) => {
+                               e.stopPropagation();
+                               setCareForm({ name: session.name, countryCode: session.countryCode || '+1', countryIso: session.countryIso || 'us', phone: session.phone, selectedProfiles: session.selectedProfiles || [], days: 0, hours: 0, minutes: 0 }); 
+                               setShowCareModal(true); 
+                             }} className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg hover:bg-indigo-100 transition-colors flex items-center gap-1 text-xs font-bold active:scale-95">
+                               <History size={14} /> Re-book
+                             </button>
+                          </div>
+                        </div>
+                        <p className="text-xs text-zinc-400 font-medium mb-1.5">{session.countryCode} {session.phone}</p>
+                        <p className="text-xs text-zinc-500 font-medium truncate">Watched: <strong className="text-zinc-700">{sharedNames || 'None'}</strong></p>
+                        <p className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1"><CalendarDays size={12}/> {new Date(session.createdAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                   );
@@ -709,11 +744,9 @@ export default function Settings() {
                         <span>Submitted on:</span>
                         <span className="text-zinc-600 bg-zinc-200/50 px-2 py-0.5 rounded-md">{new Date(ticket.timestamp).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}</span>
                       </div>
-                      
                       <p className="text-sm text-brandDark font-medium bg-white p-5 rounded-2xl border border-zinc-200 mb-6 whitespace-pre-wrap leading-relaxed shadow-sm max-h-48 overflow-y-auto">
                         "{ticket.message}"
                       </p>
-                      
                       <button 
                         onClick={() => handleResolveTicket(ticket)}
                         disabled={resolvingTicketId === ticket.id}
@@ -732,12 +765,9 @@ export default function Settings() {
 
         <div className="flex items-center justify-center mb-8 relative">
           <div className="w-full h-px bg-zinc-200"></div>
-          <span className="absolute bg-[#fafafa] px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">
-            Danger Zone
-          </span>
+          <span className="absolute bg-[#fafafa] px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">Danger Zone</span>
         </div>
 
-        {/* --- DANGER ZONE (Delete Account) --- */}
         <div className="bg-red-50/80 backdrop-blur-xl rounded-[2.5rem] border border-red-100 p-8 md:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-red-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
@@ -754,19 +784,13 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* --- MODALS --- */}
-
-        {/* 1. Caretaker Generation Modal */}
+        {/* MODALS */}
         {showCareModal && !generatedCareLink && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-in zoom-in-95 duration-300">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-2">
-                  <ShieldAlert size={24} className="text-brandGold" /> New Bundle
-                </h2>
-                <button onClick={() => setShowCareModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200">
-                  <X size={20} />
-                </button>
+                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-2"><ShieldAlert size={24} className="text-brandGold" /> New Bundle</h2>
+                <button onClick={() => setShowCareModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200"><X size={20} /></button>
               </div>
 
               <form onSubmit={handleCreateCareSession} className="space-y-6">
@@ -774,7 +798,6 @@ export default function Settings() {
                   <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Babysitter Name</label>
                   <input type="text" placeholder="e.g., Sarah Johnson" required value={careForm.name} onChange={e => setCareForm({...careForm, name: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 font-medium transition-all" />
                 </div>
-
                 <div>
                   <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Contact Number</label>
                   <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
@@ -787,12 +810,11 @@ export default function Settings() {
                      <input type="tel" placeholder="Phone Number" required value={careForm.phone} onChange={e => setCareForm({...careForm, phone: e.target.value})} className="flex-1 p-4 outline-none w-full bg-transparent font-medium" />
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-bold text-brandDark mb-3 ml-1">Who are they watching?</label>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                     {profiles.length === 0 ? (
-                       <p className="text-sm text-zinc-500 italic bg-zinc-50 p-4 rounded-xl border border-zinc-200">No profiles found. Create one first!</p>
+                       <p className="text-sm text-zinc-500 italic bg-zinc-50 p-4 rounded-xl border border-zinc-200">No profiles found.</p>
                     ) : profiles.map(profile => (
                       <div key={profile.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${careForm.selectedProfiles.includes(profile.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`} onClick={() => toggleProfileSelection(profile.id)}>
                         {careForm.selectedProfiles.includes(profile.id) ? <CheckSquare size={20} className="text-indigo-600 shrink-0"/> : <Square size={20} className="text-zinc-300 shrink-0"/>}
@@ -802,7 +824,6 @@ export default function Settings() {
                     ))}
                   </div>
                 </div>
-
                 <div>
                   <label className="block text-sm font-bold text-brandDark mb-2 ml-1">Access Duration</label>
                   <div className="flex gap-2">
@@ -820,7 +841,6 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
-
                 <button type="submit" disabled={careLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   {careLoading ? <Loader2 size={18} className="animate-spin" /> : <LinkIcon size={18} />}
                   {careLoading ? 'Generating...' : 'Create Temporary Bundle'}
@@ -830,17 +850,12 @@ export default function Settings() {
           </div>
         )}
 
-        {/* 2. Caretaker Generated Link Modal */}
         {generatedCareLink && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-zinc-950/60 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
-              <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <LinkIcon size={36} />
-              </div>
+              <div className="w-20 h-20 bg-indigo-50 border border-indigo-100 text-indigo-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><LinkIcon size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Access Granted</h2>
-              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">
-                Send this secure, self-destructing link to the babysitter. It will automatically expire when the timer runs out.
-              </p>
+              <p className="text-zinc-500 mb-8 text-sm font-medium leading-relaxed">Send this secure, self-destructing link to the babysitter. It will automatically expire when the timer runs out.</p>
               
               <div className="flex items-center gap-2 bg-zinc-50 p-2 rounded-2xl border border-zinc-200 mb-8">
                 <input type="text" readOnly value={generatedCareLink} className="flex-1 bg-transparent px-3 outline-none text-xs font-mono text-zinc-600 truncate" />
@@ -859,58 +874,33 @@ export default function Settings() {
           </div>
         )}
 
-        {/* 3. Support Form Modal */}
         {showSupportModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md overflow-y-auto">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-8 max-w-md w-full shadow-2xl border border-white/20 my-8 animate-in zoom-in-95 duration-300">
               <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brandGold/10 text-brandGold rounded-xl flex items-center justify-center border border-brandGold/20"><LifeBuoy size={20}/></div> Support
-                </h2>
-                <button onClick={() => setShowSupportModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm">
-                  <X size={20} />
-                </button>
+                <h2 className="text-2xl font-extrabold text-brandDark tracking-tight flex items-center gap-3"><div className="w-10 h-10 bg-brandGold/10 text-brandGold rounded-xl flex items-center justify-center border border-brandGold/20"><LifeBuoy size={20}/></div> Support</h2>
+                <button onClick={() => setShowSupportModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm"><X size={20} /></button>
               </div>
-
               {supportMessage ? (
-                 <div className="bg-emerald-50 text-emerald-600 p-8 rounded-[2rem] text-center font-bold border border-emerald-100 flex flex-col items-center justify-center gap-4 shadow-inner">
-                   <CheckCircle2 size={48} className="text-emerald-500" />
-                   <p className="text-lg">{supportMessage}</p>
-                 </div>
+                 <div className="bg-emerald-50 text-emerald-600 p-8 rounded-[2rem] text-center font-bold border border-emerald-100 flex flex-col items-center justify-center gap-4 shadow-inner"><CheckCircle2 size={48} className="text-emerald-500" /><p className="text-lg">{supportMessage}</p></div>
               ) : (
                 <form onSubmit={handleSupportSubmit} className="space-y-5">
                    {supportError && <div className="p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 animate-in fade-in">{supportError}</div>}
-
                    <div className="bg-zinc-50 p-4 rounded-2xl border border-zinc-200 flex justify-between items-center relative group transition-colors hover:border-brandGold/30 shadow-inner">
                      <div className="flex items-center gap-2">
                        <span className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Ticket ID</span>
-                       <div className="relative flex items-center justify-center">
-                          <Info size={14} className="text-brandGold cursor-help peer" />
-                          <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-brandDark text-white text-[10px] p-2.5 rounded-xl opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center shadow-xl font-bold">
-                            Copy and save this ID for future reference.
-                          </div>
-                       </div>
+                       <div className="relative flex items-center justify-center"><Info size={14} className="text-brandGold cursor-help peer" /><div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-brandDark text-white text-[10px] p-2.5 rounded-xl opacity-0 peer-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center shadow-xl font-bold">Copy and save this ID for future reference.</div></div>
                      </div>
-                     <button type="button" onClick={() => copySupportId(supportForm.supportId)} className="flex items-center gap-2 text-brandDark hover:text-brandGold transition-colors bg-white px-3 py-1.5 rounded-lg border border-zinc-200 shadow-sm" title="Copy ID">
-                       <span className="font-mono font-bold tracking-wide">{supportForm.supportId}</span>
-                       {copiedId ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}
-                     </button>
+                     <button type="button" onClick={() => copySupportId(supportForm.supportId)} className="flex items-center gap-2 text-brandDark hover:text-brandGold transition-colors bg-white px-3 py-1.5 rounded-lg border border-zinc-200 shadow-sm"><span className="font-mono font-bold tracking-wide">{supportForm.supportId}</span>{copiedId ? <Check size={16} className="text-emerald-500"/> : <Copy size={16}/>}</button>
                    </div>
-
                    <div className="grid grid-cols-2 gap-3">
                      <input type="text" placeholder="Your Name" required value={supportForm.name} onChange={e => setSupportForm({...supportForm, name: e.target.value})} className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium transition-all" />
                      <input type="email" placeholder="Your Email" required value={supportForm.email} onChange={e => setSupportForm({...supportForm, email: e.target.value})} className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium transition-all" />
                    </div>
-
                    <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
-                        <HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp
-                      </button>
-                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}>
-                        <HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram
-                      </button>
+                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
+                      <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
                    </div>
-
                    {supportForm.platform === 'whatsapp' ? (
                      <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
                         <div className="relative flex items-center bg-white hover:bg-zinc-50 border-r border-zinc-200 px-4 cursor-pointer shrink-0 transition-colors shadow-sm">
@@ -924,22 +914,15 @@ export default function Settings() {
                      </div>
                    ) : (
                      <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all">
-                        <div className="flex items-center bg-white border-r border-zinc-200 px-5 text-zinc-400 font-bold shrink-0 shadow-sm">
-                          @
-                        </div>
+                        <div className="flex items-center bg-white border-r border-zinc-200 px-5 text-zinc-400 font-bold shrink-0 shadow-sm">@</div>
                         <input type="text" placeholder="username" required value={supportForm.contactValue} onChange={e => setSupportForm({...supportForm, contactValue: e.target.value.replace(/^@/, '')})} className="flex-1 p-4 outline-none w-full bg-transparent font-medium" />
                      </div>
                    )}
-
                    <textarea placeholder="How can we help you?" required rows="4" value={supportForm.message} onChange={e => setSupportForm({...supportForm, message: e.target.value})} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium resize-none transition-all"></textarea>
-
                    <div className="bg-brandGold/5 p-4 rounded-2xl border border-brandGold/20 mt-2 flex gap-3 items-start">
                       <Info size={18} className="text-brandGold shrink-0 mt-0.5" />
-                      <p className="text-xs text-brandDark font-medium leading-relaxed">
-                        After sending, you'll be contacted by <strong className="font-extrabold">{supportForm.platform === 'whatsapp' ? '+91 87778 45713' : '@X_o_x_o_002'}</strong> on {supportForm.platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} within 36 hours. Please be patient.
-                      </p>
+                      <p className="text-xs text-brandDark font-medium leading-relaxed">After sending, you'll be contacted by <strong className="font-extrabold">{supportForm.platform === 'whatsapp' ? '+91 87778 45713' : '@X_o_x_o_002'}</strong> on {supportForm.platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} within 36 hours. Please be patient.</p>
                    </div>
-
                    <button type="submit" disabled={supportLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2">
                      {supportLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                      {supportLoading ? 'Sending...' : 'Send Request'}
@@ -950,17 +933,12 @@ export default function Settings() {
           </div>
         )}
 
-        {/* 4. Remove Guardian Modal */}
         {guardianToRemove && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300">
-              <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <UserMinus size={36} />
-              </div>
+              <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><UserMinus size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Remove Guardian?</h2>
-              <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">
-                Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard.
-              </p>
+              <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard.</p>
               <div className="flex flex-col gap-3">
                 <button onClick={confirmRemoveGuardian} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all">Yes, Remove Access</button>
                 <button onClick={() => setGuardianToRemove(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors">Cancel</button>
@@ -969,51 +947,31 @@ export default function Settings() {
           </div>
         )}
 
-        {/* 5. Share App Modal */}
         {showShareModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-sm w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
-              <button onClick={() => setShowShareModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm">
-                <X size={20} />
-              </button>
-              <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <Share2 size={36} />
-              </div>
+              <button onClick={() => setShowShareModal(false)} className="absolute top-6 right-6 text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm"><X size={20} /></button>
+              <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Share2 size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Share KinTag</h2>
-              <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">
-                Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.
-              </p>
-              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2">
-                <Share2 size={18} /> Share Now
-              </button>
+              <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.</p>
+              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-0.5 active:scale-95 transition-all flex items-center justify-center gap-2"><Share2 size={18} /> Share Now</button>
               {shareMessage && <p className="text-sm text-emerald-600 font-bold mt-5 animate-in fade-in duration-300 bg-emerald-50 py-2 rounded-full border border-emerald-100">{shareMessage}</p>}
             </div>
           </div>
         )}
 
-        {/* 6. Delete Account Warning Modal */}
         {showDeleteZone && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-zinc-950/40 backdrop-blur-md">
             <div className="bg-white/95 backdrop-blur-2xl rounded-[3rem] p-10 max-w-md w-full text-center shadow-2xl border border-white/20 animate-in zoom-in-95 duration-300 relative">
-              <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="absolute top-6 right-6 text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm">
-                <X size={20} />
-              </button>
-              <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                <AlertOctagon size={36} />
-              </div>
+              <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="absolute top-6 right-6 text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm"><X size={20} /></button>
+              <div className="w-20 h-20 bg-red-50 border border-red-100 text-red-600 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><AlertOctagon size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Final Warning</h2>
-              <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">
-                This action is permanent and cannot be reversed. To proceed, type the confirmation phrase exactly as shown below:
-              </p>
+              <p className="text-zinc-500 mb-6 text-sm font-medium leading-relaxed">This action is permanent and cannot be reversed. To proceed, type the confirmation phrase exactly as shown below:</p>
               {deleteError && <div className="mb-5 p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100">{deleteError}</div>}
-              <div className="bg-zinc-100 p-4 rounded-2xl mb-5 text-sm text-zinc-600 font-mono select-all border border-zinc-200 shadow-inner">
-                {deleteConfirmationPhrase}
-              </div>
+              <div className="bg-zinc-100 p-4 rounded-2xl mb-5 text-sm text-zinc-600 font-mono select-all border border-zinc-200 shadow-inner">{deleteConfirmationPhrase}</div>
               <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type confirmation phrase..." className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-8 text-center shadow-sm" />
               <div className="flex flex-col gap-3">
-                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100">
-                  {isDeleting ? 'Deleting Account...' : 'Permanently Delete'}
-                </button>
+                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100">{isDeleting ? 'Deleting Account...' : 'Permanently Delete'}</button>
                 <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="w-full bg-zinc-100 text-zinc-600 font-bold py-4 rounded-full hover:bg-zinc-200 transition-colors">Cancel</button>
               </div>
             </div>
