@@ -1,7 +1,20 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck, Wallet } from 'lucide-react';
 
 const updates = [
+  {
+    version: "v1.2.0",
+    title: "The Ecosystem & Stability Update",
+    date: "March 20, 2026",
+    icon: <Wallet className="text-blue-500" size={24} />,
+    description: "Expanding KinTag into your digital wallet while implementing system-wide security upgrades and performance optimizations for mobile devices.",
+    changes: [
+      { type: "ADDED", text: "Google Wallet Integration: KinTag passes can now be officially saved directly to Google Wallet. We have secured publishing access, allowing parents to keep their digital emergency IDs securely alongside their credit cards for instant, offline access." },
+      { type: "ADDED", text: "Backend Security Fortress: Implemented strict, memory-based rate limiting across all API routes to prevent bot spam. Added robust frontend input sanitization and reCAPTCHA Enterprise verification to ensure 100% human authentication." },
+      { type: "FIXED", text: "Hardware Acceleration Crashing: Heavily optimized the 3D rendering and CSS animations on the Home page to reduce memory footprint. This resolves a critical issue where low-end mobile browsers (specifically devices with 4GB RAM or less) would crash or show a blank screen during heavy scrolling." },
+      { type: "UPDATED", text: "Low-End Device Note: While we have made the site as lightweight as technologically possible, users on older hardware or unoptimized Chrome builds might still experience occasional screen flickering during rapid scrolling. This is a hardware/browser limitation and does not affect the core functionality or safety of your profiles because this issue is limited to home page only. We appreciate your understanding!" }
+    ]
+  },
   {
     version: "v1.1.1",
     title: "The Security & Vault Update",
