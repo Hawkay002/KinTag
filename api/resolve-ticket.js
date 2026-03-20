@@ -1,5 +1,21 @@
 import nodemailer from 'nodemailer';
 
+// --- SECURITY UTILITIES ---
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; 
+const MAX_REQUESTS_PER_WINDOW = 5; 
+
+const sanitizeInput = (input, maxLength = 255) => {
+  if (!input || typeof input !== 'string') return '';
+  return input.replace(/[<>{}()$]/g, '').trim().substring(0, maxLength);
+};
+
+const sanitizeEmail = (email) => {
+  if (!email || typeof email !== 'string') return '';
+  return email.replace(/[<>{}()$\s]/g, '').toLowerCase().substring(0, 255);
+};
+// --------------------------
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -11,7 +27,27 @@ const transporter = nodemailer.createTransport({
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
   
-  const { supportId, email } = req.body;
+  // --- RATE LIMITER ---
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown-ip';
+  const currentTime = Date.now();
+  if (rateLimitMap.has(ip)) {
+    const clientData = rateLimitMap.get(ip);
+    if (currentTime < clientData.resetTime) {
+      if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      clientData.count += 1;
+    } else {
+      rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+    }
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+  }
+  // --------------------
+
+  const supportId = sanitizeInput(req.body.supportId, 50);
+  const email = sanitizeEmail(req.body.email);
+  
   if (!supportId || !email) return res.status(400).json({ error: "Missing required fields" });
 
   try {
