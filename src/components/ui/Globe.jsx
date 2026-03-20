@@ -73,7 +73,7 @@ export default function Globe({ className }) {
   }, []);
 
   return (
-    <div className={`relative mx-auto aspect-square w-full max-w-[800px] pointer-events-none ${className}`}>
+    <div className={`relative mx-auto aspect-square w-full pointer-events-none ${className}`}>
       <canvas
         ref={canvasRef}
         className="w-full h-full pointer-events-none"
