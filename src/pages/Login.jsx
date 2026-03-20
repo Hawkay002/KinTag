@@ -48,6 +48,21 @@ export default function Login() {
     setLoading(true);
 
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
+      const captchaRes = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken, action: 'login' })
+      });
+      const captchaData = await captchaRes.json();
+      
+      if (!captchaData.success) {
+        setError("reCAPTCHA verification failed. Bots are not allowed.");
+        setLoading(false);
+        return; 
+      }
+      // -----------------------------------------
+
       const userCred = await signInWithEmailAndPassword(auth, email, password);
       await syncUserDatabase(userCred.user);
       navigate('/dashboard'); 
@@ -68,9 +83,24 @@ export default function Login() {
     }
 
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
+      const captchaRes = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken, action: 'login' })
+      });
+      const captchaData = await captchaRes.json();
+      
+      if (!captchaData.success) {
+        setError("reCAPTCHA verification failed. Bots are not allowed.");
+        setLoading(false);
+        return; 
+      }
+      // -----------------------------------------
+
+      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       await syncUserDatabase(result.user);
       navigate('/dashboard'); 
@@ -115,13 +145,11 @@ export default function Login() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
       
-      {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
 
       <div className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-8 border border-zinc-200/80 relative z-10 flex flex-col">
         
-        {/* Header */}
         <div className="text-center mb-8 shrink-0">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
