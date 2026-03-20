@@ -1,15 +1,13 @@
 /* eslint-disable react-hooks/exhaustive-deps */
-import { useEffect, useRef, useState, useId } from 'react';
+import { useEffect, useRef, useState, useId, useCallback } from 'react';
 
 const useDarkMode = () => {
   const [isDark, setIsDark] = useState(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
     setIsDark(mediaQuery.matches);
-
     const handler = e => setIsDark(e.matches);
     mediaQuery.addEventListener('change', handler);
     return () => mediaQuery.removeEventListener('change', handler);
@@ -18,13 +16,27 @@ const useDarkMode = () => {
   return isDark;
 };
 
+// FIX: Detect low-end / mobile devices once at module level.
+// On these devices we skip the SVG feDisplacementMap filter entirely —
+// it's an expensive multi-pass GPU operation that causes the 1-second lag
+// on the fixed navbar (which repaints on every scroll frame).
+const isLowEndDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return (
+    window.innerWidth < 768 ||
+    (navigator.hardwareConcurrency || 4) <= 4 ||
+    // navigator.deviceMemory is in GB; < 4GB = treat as low-end
+    (navigator.deviceMemory && navigator.deviceMemory < 4)
+  );
+};
+
 const GlassSurface = ({
   children,
   width = '100%',
   height = 'auto',
   borderRadius = 40,
   borderWidth = 0.07,
-  brightness = 100, // Adjusted for bright daytime view
+  brightness = 100,
   opacity = 0.8,
   blur = 15,
   displace = 0,
@@ -46,6 +58,8 @@ const GlassSurface = ({
   const blueGradId = `blue-grad-${uniqueId}`;
 
   const [svgSupported, setSvgSupported] = useState(false);
+  // FIX: Track low-end device status in state so SSR is safe.
+  const [lowEnd, setLowEnd] = useState(false);
 
   const containerRef = useRef(null);
   const feImageRef = useRef(null);
@@ -53,10 +67,16 @@ const GlassSurface = ({
   const greenChannelRef = useRef(null);
   const blueChannelRef = useRef(null);
   const gaussianBlurRef = useRef(null);
+  // FIX: Ref for debouncing the ResizeObserver callback.
+  const resizeRafRef = useRef(null);
 
   const isDarkMode = useDarkMode();
 
-  const generateDisplacementMap = () => {
+  useEffect(() => {
+    setLowEnd(isLowEndDevice());
+  }, []);
+
+  const generateDisplacementMap = useCallback(() => {
     const rect = containerRef.current?.getBoundingClientRect();
     const actualWidth = rect?.width || 400;
     const actualHeight = rect?.height || 80;
@@ -82,13 +102,17 @@ const GlassSurface = ({
     `;
 
     return `data:image/svg+xml,${encodeURIComponent(svgContent)}`;
-  };
+  }, [borderRadius, borderWidth, brightness, opacity, blur, mixBlendMode, redGradId, blueGradId]);
 
-  const updateDisplacementMap = () => {
+  const updateDisplacementMap = useCallback(() => {
+    // FIX: Never run the SVG filter update on low-end devices —
+    // it's not supported / enabled anyway, so this saves wasted work.
+    if (lowEnd) return;
     feImageRef.current?.setAttribute('href', generateDisplacementMap());
-  };
+  }, [lowEnd, generateDisplacementMap]);
 
   useEffect(() => {
+    if (lowEnd) return;
     updateDisplacementMap();
     [
       { ref: redChannelRef, offset: redOffset },
@@ -101,29 +125,39 @@ const GlassSurface = ({
         ref.current.setAttribute('yChannelSelector', yChannel);
       }
     });
-
     gaussianBlurRef.current?.setAttribute('stdDeviation', displace.toString());
   }, [
-    width, height, borderRadius, borderWidth, brightness, opacity, blur, displace,
+    lowEnd, width, height, borderRadius, borderWidth, brightness, opacity, blur, displace,
     distortionScale, redOffset, greenOffset, blueOffset, xChannel, yChannel, mixBlendMode
   ]);
 
   useEffect(() => {
-    if (!containerRef.current) return;
+    if (!containerRef.current || lowEnd) return;
+
+    // FIX: Debounce ResizeObserver with rAF so rapid resize events (e.g. orientation
+    // change, virtual keyboard open) don't flood the SVG attribute update path.
     const resizeObserver = new ResizeObserver(() => {
-      setTimeout(updateDisplacementMap, 0);
+      if (resizeRafRef.current) cancelAnimationFrame(resizeRafRef.current);
+      resizeRafRef.current = requestAnimationFrame(updateDisplacementMap);
     });
     resizeObserver.observe(containerRef.current);
-    return () => resizeObserver.disconnect();
-  }, []);
+    return () => {
+      resizeObserver.disconnect();
+      if (resizeRafRef.current) cancelAnimationFrame(resizeRafRef.current);
+    };
+  }, [lowEnd, updateDisplacementMap]);
 
   useEffect(() => {
-    setTimeout(updateDisplacementMap, 0);
-  }, [width, height]);
+    if (lowEnd) return;
+    const raf = requestAnimationFrame(updateDisplacementMap);
+    return () => cancelAnimationFrame(raf);
+  }, [lowEnd, width, height, updateDisplacementMap]);
 
   useEffect(() => {
+    // FIX: Don't even check SVG filter support on low-end devices.
+    if (lowEnd) return;
     setSvgSupported(supportsSVGFilters());
-  }, []);
+  }, [lowEnd]);
 
   const supportsSVGFilters = () => {
     if (typeof window === 'undefined' || typeof document === 'undefined') return false;
@@ -151,6 +185,25 @@ const GlassSurface = ({
     };
 
     const backdropFilterSupported = supportsBackdropFilter();
+
+    // FIX: On low-end / mobile devices, skip the SVG displacement map entirely
+    // and just use a standard backdrop-blur. This removes the primary cause of
+    // the 1-second navbar lag on high-end phones (GPU stall from the filter on
+    // a fixed element) and the full freeze on low-end phones.
+    if (lowEnd) {
+      return {
+        ...baseStyles,
+        background: isDarkMode ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.55)',
+        backdropFilter: 'blur(16px) saturate(1.4)',
+        WebkitBackdropFilter: 'blur(16px) saturate(1.4)',
+        border: isDarkMode
+          ? '1px solid rgba(255, 255, 255, 0.15)'
+          : '1px solid rgba(255, 255, 255, 0.4)',
+        boxShadow: isDarkMode
+          ? 'inset 0 1px 0 0 rgba(255, 255, 255, 0.15)'
+          : 'inset 0 1px 0 0 rgba(255, 255, 255, 0.5), 0 8px 32px 0 rgba(31, 38, 135, 0.1)',
+      };
+    }
 
     if (svgSupported) {
       return {
@@ -223,22 +276,26 @@ const GlassSurface = ({
 
   return (
     <div ref={containerRef} className={`${glassSurfaceClasses} ${className}`} style={getContainerStyles()}>
-      <svg className="w-full h-full pointer-events-none absolute inset-0 opacity-0 -z-10" xmlns="http://www.w3.org/2000/svg">
-        <defs>
-          <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
-            <feImage ref={feImageRef} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
-            <feDisplacementMap ref={redChannelRef} in="SourceGraphic" in2="map" id="redchannel" result="dispRed" />
-            <feColorMatrix in="dispRed" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
-            <feDisplacementMap ref={greenChannelRef} in="SourceGraphic" in2="map" id="greenchannel" result="dispGreen" />
-            <feColorMatrix in="dispGreen" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
-            <feDisplacementMap ref={blueChannelRef} in="SourceGraphic" in2="map" id="bluechannel" result="dispBlue" />
-            <feColorMatrix in="dispBlue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
-            <feBlend in="red" in2="green" mode="screen" result="rg" />
-            <feBlend in="rg" in2="blue" mode="screen" result="output" />
-            <feGaussianBlur ref={gaussianBlurRef} in="output" stdDeviation="0.7" />
-          </filter>
-        </defs>
-      </svg>
+      {/* FIX: Only render the heavy SVG filter markup on capable devices.
+          Rendering it on low-end devices was wasteful even when unused. */}
+      {!lowEnd && (
+        <svg className="w-full h-full pointer-events-none absolute inset-0 opacity-0 -z-10" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <filter id={filterId} colorInterpolationFilters="sRGB" x="0%" y="0%" width="100%" height="100%">
+              <feImage ref={feImageRef} x="0" y="0" width="100%" height="100%" preserveAspectRatio="none" result="map" />
+              <feDisplacementMap ref={redChannelRef} in="SourceGraphic" in2="map" id="redchannel" result="dispRed" />
+              <feColorMatrix in="dispRed" type="matrix" values="1 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 1 0" result="red" />
+              <feDisplacementMap ref={greenChannelRef} in="SourceGraphic" in2="map" id="greenchannel" result="dispGreen" />
+              <feColorMatrix in="dispGreen" type="matrix" values="0 0 0 0 0  0 1 0 0 0  0 0 0 0 0  0 0 0 1 0" result="green" />
+              <feDisplacementMap ref={blueChannelRef} in="SourceGraphic" in2="map" id="bluechannel" result="dispBlue" />
+              <feColorMatrix in="dispBlue" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 1 0 0  0 0 0 1 0" result="blue" />
+              <feBlend in="red" in2="green" mode="screen" result="rg" />
+              <feBlend in="rg" in2="blue" mode="screen" result="output" />
+              <feGaussianBlur ref={gaussianBlurRef} in="output" stdDeviation="0.7" />
+            </filter>
+          </defs>
+        </svg>
+      )}
       <div className="w-full h-full flex items-center justify-center p-1 rounded-[inherit] relative z-10">
         {children}
       </div>
