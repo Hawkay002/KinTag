@@ -12,13 +12,11 @@ export default function Signup() {
   const location = useLocation();
   const prefilledEmail = new URLSearchParams(location.search).get('email') || '';
 
-  // Stepper State
   const [activeStep, setActiveStep] = useState(1);
   const [direction, setDirection] = useState(1);
-  const [signupIntent, setSignupIntent] = useState('email'); // Tracks if user chose Email or Google
+  const [signupIntent, setSignupIntent] = useState('email'); 
   const totalSteps = 4;
 
-  // Form State
   const [firstName, setFirstName] = useState('');
   const [middleName, setMiddleName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -33,7 +31,6 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
 
-  // OTP Verification State
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
@@ -42,7 +39,6 @@ export default function Signup() {
   const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
   const inputRefs = useRef([]);
 
-  // --- NAVIGATION LOGIC ---
   const goToStep = (newStep) => {
     setDirection(newStep > activeStep ? 1 : -1);
     setActiveStep(newStep);
@@ -52,7 +48,6 @@ export default function Signup() {
   const nextStep = () => goToStep(Math.min(activeStep + 1, totalSteps));
   
   const prevStep = () => {
-    // If they were on the Google flow and hit back, reset to Step 1 and clear the intent
     if (activeStep === 4 && signupIntent === 'google') {
       setSignupIntent('email');
       goToStep(1);
@@ -62,7 +57,7 @@ export default function Signup() {
   };
 
   const isNextDisabled = () => {
-    if (signupIntent === 'google') return false; // Google intent bypasses middle step validation
+    if (signupIntent === 'google') return false; 
     if (activeStep === 1) return !isEmailVerified;
     if (activeStep === 2) return password.length < 8 || password !== confirmPassword || !password;
     if (activeStep === 3) return !firstName.trim() || !lastName.trim();
@@ -70,7 +65,6 @@ export default function Signup() {
     return false;
   };
 
-  // --- FIREBASE LOGIC ---
   const processUserDatabase = async (user, displayName) => {
     const emailLower = user.email.toLowerCase();
     const inviteRef = doc(db, "invites", emailLower);
@@ -97,9 +91,9 @@ export default function Signup() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ownerId: inviterUid,
-          title: `👥 Guardian Joined!`,
+          title: `🛡️ Guardian Joined!`,
           body: `${displayName || emailLower} created an account and joined your family.`,
-          link: `https://kintag.vercel.app/#/dashboard?view=notifications` // 🌟 ROUTE UPDATED
+          link: `https://kintag.vercel.app/#/dashboard?view=notifications` 
         })
       }).catch(() => {});
     }
@@ -118,7 +112,6 @@ export default function Signup() {
     }).catch(err => console.log("Welcome email failed:", err));
   };
 
-  // --- OTP LOGIC ---
   const handleSendOtp = async () => {
     setError('');
     setOtpLoading(true);
@@ -194,11 +187,9 @@ export default function Signup() {
     }
   };
 
-  // --- GOOGLE SIGN-UP LOGIC ---
   const handleGoogleIntent = () => {
     setSignupIntent('google');
     setDirection(1);
-    // Rapidly animate through the steps to provide satisfying visual completion
     setTimeout(() => setActiveStep(2), 150);
     setTimeout(() => setActiveStep(3), 300);
     setTimeout(() => setActiveStep(4), 450);
@@ -209,8 +200,23 @@ export default function Signup() {
     if (!captchaToken) return setError("Please complete the security check first.");
 
     setLoading(true);
-    const provider = new GoogleAuthProvider();
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
+      const captchaRes = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken, action: 'signup' })
+      });
+      const captchaData = await captchaRes.json();
+      
+      if (!captchaData.success) {
+        setError("reCAPTCHA verification failed. Bots are not allowed.");
+        setLoading(false);
+        return; 
+      }
+      // -----------------------------------------
+
+      const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const details = getAdditionalUserInfo(result);
 
@@ -219,7 +225,7 @@ export default function Signup() {
       } else {
         await processUserDatabase(result.user, result.user.displayName || '');
       }
-      navigate('/dashboard'); // 🌟 ROUTE UPDATED
+      navigate('/dashboard'); 
     } catch (err) {
       setError("Google sign-up failed. Please try again.");
     } finally {
@@ -227,17 +233,31 @@ export default function Signup() {
     }
   };
 
-  // --- EMAIL SUBMISSION LOGIC ---
   const handleEmailSignup = async () => {
     setError('');
     if (!captchaToken) return setError("Please complete the security check.");
     
     setLoading(true);
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
+      const captchaRes = await fetch('/api/verify-recaptcha', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: captchaToken, action: 'signup' })
+      });
+      const captchaData = await captchaRes.json();
+      
+      if (!captchaData.success) {
+        setError("reCAPTCHA verification failed. Bots are not allowed.");
+        setLoading(false);
+        return; 
+      }
+      // -----------------------------------------
+
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
       await processUserDatabase(userCredential.user, fullName);
-      navigate('/dashboard'); // 🌟 ROUTE UPDATED
+      navigate('/dashboard'); 
     } catch (err) {
       setError(err.message.replace('Firebase: ', ''));
     } finally {
@@ -245,7 +265,6 @@ export default function Signup() {
     }
   };
 
-  // --- PASSWORD STRENGTH LOGIC ---
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -264,7 +283,6 @@ export default function Signup() {
     </li>
   );
 
-  // --- FRAMER MOTION VARIANTS ---
   const slideVariants = {
     enter: (dir) => ({ x: dir > 0 ? 40 : -40, opacity: 0, filter: "blur(4px)" }),
     center: { x: 0, opacity: 1, filter: "blur(0px)" },
@@ -274,13 +292,11 @@ export default function Signup() {
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
       
-      {/* Premium Background Elements */}
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[500px] bg-gradient-to-r from-brandGold/20 via-emerald-400/10 to-transparent rounded-full blur-[80px] pointer-events-none"></div>
 
       <div className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-8 border border-zinc-200/80 relative z-10 flex flex-col min-h-[600px]">
         
-        {/* Header */}
         <div className="text-center mb-8 shrink-0">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
@@ -289,7 +305,6 @@ export default function Signup() {
           <p className="text-zinc-500 font-medium">Create an account to secure your family.</p>
         </div>
 
-        {/* Custom Stepper Indicator */}
         <div className="flex w-full justify-between items-center mb-10 relative px-2 shrink-0">
            <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-1.5 bg-zinc-100 rounded-full z-0"></div>
            <div className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 bg-brandDark rounded-full z-0 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" style={{ width: `calc(${((activeStep - 1) / 3) * 100}% - 16px)` }}></div>
@@ -307,7 +322,6 @@ export default function Signup() {
                  key={step.id}
                  onClick={() => {
                    if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
-                     // If breaking out of the Google flow manually via Stepper, reset intent
                      if (signupIntent === 'google' && step.id !== 4) setSignupIntent('email');
                      goToStep(step.id);
                    }
@@ -327,11 +341,9 @@ export default function Signup() {
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold text-center border border-red-100 shrink-0 animate-in fade-in">{error}</div>}
 
-        {/* Form Area - Framer Motion Wrapper */}
         <div className="flex-1 relative flex flex-col justify-center">
           <AnimatePresence mode="popLayout" custom={direction}>
             
-            {/* STEP 1: EMAIL & VERIFICATION */}
             {activeStep === 1 && (
               <motion.div key="step1" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-5">
                 <div className="text-center mb-6">
@@ -394,7 +406,6 @@ export default function Signup() {
                   </div>
                 )}
 
-                {/* 🌟 GOOGLE SIGN-UP TRIGGER */}
                 {!isEmailVerified && !showOtpInput && (
                   <div className="animate-in fade-in duration-500">
                     <div className="relative flex items-center justify-center w-full my-6">
@@ -411,7 +422,6 @@ export default function Signup() {
               </motion.div>
             )}
 
-            {/* STEP 2: PASSWORD */}
             {activeStep === 2 && (
               <motion.div key="step2" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
                 <div className="text-center mb-6">
@@ -476,7 +486,6 @@ export default function Signup() {
               </motion.div>
             )}
 
-            {/* STEP 3: NAME */}
             {activeStep === 3 && (
               <motion.div key="step3" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
                 <div className="text-center mb-6">
@@ -489,7 +498,6 @@ export default function Signup() {
               </motion.div>
             )}
 
-            {/* STEP 4: CAPTCHA & FINAL SUBMIT */}
             {activeStep === 4 && (
               <motion.div key="step4" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-6 flex flex-col items-center">
                 <div className="text-center mb-2">
@@ -525,7 +533,6 @@ export default function Signup() {
           </AnimatePresence>
         </div>
 
-        {/* Footer Navigation Buttons */}
         {activeStep < 4 && (
           <div className="flex justify-between w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
             <button 
@@ -546,7 +553,6 @@ export default function Signup() {
           </div>
         )}
         
-        {/* Footer Navigation for Google Intent on Step 4 */}
         {activeStep === 4 && signupIntent === 'google' && (
           <div className="flex justify-start w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
              <button 
@@ -559,7 +565,6 @@ export default function Signup() {
           </div>
         )}
 
-        {/* Back to Login Global Link */}
         {activeStep === 1 && (
           <p className="text-center mt-8 text-sm text-zinc-500 font-medium">
             Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
