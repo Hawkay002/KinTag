@@ -36,7 +36,7 @@ const stackFeatures = [
   { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-teal-500" /> },
   { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-sky-400" /> },
   { id: 19, title: "Complete Data Control", description: "You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time.", icon: <Trash2 size={40} className="text-zinc-800" /> },
-  { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid's, pet's, or an elderly person's mobile ID as a pass in your Google Wallet with a simple "Add to Google Wallet" button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
+  { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid's, pet's, or an elderly person's mobile ID as a pass in your Google Wallet with a simple 'Add to Google Wallet' button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
 ];
 
 export default function Home() {
