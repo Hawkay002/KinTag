@@ -1,12 +1,43 @@
 import jwt from 'jsonwebtoken';
 
+// --- SECURITY UTILITIES ---
+const rateLimitMap = new Map();
+const RATE_LIMIT_WINDOW_MS = 60 * 1000; 
+const MAX_REQUESTS_PER_WINDOW = 5; 
+
+const sanitizeInput = (input, maxLength = 255) => {
+  if (!input || typeof input !== 'string') return '';
+  return input.replace(/[<>{}()$]/g, '').trim().substring(0, maxLength);
+};
+// --------------------------
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method Not Allowed' });
   }
+
+  // --- RATE LIMITER ---
+  const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress || 'unknown-ip';
+  const currentTime = Date.now();
+  if (rateLimitMap.has(ip)) {
+    const clientData = rateLimitMap.get(ip);
+    if (currentTime < clientData.resetTime) {
+      if (clientData.count >= MAX_REQUESTS_PER_WINDOW) {
+        return res.status(429).json({ error: 'Too many requests. Please try again later.' });
+      }
+      clientData.count += 1;
+    } else {
+      rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+    }
+  } else {
+    rateLimitMap.set(ip, { count: 1, resetTime: currentTime + RATE_LIMIT_WINDOW_MS });
+  }
+  // --------------------
   
-  // We no longer need petImageUrl since we are using a fixed pattern!
-  const { profileId, petName } = req.body;
+  const profileId = sanitizeInput(req.body.profileId, 50);
+  const petName = sanitizeInput(req.body.petName, 60);
+
+  if (!profileId) return res.status(400).json({ error: 'Invalid or missing Profile ID.' });
 
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
@@ -14,7 +45,6 @@ export default async function handler(req, res) {
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
 
-    // Forces a completely new pass generation every time
     const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     const passObject = {
@@ -26,19 +56,15 @@ export default async function handler(req, res) {
         sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
         contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
       },
-      // 🌟 Swapped to petName so it saves under their actual name in the Wallet!
-      // Top right of detailed pass / Top text of list view
       cardTitle: {
         defaultValue: { language: "en", value: "Scan QR for Info" }
       },
       subheader: {
         defaultValue: { language: "en", value: "KinTag Digital ID" }
       },
-      // Massive text of detailed pass / Bottom text of list view
       header: {
         defaultValue: { language: "en", value: petName || "Emergency Profile" }
       },
-      // 🌟 FIXED HERO IMAGE: Uses your beautiful pattern for every pass
       heroImage: {
         sourceUri: { uri: "https://kintag.vercel.app/patternnewo.png" },
         contentDescription: {
