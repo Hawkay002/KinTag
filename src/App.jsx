@@ -59,6 +59,8 @@ function AppRoutes() {
       <Route path="/id/:profileId" element={<PublicCard />} />
       <Route path="/changelog" element={<Changelog />} /> 
       <Route path="*" element={<Navigate to="/" replace />} />
+      {/* ADD THIS NEW LINE RIGHT HERE 👇 */}
+      <Route path="/settings" element={<Settings />} />
     </Routes>
   );
 }
