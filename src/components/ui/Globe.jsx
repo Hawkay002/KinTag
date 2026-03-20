@@ -5,59 +5,64 @@ export default function Globe({ className }) {
   const canvasRef = useRef();
   const inViewRef = useRef(true);
 
-  // 🌟 Smart Observer: Pauses the globe's heavy WebGL rendering when scrolled out of view
   useEffect(() => {
     const observer = new IntersectionObserver(
       ([entry]) => { inViewRef.current = entry.isIntersecting; },
-      { rootMargin: "200px" } 
+      { rootMargin: "200px" }
     );
     if (canvasRef.current) observer.observe(canvasRef.current);
     return () => observer.disconnect();
   }, []);
 
   useEffect(() => {
-    let phi = 1.4; 
+    let phi = 1.4;
     let width = 0;
-    
+
     const onResize = () => canvasRef.current && (width = canvasRef.current.offsetWidth);
     window.addEventListener('resize', onResize);
     onResize();
-    
+
     if (!canvasRef.current) return;
 
+    // FIX 1: Cap devicePixelRatio at 1.5 max.
+    // A DPR-2 globe on a 3x screen sends 6x the pixels to WebGL per frame.
+    // Capping at 1.5 is visually imperceptible but saves massive GPU work on low-end phones.
+    const dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+
+    // FIX 2: Reduce mapSamples further on low-end devices.
+    // navigator.hardwareConcurrency is a reliable proxy for device class.
+    const isLowEnd = (navigator.hardwareConcurrency || 4) <= 4;
+    const samples = isLowEnd ? 6000 : 10000;
+
     const globe = createGlobe(canvasRef.current, {
-      devicePixelRatio: 2,
-      width: width * 2,
-      height: width * 2,
+      devicePixelRatio: dpr,
+      width: width * dpr,
+      height: width * dpr,
       phi: phi,
       theta: 0.3,
-      dark: 0, 
+      dark: 0,
       diffuse: 1.2,
-      // 🌟 GPU OPTIMIZATION: Lowered from 16000 to 12000. 
-      // Looks visually identical but saves low-end phones from calculating 4000 extra dots per frame!
-      mapSamples: 10000,
+      mapSamples: samples,
       mapBrightness: 6,
-      baseColor: [0.95, 0.95, 0.95], 
-      markerColor: [0.05, 0.8, 0.5], 
+      baseColor: [0.95, 0.95, 0.95],
+      markerColor: [0.05, 0.8, 0.5],
       glowColor: [1, 1, 1],
       markers: [
         { location: [37.7595, -122.4367], size: 0.05 },
-        { location: [40.7128, -74.006], size: 0.05 },  
-        { location: [51.5072, -0.1276], size: 0.05 },   
-        { location: [28.6139, 77.2090], size: 0.1 },    
-        { location: [19.076, 72.8777], size: 0.06 },   
-        { location: [48.8566, 2.3522], size: 0.05 },   
-        { location: [-33.8688, 151.2093], size: 0.06 }, 
-        { location: [35.6895, 139.6917], size: 0.08 },  
+        { location: [40.7128, -74.006], size: 0.05 },
+        { location: [51.5072, -0.1276], size: 0.05 },
+        { location: [28.6139, 77.2090], size: 0.1 },
+        { location: [19.076, 72.8777], size: 0.06 },
+        { location: [48.8566, 2.3522], size: 0.05 },
+        { location: [-33.8688, 151.2093], size: 0.06 },
+        { location: [35.6895, 139.6917], size: 0.08 },
       ],
       onRender: (state) => {
-        // 🌟 If out of view, return immediately to free up the CPU/GPU thread!
-        if (!inViewRef.current) return; 
-
+        if (!inViewRef.current) return;
         phi += 0.003;
         state.phi = phi;
-        state.width = width * 2;
-        state.height = width * 2;
+        state.width = width * dpr;
+        state.height = width * dpr;
       }
     });
 
