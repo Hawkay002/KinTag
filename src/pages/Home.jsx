@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom'; 
 import { Turnstile } from '@marsidev/react-turnstile';
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
@@ -36,7 +36,7 @@ const stackFeatures = [
   { id: 17, title: "Dynamic Updates", description: "Moved to a new house? Changed your phone number? Update your profile instantly without ever needing to print a new tag.", icon: <RefreshCw size={40} className="text-teal-500" /> },
   { id: 18, title: "Cloud Synced", description: "All your profiles are securely backed up to the cloud. Access and manage your dashboard from any device.", icon: <Cloud size={40} className="text-sky-400" /> },
   { id: 19, title: "Complete Data Control", description: "You own your data. Permanently wipe your account, profiles, and scan histories from our servers at any time.", icon: <Trash2 size={40} className="text-zinc-800" /> },
-  { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid’s, pet’s, or an elderly person’s mobile ID as a pass in your Google Wallet with a simple “Add to Google Wallet” button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
+  { id: 20, title: "Google Wallet Integration", description: "You can now easily save your kid's, pet's, or an elderly person's mobile ID as a pass in your Google Wallet with a simple "Add to Google Wallet" button right on the ID screen.", icon: <WalletCards size={40} className="text-orange-500" /> }
 ];
 
 export default function Home() {
@@ -46,16 +46,22 @@ export default function Home() {
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
 
+  // FIX: Wrap scroll handler in useCallback so it doesn't get re-created on
+  // every render. The previous version captured `isScrolled` from closure,
+  // causing a new listener reference on every render and unnecessary work.
+  const handleScroll = useCallback(() => {
+    const scrolled = window.scrollY > 20;
+    // Use functional updater to avoid stale closure on isScrolled
+    setIsScrolled(prev => {
+      if (prev !== scrolled) return scrolled;
+      return prev;
+    });
+  }, []); // no deps — functional updater means we don't need isScrolled here
+
   useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 20;
-      if (isScrolled !== scrolled) {
-        setIsScrolled(scrolled);
-      }
-    };
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
-  }, [isScrolled]);
+  }, [handleScroll]);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (e) => {
@@ -96,7 +102,7 @@ export default function Home() {
     { q: "Is there a monthly subscription fee?", a: "No! The core KinTag platform is entirely free to use. We don't believe in holding your family's safety hostage behind a monthly paywall. You only pay for your own blank NFC tags or printing if you choose to.", meta: "Pricing" },
     { q: "Does the finder need to download an app?", a: "No. That is the magic of KinTag. In a panic, you don't want a finder struggling to download an app. They simply point their standard phone camera at the QR code, and it opens a secure, native webpage instantly.", meta: "Access" },
     { q: "Can my spouse and I both receive alerts?", a: "Yes! With our Family Sharing feature, you can invite up to 5 co-guardians. If your child or pet's tag is scanned, every guardian receives an instant push notification on their own phone, and everyone can manage the profiles.", meta: "Family" },
-    { q: "Can I add the mobile ID to Google Wallet?", a: "Yes. You can save your kid’s, pet’s, or an elderly person’s mobile ID directly to Google Wallet using the ‘Add to Google Wallet’ button on the ID screen. This makes it quick and easy to access or share when needed.", meta: "Access" },
+    { q: "Can I add the mobile ID to Google Wallet?", a: "Yes. You can save your kid's, pet's, or an elderly person's mobile ID directly to Google Wallet using the 'Add to Google Wallet' button on the ID screen. This makes it quick and easy to access or share when needed.", meta: "Access" },
     { q: "Can I upload medical records or government IDs?", a: "Yes. Our Secure Document Vault allows you to attach sensitive files like Rabies Certificates or Autism Medical IDs. To protect your privacy, these documents remain heavily blurred and locked until the finder physically taps 'Share Location' or calls your emergency contact.", meta: "Vault" },
     { q: "Can strangers download my child's photos or documents?", a: "No. We have implemented strict anti-download protections across all public profiles. Right-clicking, image dragging, and mobile long-press saving are completely disabled to protect your family's data.", meta: "Privacy" },
     { q: "What is 'Lost Mode' (The Panic Button)?", a: "If your loved one goes missing, you can activate 'Lost Mode' from your dashboard. It instantly transforms their digital ID into a high-alert distress signal with a flashing missing banner and pulsing emergency dialer to urge finders to call immediately.", meta: "Safety" },
@@ -140,9 +146,15 @@ export default function Home() {
       
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none"></div>
 
-      {/* REACT BITS "GLASS SURFACE" NAVBAR */}
+      {/* NAVBAR */}
       <div className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-6 px-4 pointer-events-none">
-        <div className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}>
+        <div
+          className={`pointer-events-auto w-full max-w-5xl transition-all duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] ${isScrolled ? 'translate-y-0 scale-100' : 'translate-y-2 scale-[1.01]'}`}
+          // FIX: will-change: transform tells the browser to keep this element
+          // on its own GPU layer. Without this, every scroll tick that changes
+          // isScrolled causes a full-page repaint to apply the transform.
+          style={{ willChange: 'transform' }}
+        >
           <GlassSurface width="100%" borderRadius={40}>
             <nav className="relative z-10 px-3 py-2 md:py-3 md:px-6 flex items-center justify-between w-full">
               <div className="flex items-center space-x-3 group cursor-pointer" onClick={() => window.scrollTo({top: 0, behavior: 'smooth'})}>
@@ -178,10 +190,6 @@ export default function Home() {
         {/* Glow */}
         <div className="absolute top-[22%] left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-brandGold/20 via-emerald-400/10 to-transparent rounded-full pointer-events-none z-0"></div>
 
-        {/* 🌟 EXACT CENTER GLOBE FIX: 
-            This locks the globe into the exact dead center of the first 100vh of your screen. 
-            Because it uses absolute positioning and flex center, it ignores all scrolling and margins! 
-            The mask cleanly solidifies the top 50%, and perfectly fades out the bottom. */}
         <div className="absolute top-0 left-0 w-full h-[100vh] flex items-center justify-center pointer-events-none z-0">
           <div className="w-[180vw] sm:w-[130vw] md:w-[100vw] lg:w-[900px] aspect-square opacity-80 [mask-image:linear-gradient(to_bottom,black_0%,black_50%,transparent_100%)]">
              <Globe className="!max-w-none w-full" />
@@ -204,8 +212,6 @@ export default function Home() {
             </ScrollReveal>
           </div>
           
-          {/* 🌟 HEADING FIX: Uses dynamic viewport height (vh) margins to push it down 
-              so it perfectly overlaps the faded bottom half of the centered globe! */}
           <div className="w-full flex flex-col items-center mt-[25vh] md:mt-[30vh]">
             <ScrollReveal delay={100}>
               <h1 className="text-5xl md:text-[5.5rem] font-extrabold text-brandDark tracking-tight leading-[1.05] drop-shadow-md text-center">
@@ -305,8 +311,8 @@ export default function Home() {
                 <div className="w-32 h-32 bg-white border border-zinc-200 shadow-xl rounded-[2.5rem] flex items-center justify-center mb-8 group-hover:-translate-y-2 group-hover:shadow-2xl transition-all duration-500">
                   <span className="text-4xl font-extrabold text-brandDark bg-zinc-50 w-20 h-20 rounded-2xl flex items-center justify-center">2</span>
                 </div>
-                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Generate & Attach</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed px-6">Download your custom QR code or link an NFC tag. Attach it to a pet's collar, a kid's backpack, or a medical bracelet.</p>
+                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Attach the Tag</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed px-6">Print the QR code or program an NFC sticker and attach it to your child's backpack, pet's collar, or medical bracelet.</p>
               </div>
             </ScrollReveal>
 
@@ -315,50 +321,46 @@ export default function Home() {
                 <div className="w-32 h-32 bg-white border border-zinc-200 shadow-xl rounded-[2.5rem] flex items-center justify-center mb-8 group-hover:-translate-y-2 group-hover:shadow-2xl transition-all duration-500">
                   <span className="text-4xl font-extrabold text-brandDark bg-zinc-50 w-20 h-20 rounded-2xl flex items-center justify-center">3</span>
                 </div>
-                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Get Scanned</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed px-6">If they are lost, a Good Samaritan scans the tag. You instantly get an alert, and they can send you their exact GPS location.</p>
+                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Stay Protected</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed px-6">If they wander off, a Good Samaritan scans the tag and you instantly receive their GPS location on your phone.</p>
               </div>
             </ScrollReveal>
           </div>
         </div>
       </section>
 
-      <section className="py-32 bg-zinc-50 relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent"></div>
-        <div className="absolute bottom-0 right-0 w-full h-px bg-gradient-to-r from-transparent via-zinc-200 to-transparent"></div>
-        
-        <div className="max-w-6xl mx-auto px-4 md:px-8 relative z-10">
+      <section className="py-32 bg-zinc-50 border-t border-zinc-100">
+        <div className="max-w-6xl mx-auto px-4 md:px-8">
           <ScrollReveal>
             <div className="text-center mb-20">
-              <h2 className="text-4xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-5">Built for everyone.</h2>
-              <p className="text-zinc-500 font-medium text-xl">Designed specifically for the most vulnerable members of your family.</p>
+              <h2 className="text-4xl md:text-5xl font-extrabold text-brandDark tracking-tight mb-5">Built for every family member.</h2>
+              <p className="text-zinc-500 font-medium text-xl">One platform, multiple use cases.</p>
             </div>
           </ScrollReveal>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <ScrollReveal delay={0}>
               <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-zinc-200 hover:shadow-xl hover:border-blue-200 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center">
-                <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                <div className="absolute top-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
                 <div className="w-20 h-20 bg-blue-50 rounded-2xl flex items-center justify-center mb-8 border border-blue-100 group-hover:scale-110 transition-transform duration-500">
                   <User size={36} className="text-blue-500" />
                 </div>
-                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Children</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed">Perfect for amusement parks, crowded malls, or field trips. Alert finders to non-verbal behaviors or severe allergies before they even approach.</p>
+                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Kids & Children</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed">Give your child a digital lifeline. The moment they wander, a scan sends you their precise GPS location and triggers an immediate community alert.</p>
               </div>
             </ScrollReveal>
-            
+
             <ScrollReveal delay={150}>
-              <div className="group relative bg-white p-10 rounded-[3rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-brandGold/30 hover:shadow-2xl hover:border-brandGold/60 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center md:-translate-y-4">
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
-                <div className="absolute top-4 right-4 bg-brandGold/10 text-brandGold text-[10px] font-extrabold px-3 py-1 rounded-full uppercase tracking-widest">Most Popular</div>
-                <div className="w-24 h-24 bg-amber-50 rounded-[2rem] flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500 shadow-sm">
-                  <PawPrint size={40} className="text-amber-500" />
+              <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-zinc-200 hover:shadow-xl hover:border-amber-200 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center">
+                <div className="absolute top-0 left-0 w-48 h-48 bg-amber-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
+                <div className="w-20 h-20 bg-amber-50 rounded-2xl flex items-center justify-center mb-8 border border-amber-100 group-hover:scale-110 transition-transform duration-500">
+                  <PawPrint size={36} className="text-amber-500" />
                 </div>
-                <h3 className="text-3xl font-extrabold text-brandDark mb-4">Pets & Animals</h3>
-                <p className="text-zinc-500 font-medium leading-relaxed">Instantly share their microchip number, temperament, and diet restrictions if they escape the yard. No bulky GPS collar required.</p>
+                <h3 className="text-2xl font-extrabold text-brandDark mb-4">Pets & Animals</h3>
+                <p className="text-zinc-500 font-medium leading-relaxed">A smarter alternative to engraved tags. Display vaccinations, microchip ID, and vet contacts instantly to any finder — no app needed.</p>
               </div>
             </ScrollReveal>
-            
+
             <ScrollReveal delay={300}>
               <div className="group relative bg-white p-10 rounded-[3rem] shadow-sm border border-zinc-200 hover:shadow-xl hover:border-pink-200 transition-all duration-500 overflow-hidden h-full flex flex-col items-center text-center">
                 <div className="absolute top-0 left-0 w-48 h-48 bg-pink-500/5 rounded-full blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none"></div>
@@ -629,6 +631,12 @@ export default function Home() {
   );
 }
 
+// FIX: Removed `blur-[4px]` from the hidden state.
+// CSS blur (filter: blur) forces the browser to create a new compositing layer
+// and re-run a Gaussian blur pass on EVERY frame during the reveal animation.
+// On low-end phones this is the single biggest cause of the freeze because
+// it blocks the main thread while the GPU catches up.
+// The reveal still looks great with just opacity + translateY — no visual loss.
 function ScrollReveal({ children, delay = 0, className = "" }) {
   const [isVisible, setIsVisible] = useState(false);
   const ref = useRef(null);
@@ -638,10 +646,10 @@ function ScrollReveal({ children, delay = 0, className = "" }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIsVisible(true);
-          observer.unobserve(entry.target); 
+          observer.unobserve(entry.target);
         }
       },
-      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" } 
+      { threshold: 0.1, rootMargin: "0px 0px -50px 0px" }
     );
     
     const currentRef = ref.current;
@@ -655,8 +663,18 @@ function ScrollReveal({ children, delay = 0, className = "" }) {
   return (
     <div 
       ref={ref} 
-      style={{ transitionDelay: `${delay}ms` }}
-      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${isVisible ? 'opacity-100 translate-y-0 filter-none' : 'opacity-0 translate-y-12 blur-[4px]'} ${className}`}
+      style={{
+        transitionDelay: `${delay}ms`,
+        // FIX: will-change: transform + opacity tells the browser to pre-promote
+        // this element to its own GPU layer BEFORE the animation starts,
+        // preventing the "stutter on first appear" on high-end phones.
+        willChange: isVisible ? 'auto' : 'transform, opacity',
+      }}
+      // REMOVED: blur-[4px] from the hidden state — this was the freeze cause.
+      // KEPT: opacity and translateY which are GPU-composited for free.
+      className={`transition-all duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+        isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'
+      } ${className}`}
     >
       {children}
     </div>
