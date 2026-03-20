@@ -14,7 +14,7 @@ import Profile from './pages/Profile';
 import Changelog from './pages/Changelog';
 import UpdateToast from './components/UpdateToast';
 import Settings from './pages/Settings';
-import CareView from './pages/CareView';// 🌟 NEW
+import CareView from './pages/CareView'; // 🌟 NEW: Imported the Caretaker View
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
@@ -36,32 +36,34 @@ function AppRoutes() {
   useEffect(() => {
     if (isAuthRefresh) {
       isAuthRefresh = false; 
-      // 🌟 Updated to point to the new dedicated dashboard route
       navigate('/dashboard', { replace: true });
     }
   }, [navigate]);
 
   return (
     <Routes>
-      {/* 🌟 Home page is now visible to everyone, logged in or not */}
+      {/* --- PUBLIC ROUTES --- */}
       <Route path="/" element={<Home />} />
-      
-      {/* 🌟 New dedicated protected route for the dashboard */}
-      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      
-      {/* 🌟 Logged in users trying to access login/signup go to dashboard */}
       <Route path="/login" element={currentUser ? <Navigate to="/dashboard" replace /> : <Login />} />
       <Route path="/signup" element={currentUser ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      <Route path="/id/:profileId" element={<PublicCard />} />
+      <Route path="/changelog" element={<Changelog />} /> 
       
+      {/* 🌟 NEW: Babysitter / Caretaker Link (MUST be public so they don't have to log in) */}
+      <Route path="/care/:sessionId" element={<CareView />} />
+      
+      {/* --- PROTECTED ROUTES --- */}
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
       <Route path="/create" element={<ProtectedRoute><CreateCard /></ProtectedRoute>} />
       <Route path="/edit/:profileId" element={<ProtectedRoute><EditCard /></ProtectedRoute>} />
       <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
       <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-      <Route path="/id/:profileId" element={<PublicCard />} />
-      <Route path="/care/:sessionId" element={<CareView />} />
-      <Route path="/changelog" element={<Changelog />} /> 
+      
+      {/* 🌟 MOVED & PROTECTED: Settings is now safely guarded behind authentication */}
+      <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
+      
+      {/* --- CATCH-ALL (Must stay at the very bottom!) --- */}
       <Route path="*" element={<Navigate to="/" replace />} />
-      <Route path="/settings" element={<Settings />} />
     </Routes>
   );
 }
@@ -70,7 +72,7 @@ export default function App() {
   return (
     <AuthProvider>
       <Router>
-        <UpdateToast /> {/* 🌟 NEW */}
+        <UpdateToast />
         <AppRoutes />
       </Router>
     </AuthProvider>
