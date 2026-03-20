@@ -97,27 +97,55 @@ export default function Settings() {
         }
         
         // Fetch Family Members
-        const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
-        const familySnaps = await getDocs(familyQuery);
-        setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+        try {
+          const familyQuery = query(collection(db, "users"), where("familyId", "==", activeFamilyId));
+          const familySnaps = await getDocs(familyQuery);
+          setFamilyMembers(familySnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) {
+          console.error("Failed to fetch family", e);
+        }
 
-        // 🌟 THE FIX IS HERE: .filter(p => p.isActive !== false) instead of .filter(p => p.isActive)
-        const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
-        const profilesSnaps = await getDocs(profilesQuery);
-        setProfiles(profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() })).filter(p => p.isActive !== false));
+        // 🌟 ULTRA-ROBUST PROFILE FETCHING LOGIC
+        try {
+          // 1. Try to fetch modern profiles attached to the familyId
+          const profilesQuery = query(collection(db, "profiles"), where("familyId", "==", activeFamilyId));
+          const profilesSnaps = await getDocs(profilesQuery);
+          let fetchedProfiles = profilesSnaps.docs.map(d => ({ id: d.id, ...d.data() }));
 
-        // Fetch Care Sessions (Babysitters)
-        const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
-        const careSnaps = await getDocs(careQuery);
-        setCareSessions(careSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+          // 2. If none found, fetch legacy profiles attached strictly to the userId
+          if (fetchedProfiles.length === 0) {
+            const legacyQuery = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
+            const legacySnaps = await getDocs(legacyQuery);
+            fetchedProfiles = legacySnaps.docs.map(d => ({ id: d.id, ...d.data() }));
+          }
+
+          // 3. Filter out explicitly disabled profiles, but allow missing/undefined isActive tags
+          const finalProfiles = fetchedProfiles.filter(p => p.isActive !== false);
+          setProfiles(finalProfiles);
+        } catch (e) {
+          console.error("Failed to fetch profiles", e);
+        }
+
+        // Fetch Care Sessions
+        try {
+          const careQuery = query(collection(db, "care_sessions"), where("familyId", "==", activeFamilyId));
+          const careSnaps = await getDocs(careQuery);
+          setCareSessions(careSnaps.docs.map(d => ({ id: d.id, ...d.data() })));
+        } catch (e) {
+          console.error("Failed to fetch care sessions", e);
+        }
 
         // Fetch Support Tickets
-        const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
-        const ticketsSnaps = await getDocs(ticketsQuery);
-        setSupportTickets(ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        try {
+          const ticketsQuery = query(collection(db, "support_tickets"), where("userId", "==", auth.currentUser.uid));
+          const ticketsSnaps = await getDocs(ticketsQuery);
+          setSupportTickets(ticketsSnaps.docs.map(d => ({ id: d.id, ...d.data() })).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));
+        } catch (e) {
+          console.error("Failed to fetch tickets", e);
+        }
 
       } catch (err) {
-        console.error(err);
+        console.error("Main settings fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -158,7 +186,6 @@ export default function Settings() {
       const docRef = await addDoc(collection(db, "care_sessions"), sessionData);
       setCareSessions([{ id: docRef.id, ...sessionData }, ...careSessions]);
       
-      // 🌟 THE FIX IS HERE: Uses docRef.id so the actual database ID powers the link
       const link = `${window.location.origin}/#/care/${docRef.id}`;
       setGeneratedCareLink(link);
       setCareTab('active');
@@ -765,7 +792,7 @@ export default function Settings() {
                   <label className="block text-sm font-bold text-brandDark mb-3 ml-1">Who are they watching?</label>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-2">
                     {profiles.length === 0 ? (
-                       <p className="text-sm text-zinc-500 italic bg-zinc-50 p-4 rounded-xl border border-zinc-200">No active profiles found. Create one first!</p>
+                       <p className="text-sm text-zinc-500 italic bg-zinc-50 p-4 rounded-xl border border-zinc-200">No profiles found. Create one first!</p>
                     ) : profiles.map(profile => (
                       <div key={profile.id} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${careForm.selectedProfiles.includes(profile.id) ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-zinc-200 hover:bg-zinc-50'}`} onClick={() => toggleProfileSelection(profile.id)}>
                         {careForm.selectedProfiles.includes(profile.id) ? <CheckSquare size={20} className="text-indigo-600 shrink-0"/> : <Square size={20} className="text-zinc-300 shrink-0"/>}
