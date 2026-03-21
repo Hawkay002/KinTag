@@ -27,7 +27,7 @@ const stackFeatures = [
   { id: 8, title: "Secure Document Vault", description: "Upload sensitive medical records or IDs. They remain heavily locked and blurred until the finder explicitly shares their GPS location or calls you.", icon: <FileText size={40} className="text-sky-500" /> },
   { id: 9, title: "Google Wallet Integration", description: "Easily save your kid's, pet's, or elderly parent's mobile ID as a pass in your Google Wallet for instant access and quick sharing.", icon: <WalletCards size={40} className="text-orange-500" /> },
   { id: 10, title: "Critical Medical Info", description: "Display crucial allergies, blood types, special needs, and daily medications instantly to whoever scans the tag.", icon: <Heart size={40} className="text-pink-500" /> },
-  { id: 11, title: "And 20+ More Features", description: "From anti-download protections and passive IP fallback scans to microchip linking and instant kill switches. Every detail is meticulously designed to keep your family safe.", icon: <Sparkles size={40} className="text-brandDark" /> }
+  { id: 11, title: "And 20+ More Features", description: "From anti-download protections and passive IP fallback scans to microchip linking and instant kill switches. Every detail is meticulously designed to keep your family safe.", icon: <Sparkles size={40} className="text-brandGold" /> }
 ];
 
 // Returns 'low' | 'mid' | 'high'
