@@ -37,7 +37,7 @@ const getComputedAge = (profile) => {
   }
   return { 
     value: profile.age || 'Unknown', 
-    label: profile.ageUnit === 'Months' ? 'Mos', 
+    label: profile.ageUnit === 'Months' ? 'Mos' : 'Yrs', 
     fullLabel: profile.ageUnit === 'Months' ? 'MOS' : 'YRS' 
   };
 };
