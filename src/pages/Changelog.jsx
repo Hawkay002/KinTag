@@ -1,7 +1,21 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck, Wallet } from 'lucide-react';
+import { ArrowLeft, Rocket, Paintbrush, Lock, MapPin, QrCode, Zap, Plus, RefreshCw, Wrench, Minus, Siren, ShieldCheck, Wallet, HeartHandshake } from 'lucide-react';
 
 const updates = [
+  {
+    version: "v1.2.1",
+    title: "The Caretaker & UI Polish Update",
+    date: "March 21, 2026",
+    icon: <HeartHandshake className="text-rose-500" size={24} />,
+    description: "Introducing Caretaker Mode for secure babysitter access, a brand-new floating navigation bar, and highly robust data-fetching optimizations.",
+    changes: [
+      { type: "ADDED", text: "Caretaker Mode: Generate secure, self-destructing access links for babysitters, dog walkers, or temporary caregivers. Set exact expiration timers down to the minute and select exactly which profiles they can see." },
+      { type: "ADDED", text: "Dedicated Caregiver Dashboard: Caregivers receive a beautifully formatted, read-only view of medical info, emergency contacts, and an automatically unlocked document vault—no app or login required." },
+      { type: "ADDED", text: "Care Session Quick Actions: Active sessions feature live countdown timers, a '+ 1 Hr' extension button, and one-tap link sharing. History sessions include a 1-tap re-book button that auto-fills the caregiver's previous details." },
+      { type: "UPDATED", text: "Floating Action Bar (FAB): Completely redesigned the Dashboard navigation with a sleek, bottom-anchored, glassmorphic floating bar that features your custom avatar." },
+      { type: "FIXED", text: "Legacy Profile Fetching: Re-engineered the database queries on the Settings page to perfectly catch and display older profiles that predated the Family Sharing architecture or the kill-switch updates." }
+    ]
+  },
   {
     version: "v1.2.0",
     title: "The Ecosystem & Stability Update",
