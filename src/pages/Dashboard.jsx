@@ -591,7 +591,9 @@ export default function Dashboard() {
 
         {(profiles.length > 0) && (
           <div className="mb-8 relative group">
+            {/* ADD THIS SEARCH ICON LINE 👇 */}
             <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-400 transition-colors group-focus-within:text-brandDark" size={20} />
+            
             <input type="text" placeholder="Search profiles by name..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-14 pr-5 py-4 md:py-5 bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2rem] focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all shadow-sm hover:shadow-md font-medium text-brandDark text-lg" />
           </div>
         )}
