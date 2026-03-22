@@ -405,15 +405,25 @@ export default function Dashboard() {
   };
 
   const handleAddToWallet = async (profile) => {
-    setGeneratingWallet(true);
-    try {
-      const response = await fetch('/api/generate-wallet-pass', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ profileId: profile.id, petName: profile.name }) });
-      const data = await response.json();
-      if (data.token) window.location.href = `https://pay.google.com/gp/v/save/${data.token}`;
-      else showMessage("Wallet Generation Failed", "Failed to generate the Google Wallet pass. Please check your backend keys.", "error");
-    } catch (error) { showMessage("Network Error", "Something went wrong connecting to the Google Wallet server.", "error"); } 
-    finally { setGeneratingWallet(false); }
-  };
+  setGeneratingWallet(true);
+  try {
+    const response = await fetch('/api/generate-wallet-pass', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        profileId: profile.id,
+        name: profile.name,
+        type: profile.type // 👈 We added the profile type here!
+      })
+    });
+    const data = await response.json();
+    if (data.token) window.location.href = `https://pay.google.com/gp/v/save/${data.token}`;
+    else showMessage("Wallet Generation Failed", "Failed to generate the Google Wallet pass. Please check your backend keys.", "error");
+  } catch (error) {
+    showMessage("Network Error", "Something went wrong connecting to the Google Wallet server.", "error");
+  }
+  finally { setGeneratingWallet(false); }
+};
 
   const downloadFullPass = async (profile) => {
     setDownloading(true);
