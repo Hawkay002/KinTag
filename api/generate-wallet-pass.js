@@ -35,7 +35,9 @@ export default async function handler(req, res) {
   // --------------------
   
   const profileId = sanitizeInput(req.body.profileId, 50);
-  const petName = sanitizeInput(req.body.petName, 60);
+  // Support both 'name' and the legacy 'petName' key to prevent breaking changes
+  const name = sanitizeInput(req.body.name || req.body.petName, 60); 
+  const type = sanitizeInput(req.body.type, 20); // Capture 'kid' or 'pet'
 
   if (!profileId) return res.status(400).json({ error: 'Invalid or missing Profile ID.' });
 
@@ -47,11 +49,20 @@ export default async function handler(req, res) {
 
     const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
+    // --- DYNAMIC STYLING LOGIC ---
+    // Kids get Rose (#f43f5e), Pets get the original Blue (#2596be)
+    const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
+    
+    // Kids use 'patternnewo-kid.png', Pets use the original 'patternnewo.png'
+    const heroImageUrl = type === 'kid' 
+      ? "https://kintag.vercel.app/patternnewo-kid.png" 
+      : "https://kintag.vercel.app/patternnewo.png";
+
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
       genericType: "GENERIC_TYPE_UNSPECIFIED",
-      hexBackgroundColor: "#2596be", 
+      hexBackgroundColor: passColor, 
       logo: {
         sourceUri: { uri: "https://kintag.vercel.app/kintag-logo.png" },
         contentDescription: { defaultValue: { language: "en", value: "KinTag Logo" } }
@@ -63,10 +74,10 @@ export default async function handler(req, res) {
         defaultValue: { language: "en", value: "KinTag Digital ID" }
       },
       header: {
-        defaultValue: { language: "en", value: petName || "Emergency Profile" }
+        defaultValue: { language: "en", value: name || "Emergency Profile" }
       },
       heroImage: {
-        sourceUri: { uri: "https://kintag.vercel.app/patternnewo.png" },
+        sourceUri: { uri: heroImageUrl },
         contentDescription: {
           defaultValue: { language: "en", value: "KinTag Brand Pattern" }
         }
