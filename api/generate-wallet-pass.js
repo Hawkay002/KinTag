@@ -44,15 +44,15 @@ export default async function handler(req, res) {
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
-    // 🌟 BUMPED TO v4: Forces Google Wallet to accept the new row layout
+    // 🌟 Points to the v4 class you manually created in the Google Wallet Console
     const CLASS_ID = `${ISSUER_ID}.kintag_v4`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     
-    // Uses static ID so it cleanly updates existing passes instead of duplicating
+    // Kept Date.now() for testing to bypass cache. Remove it once the design is perfect!
     const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
-    // Using your exact custom colors and image URLs
+    // Custom colors and image URLs
     const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
       ? "https://kintag.vercel.app/patternnewoo.png" 
@@ -60,26 +60,7 @@ export default async function handler(req, res) {
 
     const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
 
-    // 🌟 CLASS OBJECT: Safely overrides the layout using array indices [0] and [1]
-    const classObject = {
-      id: CLASS_ID,
-      classTemplateInfo: {
-        cardTemplateOverride: {
-          cardRowTemplateInfos: [
-            {
-              twoItems: {
-                startItem: {
-                  firstValue: { fields: [{ fieldPath: "object.textModulesData[0]" }] }
-                },
-                endItem: {
-                  firstValue: { fields: [{ fieldPath: "object.textModulesData[1]" }] }
-                }
-              }
-            }
-          ]
-        }
-      }
-    };
+    // 🌟 We NO LONGER define classObject here because the Google Console handles the layout
 
     const passObject = {
       id: uniquePassId,
@@ -99,13 +80,15 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
-      // 🌟 TEXT MODULES: These map directly to [0] and [1] above
+      // 🌟 ADDED EXPLICIT IDs: These must match object.textModulesData['profileType'] in your console setup
       textModulesData: [
         {
+          id: "profileType",
           header: "PROFILE TYPE",
           body: displayType
         },
         {
+          id: "profileAge",
           header: "AGE",
           body: age || "N/A"
         }
@@ -123,14 +106,13 @@ export default async function handler(req, res) {
       }
     };
 
-    // Push BOTH the layout template and the user data simultaneously
+    // 🌟 ONLY send genericObjects in the payload (NO genericClasses)
     const claims = {
       iss: credentials.client_email,
       aud: "google",
       origins: ["https://kintag.vercel.app"],
       typ: "savetowallet",
       payload: { 
-        genericClasses: [classObject], 
         genericObjects: [passObject] 
       }
     };
