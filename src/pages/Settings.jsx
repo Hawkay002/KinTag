@@ -3,7 +3,7 @@ import { auth, db } from '../firebase';
 import { signOut } from 'firebase/auth';
 import { doc, getDoc, setDoc, collection, query, where, getDocs, deleteDoc, updateDoc, addDoc, onSnapshot } from 'firebase/firestore'; 
 import { useNavigate } from 'react-router-dom';
-import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone } from 'lucide-react'; 
+import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctagon, X, Trash2, UserMinus, Share2, LifeBuoy, Info, ChevronDown, Check, Smartphone, Download, Send, User, Clock, History, Link as LinkIcon, Timer, CalendarDays, CheckSquare, Square, ShieldAlert, Plus, Phone, ScanFace, Lock, Unlock } from 'lucide-react'; 
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
@@ -62,6 +62,10 @@ export default function Settings() {
   const [shareMessage, setShareMessage] = useState('');
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+  // --- App Lock State ---
+  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
+  const [isLockEnabled, setIsLockEnabled] = useState(localStorage.getItem('kintag_app_lock_enabled') === 'true');
+
   useEffect(() => {
     const interval = setInterval(() => setNow(new Date().getTime()), 60000);
     return () => clearInterval(interval);
@@ -78,7 +82,15 @@ export default function Settings() {
     return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
   }, []);
 
-  // 🌟 REBUILT TO USE REAL-TIME ON-SNAPSHOT LISTENERS
+  // Check for Face ID / Biometric support on load
+  useEffect(() => {
+    if (window.PublicKeyCredential) {
+      PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+        .then(available => setIsBiometricSupported(available));
+    }
+  }, []);
+
+  // Live Firebase Listeners
   useEffect(() => {
     if (!auth.currentUser) return;
 
@@ -108,7 +120,6 @@ export default function Settings() {
         unsubProfiles = onSnapshot(profilesQuery, async (snap) => {
           let fetchedProfiles = snap.docs.map(d => ({ id: d.id, ...d.data() }));
 
-          // Legacy Profile Fallback
           if (fetchedProfiles.length === 0) {
             const legacyQuery = query(collection(db, "profiles"), where("userId", "==", auth.currentUser.uid));
             const legacySnaps = await getDocs(legacyQuery);
@@ -147,8 +158,45 @@ export default function Settings() {
     };
   }, []);
 
-  // --- Caretaker (Babysitter) Logic ---
+  // --- App Lock Toggle Logic ---
+  const toggleAppLock = async () => {
+    if (isLockEnabled) {
+      localStorage.removeItem('kintag_app_lock_enabled');
+      localStorage.removeItem('kintag_credential_id');
+      setIsLockEnabled(false);
+      return;
+    }
 
+    try {
+      const publicKeyCredentialCreationOptions = {
+        challenge: window.crypto.getRandomValues(new Uint8Array(32)),
+        rp: { name: "KinTag", id: window.location.hostname },
+        user: {
+          id: window.crypto.getRandomValues(new Uint8Array(16)),
+          name: "kintag_user",
+          displayName: "KinTag User"
+        },
+        pubKeyCredParams: [{ alg: -7, type: "public-key" }],
+        authenticatorSelection: {
+          authenticatorAttachment: "platform",
+          userVerification: "required"
+        },
+        timeout: 60000
+      };
+
+      const credential = await navigator.credentials.create({ publicKey: publicKeyCredentialCreationOptions });
+      const rawId = Array.from(new Uint8Array(credential.rawId)).map(b => b.toString(16).padStart(2, '0')).join('');
+      
+      localStorage.setItem('kintag_credential_id', rawId);
+      localStorage.setItem('kintag_app_lock_enabled', 'true');
+      setIsLockEnabled(true);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to enable App Lock. Your device might not support it, or you canceled the Face ID / Fingerprint prompt.");
+    }
+  };
+
+  // --- Caretaker (Babysitter) Logic ---
   const toggleProfileSelection = (profileId) => {
     setCareForm(prev => {
       const isSelected = prev.selectedProfiles.includes(profileId);
@@ -233,7 +281,6 @@ export default function Settings() {
   };
 
   // --- Family & Invite Logic ---
-
   const handleInvite = async (e) => {
     e.preventDefault();
     setInviteError('');
@@ -309,7 +356,6 @@ export default function Settings() {
   };
 
   // --- Support Tickets Logic ---
-
   const openSupport = () => {
     if (supportTickets.length > 0) return;
     const sId = 'SUP-' + Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -394,7 +440,6 @@ export default function Settings() {
   };
 
   // --- General App Logic ---
-
   const handleLogout = async () => { 
     await signOut(auth); 
     navigate('/login'); 
@@ -477,7 +522,6 @@ export default function Settings() {
 
         {/* --- CARETAKER / BABYSITTER MODE --- */}
         <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8">
-          
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm shrink-0">
@@ -628,7 +672,6 @@ export default function Settings() {
               Active Co-Guardians <span className="bg-zinc-100 px-2 py-0.5 rounded-md text-zinc-500">{invitedGuardians.length}/5</span>
             </h3>
             
-            {/* Primary User Rendered Explicitly if data is loaded */}
             {userData && (
               <div className="relative bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
@@ -650,7 +693,6 @@ export default function Settings() {
               </div>
             )}
 
-            {/* Invited Guardians Map */}
             {invitedGuardians.map((member) => (
               <div key={member.id} className="relative bg-white p-4 rounded-2xl border border-zinc-200 shadow-sm hover:shadow-md transition-shadow">
                 <div className="flex items-center gap-4">
@@ -734,11 +776,7 @@ export default function Settings() {
             <div className="space-y-4">
               {supportTickets.map((ticket) => (
                 <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm overflow-hidden transition-all duration-300">
-                  
-                  <button 
-                    onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} 
-                    className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none"
-                  >
+                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
                       <span className="font-mono font-bold text-brandDark tracking-wider">{ticket.supportId}</span>
@@ -758,11 +796,7 @@ export default function Settings() {
                       <p className="text-sm text-brandDark font-medium bg-white p-5 rounded-2xl border border-zinc-200 mb-6 whitespace-pre-wrap leading-relaxed shadow-sm max-h-48 overflow-y-auto">
                         "{ticket.message}"
                       </p>
-                      <button 
-                        onClick={() => handleResolveTicket(ticket)}
-                        disabled={resolvingTicketId === ticket.id}
-                        className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
-                      >
+                      <button onClick={() => handleResolveTicket(ticket)} disabled={resolvingTicketId === ticket.id} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 active:scale-95 transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                         {resolvingTicketId === ticket.id ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18} />}
                         {resolvingTicketId === ticket.id ? 'Resolving...' : 'Mark as Resolved'}
                       </button>
@@ -774,11 +808,38 @@ export default function Settings() {
           </div>
         )}
 
+        {/* --- APP PRIVACY LOCK BLOCK --- */}
+        {isBiometricSupported && (
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6">
+             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${isLockEnabled ? 'bg-brandGold/10 border border-brandGold/20 text-brandGold' : 'bg-zinc-100 border border-zinc-200 text-zinc-400'}`}>
+                   <ScanFace size={32} />
+                </div>
+                <div>
+                  <h3 className="text-2xl font-extrabold text-brandDark mb-2 tracking-tight">App Privacy Lock</h3>
+                  <p className="text-sm text-zinc-500 font-medium max-w-sm leading-relaxed">Require Face ID, Touch ID, or your device passcode to open the KinTag app.</p>
+                </div>
+             </div>
+             <button 
+               onClick={toggleAppLock}
+               className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-all shrink-0 active:scale-95 flex items-center justify-center gap-2 ${
+                 isLockEnabled 
+                   ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200' 
+                   : 'bg-brandDark text-white hover:bg-brandAccent'
+               }`}
+             >
+                {isLockEnabled ? <Unlock size={18}/> : <Lock size={18}/>}
+                {isLockEnabled ? 'Disable Lock' : 'Enable Lock'}
+             </button>
+          </div>
+        )}
+
         <div className="flex items-center justify-center mb-8 relative">
           <div className="w-full h-px bg-zinc-200"></div>
           <span className="absolute bg-[#fafafa] px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">Danger Zone</span>
         </div>
 
+        {/* Delete Account Block */}
         <div className="bg-red-50/80 backdrop-blur-xl rounded-[2.5rem] border border-red-100 p-8 md:p-10 shadow-sm relative overflow-hidden group">
           <div className="absolute top-0 right-0 w-48 h-48 bg-red-500/5 rounded-full blur-[40px] pointer-events-none group-hover:bg-red-500/10 transition-colors"></div>
           <div className="flex items-center gap-4 mb-4 relative z-10">
