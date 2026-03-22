@@ -61,7 +61,7 @@ export default function AppLock({ children }) {
       
       <h1 className="text-3xl font-extrabold mb-2 tracking-tight relative z-10 text-center">App Locked</h1>
       <p className="text-white/60 font-medium mb-12 text-center max-w-xs relative z-10 leading-relaxed">
-        Scan your Face ID, Touch ID, or enter your device passcode to unlock KinTag.
+        Scan your Touch ID, or enter your device passcode to unlock KinTag.
       </p>
 
       {error && (
