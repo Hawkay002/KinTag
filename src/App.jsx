@@ -15,13 +15,15 @@ import Changelog from './pages/Changelog';
 import UpdateToast from './components/UpdateToast';
 import Settings from './pages/Settings';
 import CareView from './pages/CareView'; // 🌟 NEW: Imported the Caretaker View
+import AppLock from './components/AppLock'; // 🌟 NEW: Imported the Biometric App Lock
 
 let isAuthRefresh = window.location.hash.includes('/login') || window.location.hash.includes('/signup');
 
+// 🌟 UPDATED: AppLock wraps the children so every protected route gets biometric security
 const ProtectedRoute = ({ children }) => {
   const { currentUser } = useAuth();
   if (!currentUser) return <Navigate to="/login" replace />;
-  return children;
+  return <AppLock>{children}</AppLock>;
 };
 
 function AppRoutes() {
