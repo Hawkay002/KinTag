@@ -45,12 +45,12 @@ export default async function handler(req, res) {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
     // 🌟 THE FIX: Changed to v3 to force Google to register the new layout!
-    const CLASS_ID = `${ISSUER_ID}.kintag_v3`; 
+    const CLASS_ID = `${ISSUER_ID}.kintag_v2`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     const uniquePassId = `${ISSUER_ID}.${profileId}`;
 
-    const passColor = type === 'kid' ? '#f43f5e' : '#2596be'; 
+    const passColor = type === 'kid' ? '#e54000' : '#2596be'; 
     const heroImageUrl = type === 'kid' 
       ? "https://kintag.vercel.app/patternnewoo.png" 
       : "https://kintag.vercel.app/patternnewo.png";
