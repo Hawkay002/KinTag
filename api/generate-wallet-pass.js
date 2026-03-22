@@ -44,12 +44,12 @@ export default async function handler(req, res) {
   try {
     const ISSUER_ID = process.env.GOOGLE_WALLET_ISSUER_ID;
     
-    // 🌟 Points to the v4 class you manually created in the Google Wallet Console
-    const CLASS_ID = `${ISSUER_ID}.kintag_v4`; 
+    // 🌟 BUMPED TO v6: This bypasses the broken manual console class entirely.
+    const CLASS_ID = `${ISSUER_ID}.kintag_v6`; 
     
     const credentials = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_KEY);
     
-    // Kept Date.now() for testing to bypass cache. Remove it once the design is perfect!
+    // Kept Date.now() so you can generate fresh passes instantly while testing
     const uniquePassId = `${ISSUER_ID}.${profileId}-${Date.now()}`;
 
     // Custom colors and image URLs
@@ -60,8 +60,29 @@ export default async function handler(req, res) {
 
     const displayType = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'N/A';
 
-    // 🌟 We NO LONGER define classObject here because the Google Console handles the layout
+    // 🌟 THE BLUEPRINT: We tell Google exactly how to build the two columns here, completely ignoring the console.
+    const classObject = {
+      id: CLASS_ID,
+      issuerName: "KinTag", // Prevents Google from rejecting the custom layout
+      classTemplateInfo: {
+        cardTemplateOverride: {
+          cardRowTemplateInfos: [
+            {
+              twoItems: {
+                startItem: {
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profileType']" }] }
+                },
+                endItem: {
+                  firstValue: { fields: [{ fieldPath: "object.textModulesData['profileAge']" }] }
+                }
+              }
+            }
+          ]
+        }
+      }
+    };
 
+    // 🌟 THE DATA: This maps flawlessly to the blueprint above
     const passObject = {
       id: uniquePassId,
       classId: CLASS_ID,
@@ -80,7 +101,6 @@ export default async function handler(req, res) {
       header: {
         defaultValue: { language: "en", value: name || "Emergency Profile" } 
       },
-      // 🌟 ADDED EXPLICIT IDs: These must match object.textModulesData['profileType'] in your console setup
       textModulesData: [
         {
           id: "profileType",
@@ -106,13 +126,14 @@ export default async function handler(req, res) {
       }
     };
 
-    // 🌟 ONLY send genericObjects in the payload (NO genericClasses)
+    // 🌟 We push BOTH the layout blueprint and the user data simultaneously
     const claims = {
       iss: credentials.client_email,
       aud: "google",
       origins: ["https://kintag.vercel.app"],
       typ: "savetowallet",
       payload: { 
+        genericClasses: [classObject], 
         genericObjects: [passObject] 
       }
     };
