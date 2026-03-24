@@ -9,7 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'prompt', // Tells it to use the manual Update Toast
-      includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'],
+      includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'], 
       manifest: {
         name: 'KinTag Digital Safety',
         short_name: 'KinTag', 
