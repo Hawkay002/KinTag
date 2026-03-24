@@ -209,14 +209,8 @@ export default function Changelog() {
         <div className="relative border-l-2 border-zinc-200/80 ml-4 md:ml-8 space-y-16 py-2">
           
           {updates.map((update, index) => (
-            /* 🌟 VIEWPORT TRIGGER: Animates from off-screen to bouncy landing */
-            <div 
-              key={update.version} 
-              className="relative group pl-12 md:pl-16 
-              animate-viewport:opacity-0 animate-viewport:translate-x-10 
-              animate-viewport-once animate-viewport-on:opacity-100 animate-viewport-on:translate-x-0 
-              animate-spring animate-stiffness-150 animate-damping-15"
-            >
+            
+            <div key={update.version} className="relative group pl-12 md:pl-16">
               
               {/* TIMELINE DOT & ICON */}
               <div className="absolute -left-[25px] top-0 w-12 h-12 bg-[#fafafa] rounded-full flex items-center justify-center border-[4px] border-[#fafafa] transition-transform duration-500 group-hover:scale-110 z-10">
