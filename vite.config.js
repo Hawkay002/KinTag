@@ -1,15 +1,10 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
-import { motionwind } from "motionwind-react/vite";
-import { VitePWA } from 'vite-plugin-pwa';
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   plugins: [
-    motionwind(),
-    react({
-      // 🌟 ADD THIS: It helps the compiler track JSX changes better
-      jsxRuntime: 'automatic' 
-    }),
+    react(),
     VitePWA({
       registerType: 'prompt', // Tells it to use the manual Update Toast
       includeAssets: ['kintag-logo.png', 'apple-touch-icon.png', 'favicon.ico'],
