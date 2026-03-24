@@ -7,12 +7,10 @@ const updates = [
     title: "The Privacy Lock & Wallet Polish Update",
     date: "March 22, 2026",
     icon: <Fingerprint className="text-emerald-500" size={24} />,
-    description: "Introducing native biometric security for your family dashboard and flawless dynamic layouts for Google Wallet passes.",
+    description: "Introducing native biometric security and latest layout designs for Google Wallet passes.",
     changes: [
-      { type: "ADDED", text: "App Privacy Lock: Secure your KinTag dashboard using your device's native Face ID, Touch ID, or Passcode. Powered by the WebAuthn API for maximum privacy without compromising speed." },
-      { type: "ADDED", text: "Security Settings: Added a dedicated toggle in the Settings menu to safely check your device's hardware capabilities and instantly enable or disable the biometric App Privacy Lock." },
-      { type: "UPDATED", text: "Google Wallet Layout Engine: Completely rebuilt the Wallet Pass generation to bypass Google's console caching. Passes now dynamically build a perfect two-column layout for 'Profile Type' and 'Age' directly from the code." },
-      { type: "FIXED", text: "Dynamic Age in Wallet Passes: The dashboard now calculates the exact computed age (e.g., '5 YRS' or '6 MOS') at the exact millisecond of download and seamlessly pushes it into your Google Wallet." }
+      { type: "ADDED", text: "App Privacy Lock: Secure your KinTag profile using your device's native Touch ID, or Passcode. Powered by the WebAuthn API for maximum privacy without compromising speed. Added a dedicated toggle in the Settings menu to safely check your device's hardware capabilities and instantly enable or disable the biometric App Privacy Lock." },
+      { type: "UPDATED", text: "Google Wallet Layout: Completely rebuilt the Wallet Pass generation to bypass Google's console caching. Passes now dynamically build a perfect new layout & design according to the 'Profile Type' directly from your dashboard." }
     ]
   },
   {
