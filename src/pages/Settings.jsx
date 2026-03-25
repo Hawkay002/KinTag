@@ -507,7 +507,7 @@ export default function Settings() {
         <div className="flex justify-between items-center mb-8 animate-initial:opacity-0 animate-initial:y-10 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-0">
           <button
             onClick={() => navigate('/dashboard')}
-            className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+            className="group flex items-center space-x-2 bg-white/60 backdrop-blur-md border border-zinc-200 text-zinc-600 px-5 py-2.5 rounded-full font-bold shadow-sm hover:shadow-md hover:bg-white transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
           >
             <ArrowLeft size={18} className="transform group-hover:-translate-x-1 transition-transform" />
             <span>Back to Dashboard</span>
@@ -516,14 +516,14 @@ export default function Settings() {
           <div className="flex items-center gap-3">
             <button
               onClick={() => setShowShareModal(true)}
-              className="flex items-center bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100 p-2.5 rounded-full transition-all duration-300 shadow-sm hover:shadow-md animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+              className="flex items-center bg-emerald-50 border border-emerald-100 text-emerald-600 hover:bg-emerald-100 p-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
               title="Share KinTag"
             >
               <Share2 size={18} className="shrink-0" />
             </button>
             <button
               onClick={handleLogout}
-              className="flex items-center bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 p-2.5 rounded-full transition-all duration-300 shadow-sm hover:shadow-md animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+              className="flex items-center bg-red-50 border border-red-100 text-red-600 hover:bg-red-100 p-2.5 rounded-full transition-colors duration-300 shadow-sm hover:shadow-md animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
               title="Log Out Securely"
             >
               <LogOut size={18} className="shrink-0" />
@@ -542,7 +542,7 @@ export default function Settings() {
             </div>
             <button
               onClick={() => { setCareForm({ name: '', countryCode: '+1', countryIso: 'us', phone: '', selectedProfiles: [], days: 0, hours: 0, minutes: 0 }); setShowCareModal(true); }}
-              className="w-10 h-10 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent transition-all shadow-md shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
+              className="w-10 h-10 bg-brandDark text-white rounded-full flex items-center justify-center hover:bg-brandAccent transition-colors shadow-md shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
             >
               <Plus size={20} />
             </button>
@@ -552,13 +552,13 @@ export default function Settings() {
           <div className="flex bg-zinc-100 p-1.5 rounded-2xl border border-zinc-200 mb-6">
             <button
               onClick={() => setCareTab('active')}
-              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
+              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <Clock size={16} /> Active ({activeCareSessions.length})
             </button>
             <button
               onClick={() => setCareTab('history')}
-              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
+              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <History size={16} /> History ({historyCareSessions.length})
             </button>
@@ -610,9 +610,9 @@ export default function Settings() {
                 <div className="flex justify-between items-center mb-2 px-1">
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{historySelection.length} Selected</p>
                   <div className="flex gap-2">
-                    <button onClick={deleteSelectedHistory} disabled={historySelection.length === 0} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete</button>
+                    <button onClick={deleteSelectedHistory} disabled={historySelection.length === 0} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete</button>
                     <span className="text-zinc-300">|</span>
-                    <button onClick={deleteAllHistory} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete All</button>
+                    <button onClick={deleteAllHistory} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete All</button>
                   </div>
                 </div>
               )}
@@ -681,7 +681,7 @@ export default function Settings() {
                 <Mail size={18} className="text-zinc-400" />
                 <input type="email" placeholder="Enter guardian's email..." value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} required className="w-full py-3 bg-transparent outline-none font-medium text-brandDark placeholder:text-zinc-400" />
               </div>
-              <button type="submit" disabled={inviteLoading} className="bg-brandDark text-white px-8 py-4 rounded-full font-bold hover:bg-brandAccent transition-all shadow-md disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+              <button type="submit" disabled={inviteLoading} className="bg-brandDark text-white px-8 py-4 rounded-full font-bold hover:bg-brandAccent transition-colors shadow-md disabled:opacity-50 flex items-center justify-center gap-2 shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                 {inviteLoading ? <Loader2 size={18} className="animate-spin"/> : 'Send Invite'}
               </button>
             </form>
@@ -731,7 +731,7 @@ export default function Settings() {
                 
                 <div className="absolute top-3 right-3 flex items-center">
                   {auth.currentUser?.uid === currentFamilyId ? (
-                    <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2 sm:p-2.5 rounded-xl transition-all shadow-sm shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7" title="Remove Guardian">
+                    <button onClick={() => setGuardianToRemove(member)} className="text-red-500 bg-red-50 border border-red-100 hover:bg-red-100 p-2 sm:p-2.5 rounded-xl transition-colors shadow-sm shrink-0 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7" title="Remove Guardian">
                       <Trash2 size={16} />
                     </button>
                   ) : (
@@ -756,7 +756,7 @@ export default function Settings() {
                 <p className="text-sm text-white/70 font-medium max-w-sm leading-relaxed">Add KinTag to your home screen for a seamless, full-screen native experience.</p>
               </div>
             </div>
-            <button onClick={handleInstallApp} className="w-full sm:w-auto bg-brandGold text-brandDark px-8 py-4 rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-all shrink-0 flex items-center justify-center gap-2 hover:-translate-y-1 relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+            <button onClick={handleInstallApp} className="w-full sm:w-auto bg-brandGold text-brandDark px-8 py-4 rounded-full font-bold shadow-[0_0_20px_rgba(251,191,36,0.3)] hover:shadow-[0_0_30px_rgba(251,191,36,0.5)] transition-colors shrink-0 flex items-center justify-center gap-2 hover:-translate-y-1 relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
               <Download size={18} />
               Install Now
             </button>
@@ -777,7 +777,7 @@ export default function Settings() {
           <button 
             onClick={openSupport} 
             disabled={supportTickets.length > 0}
-            className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-all shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
+            className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-colors shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
               supportTickets.length > 0 
                 ? 'bg-zinc-100 text-zinc-400 border border-zinc-200 cursor-not-allowed' 
                 : 'bg-white text-brandDark border border-zinc-200 hover:bg-zinc-50 hover:shadow-lg hover:-translate-y-0.5'
@@ -796,7 +796,7 @@ export default function Settings() {
             <div className="space-y-4">
               {supportTickets.map((ticket) => (
                 <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm overflow-hidden transition-all duration-300">
-                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
                       <span className="font-mono font-bold text-brandDark tracking-wider">{ticket.supportId}</span>
@@ -816,7 +816,7 @@ export default function Settings() {
                       <p className="text-sm text-brandDark font-medium bg-white p-5 rounded-2xl border border-zinc-200 mb-6 whitespace-pre-wrap leading-relaxed shadow-sm max-h-48 overflow-y-auto">
                         "{ticket.message}"
                       </p>
-                      <button onClick={() => handleResolveTicket(ticket)} disabled={resolvingTicketId === ticket.id} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                      <button onClick={() => handleResolveTicket(ticket)} disabled={resolvingTicketId === ticket.id} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-md hover:bg-emerald-600 hover:shadow-lg hover:-translate-y-0.5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                         {resolvingTicketId === ticket.id ? <Loader2 size={18} className="animate-spin"/> : <CheckCircle2 size={18} />}
                         {resolvingTicketId === ticket.id ? 'Resolving...' : 'Mark as Resolved'}
                       </button>
@@ -842,7 +842,7 @@ export default function Settings() {
             </div>
             <button 
               onClick={toggleAppLock}
-              className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-all shrink-0 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
+              className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-colors shrink-0 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
                 isLockEnabled 
                   ? 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200' 
                   : 'bg-brandDark text-white hover:bg-brandAccent'
@@ -872,7 +872,7 @@ export default function Settings() {
             <p className="text-red-900/60 font-medium mb-8 leading-relaxed text-sm md:text-base relative z-10">
               Permanently delete your account, all profiles, and all scan history. This action is instantaneous and cannot be undone.
             </p>
-            <button onClick={() => setShowDeleteZone(true)} className="bg-white border border-red-200 text-red-600 font-bold px-8 py-4 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm hover:shadow-md relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+            <button onClick={() => setShowDeleteZone(true)} className="bg-white border border-red-200 text-red-600 font-bold px-8 py-4 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-colors shadow-sm hover:shadow-md relative z-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
               Delete Account
             </button>
           </div>
@@ -937,7 +937,7 @@ export default function Settings() {
                     </div>
                   </div>
                 </div>
-                <button type="submit" disabled={careLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent transition-all disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                <button type="submit" disabled={careLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent transition-colors disabled:opacity-50 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                   {careLoading ? <Loader2 size={18} className="animate-spin" /> : <LinkIcon size={18} />}
                   {careLoading ? 'Generating...' : 'Create Temporary Bundle'}
                 </button>
@@ -962,7 +962,7 @@ export default function Settings() {
               </div>
 
               <div className="flex flex-col gap-3">
-                <button onClick={async () => { if(navigator.share) { await navigator.share({title:'KinTag Caretaker Access', url: generatedCareLink}); } }} className="w-full bg-indigo-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-indigo-700 hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                <button onClick={async () => { if(navigator.share) { await navigator.share({title:'KinTag Caretaker Access', url: generatedCareLink}); } }} className="w-full bg-indigo-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-indigo-700 hover:-translate-y-0.5 transition-colors flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                   <Share2 size={18} /> Share via App
                 </button>
                 <button onClick={() => { setGeneratedCareLink(''); setShowCareModal(false); }} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Done</button>
@@ -996,8 +996,8 @@ export default function Settings() {
                     <input type="email" placeholder="Your Email" required value={supportForm.email} onChange={e => setSupportForm({...supportForm, email: e.target.value})} className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium transition-all" />
                   </div>
                   <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
+                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
+                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
                   </div>
                   {supportForm.platform === 'whatsapp' ? (
                     <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
@@ -1021,7 +1021,7 @@ export default function Settings() {
                     <Info size={18} className="text-brandGold shrink-0 mt-0.5" />
                     <p className="text-xs text-brandDark font-medium leading-relaxed">After sending, you'll be contacted by <strong className="font-extrabold">{supportForm.platform === 'whatsapp' ? '+91 87778 45713' : '@X_o_x_o_002'}</strong> on {supportForm.platform === 'whatsapp' ? 'WhatsApp' : 'Telegram'} within 36 hours. Please be patient.</p>
                   </div>
-                  <button type="submit" disabled={supportLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent hover:shadow-xl hover:-translate-y-0.5 transition-all disabled:opacity-50 flex items-center justify-center gap-2 mt-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                  <button type="submit" disabled={supportLoading} className="w-full bg-brandDark text-white py-4 rounded-full font-bold shadow-lg hover:bg-brandAccent hover:shadow-xl hover:-translate-y-0.5 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 mt-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                     {supportLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                     {supportLoading ? 'Sending...' : 'Send Request'}
                   </button>
@@ -1039,7 +1039,7 @@ export default function Settings() {
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Remove Guardian?</h2>
               <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">Are you sure you want to remove <strong className="text-brandDark">{guardianToRemove.name || guardianToRemove.email}</strong>? They will instantly lose access to your family dashboard.</p>
               <div className="flex flex-col gap-3">
-                <button onClick={confirmRemoveGuardian} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:shadow-xl hover:-translate-y-0.5 transition-all animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Yes, Remove Access</button>
+                <button onClick={confirmRemoveGuardian} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:shadow-xl hover:-translate-y-0.5 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Yes, Remove Access</button>
                 <button onClick={() => setGuardianToRemove(null)} className="w-full bg-zinc-100 text-zinc-600 py-4 rounded-full font-bold hover:bg-zinc-200 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Cancel</button>
               </div>
             </div>
@@ -1054,7 +1054,7 @@ export default function Settings() {
               <div className="w-20 h-20 bg-emerald-50 border border-emerald-100 text-emerald-500 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner"><Share2 size={36} /></div>
               <h2 className="text-3xl font-extrabold text-brandDark mb-3 tracking-tight">Share KinTag</h2>
               <p className="text-zinc-500 mb-10 text-base font-medium leading-relaxed">Enjoying KinTag? Help us build a safer community by sharing it with your friends and family.</p>
-              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"><Share2 size={18} /> Share Now</button>
+              <button onClick={handleShareApp} className="w-full bg-emerald-500 text-white py-4 rounded-full font-bold shadow-lg hover:bg-emerald-600 hover:shadow-xl hover:-translate-y-0.5 transition-colors flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"><Share2 size={18} /> Share Now</button>
               {shareMessage && <p className="text-sm text-emerald-600 font-bold mt-5 animate-in fade-in duration-300 bg-emerald-50 py-2 rounded-full border border-emerald-100">{shareMessage}</p>}
             </div>
           </div>
@@ -1072,7 +1072,7 @@ export default function Settings() {
               <div className="bg-zinc-100 p-4 rounded-2xl mb-5 text-sm text-zinc-600 font-mono select-all border border-zinc-200 shadow-inner">{deleteConfirmationPhrase}</div>
               <input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="Type confirmation phrase..." className="w-full p-4 bg-white border border-zinc-200 rounded-2xl focus:border-red-500 focus:ring-2 focus:ring-red-500/20 outline-none transition-all font-medium mb-8 text-center shadow-sm" />
               <div className="flex flex-col gap-3">
-                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">{isDeleting ? 'Deleting Account...' : 'Permanently Delete'}</button>
+                <button onClick={handleDeleteAccount} disabled={deleteInput !== deleteConfirmationPhrase || isDeleting} className="w-full bg-red-600 text-white py-4 rounded-full font-bold shadow-lg hover:bg-red-700 hover:-translate-y-0.5 transition-colors disabled:opacity-50 disabled:hover:translate-y-0 disabled:active:scale-100 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">{isDeleting ? 'Deleting Account...' : 'Permanently Delete'}</button>
                 <button onClick={() => { setShowDeleteZone(false); setDeleteError(''); setDeleteInput(''); }} className="w-full bg-zinc-100 text-zinc-600 font-bold py-4 rounded-full hover:bg-zinc-200 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Cancel</button>
               </div>
             </div>
