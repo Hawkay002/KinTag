@@ -464,16 +464,15 @@ export default function Dashboard() {
         </div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        <div className="animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100">
-          <mw.div className="flex gap-4 mb-10 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
-            <NotificationCenter
-              scans={scans}
-              systemMessages={systemMessages}
-              pendingInvite={pendingInvite}
-              currentUser={currentUser}
-              showMessage={showMessage}
-            />
-          </mw.div>
+        {/* We use a standard DIV without transforms here so absolute/fixed panels don't get trapped. Added justify-between to push them apart. */}
+        <div className="flex w-full justify-between items-start gap-4 mb-10 relative z-50">
+          <NotificationCenter
+            scans={scans}
+            systemMessages={systemMessages}
+            pendingInvite={pendingInvite}
+            currentUser={currentUser}
+            showMessage={showMessage}
+          />
         </div>
 
         {/* ── SECTION 3: Local alert marquee (conditional) ── delay-150 ──── */}
@@ -554,6 +553,7 @@ export default function Dashboard() {
 
       <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40" />
 
+      {/* FAB perfectly centered using full-width flex container */}
       <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-50 pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
