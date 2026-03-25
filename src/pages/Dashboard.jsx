@@ -59,7 +59,7 @@ const ProfileCard = React.memo(({
   
   return (
     <mw.div
-      className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 ${cardDelay(idx)} ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:border-brandDark/20 transition-all duration-500'} animate-hover:scale-105 animate-tap:scale-95`}
+      className={`bg-white/90 backdrop-blur-md rounded-[2.5rem] overflow-hidden border shadow-[0_8px_30px_rgb(0,0,0,0.04)] flex flex-col group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 ${cardDelay(idx)} ${profile.isActive === false ? 'border-red-200 opacity-70 grayscale-[50%]' : profile.isLost ? 'border-red-500 shadow-[0_0_30px_rgba(239,68,68,0.4)]' : 'border-zinc-200/80 hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-1 hover:border-brandDark/20 transition-all duration-500'} animate-hover:scale-105 animate-tap:scale-95`}
     >
       <div className="relative h-56 shrink-0 overflow-hidden bg-zinc-100">
         <img src={profile.imageUrl} alt={profile.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-[cubic-bezier(0.25,1,0.5,1)]" />
@@ -464,8 +464,12 @@ export default function Dashboard() {
         </div>
 
         {/* ── SECTION 2: Action Buttons (NotificationCenter) ── delay-100 ── */}
-        {/* We use a standard DIV without transforms here so absolute/fixed panels don't get trapped. Added justify-between to push them apart. */}
-        <div className="flex w-full justify-between items-start gap-4 mb-10 relative z-50">
+        {/* We use z-[60] so it opens above the FAB. Native CSS classes make its child buttons bouncy without creating a containment trap! */}
+        <div className="relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100
+          [&>div]:flex [&>div]:w-full [&>div]:justify-between [&>div]:gap-4
+          [&_button]:transition-transform [&_button]:duration-[400ms] [&_button]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_button]:will-change-transform
+          hover:[&_button]:scale-[1.05] active:[&_button]:scale-[0.95]"
+        >
           <NotificationCenter
             scans={scans}
             systemMessages={systemMessages}
@@ -483,8 +487,12 @@ export default function Dashboard() {
                 @keyframes seamlessDash { 0% { transform: translateX(0); } 100% { transform: translateX(-50%); } }
                 .animate-seamless-dash { display: flex; width: max-content; animation: seamlessDash 15s linear infinite; }
               `}</style>
-              <Link to={`/id/${localAlerts[0].id}`} target="_blank" className="block overflow-hidden rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] relative group cursor-pointer">
-                <mw.div className="bg-red-600 text-white border-[6px] border-red-500 group-hover:border-red-400 transition-colors h-[72px] animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+              <Link 
+                to={`/id/${localAlerts[0].id}`} 
+                target="_blank" 
+                className="block overflow-hidden rounded-[2rem] shadow-[0_10px_30px_rgba(239,68,68,0.4)] relative group cursor-pointer transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] hover:scale-[1.02] active:scale-[0.98]"
+              >
+                <div className="bg-red-600 text-white border-[6px] border-red-500 group-hover:border-red-400 transition-colors h-[72px]">
                   <div className="animate-seamless-dash flex items-center h-full group-hover:[animation-play-state:paused]">
                     {[...Array(4)].map((_, i) => (
                       <div key={i} className="flex items-center shrink-0">
@@ -497,7 +505,7 @@ export default function Dashboard() {
                       </div>
                     ))}
                   </div>
-                </mw.div>
+                </div>
               </Link>
             </div>
           </div>
@@ -551,10 +559,11 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-40" />
+      {/* ── Bottom fade (z-30) ────────────────────────────────────────── */}
+      <div className="fixed bottom-0 left-0 right-0 h-40 bg-gradient-to-t from-[#fafafa] via-[#fafafa]/80 to-transparent pointer-events-none z-[30]" />
 
-      {/* FAB perfectly centered using full-width flex container */}
-      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-50 pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
+      {/* ── FAB tray centered, with properly lowered z-index (z-40) ── */}
+      <div className="fixed bottom-8 left-0 right-0 w-full flex justify-center z-[40] pointer-events-none animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
           <Link to="/settings" className="w-12 h-12 text-zinc-400 hover:text-brandDark group relative z-10">
