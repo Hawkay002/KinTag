@@ -797,7 +797,7 @@ export default function Settings() {
             <div className="space-y-4">
               {supportTickets.map((ticket) => (
                 <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm overflow-hidden">
-                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 rounded-t-[1.5rem] flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7">
+                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 rounded-t-[1.5rem] flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none ">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
                       <span className="font-mono font-bold text-brandDark tracking-wider">{ticket.supportId}</span>
