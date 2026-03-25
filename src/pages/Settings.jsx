@@ -7,7 +7,8 @@ import { LogOut, ArrowLeft, Users, Mail, CheckCircle2, Loader2, Copy, AlertOctag
 import { HugeiconsIcon } from "@hugeicons/react";
 import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 import { sortedCountryCodes } from '../data/countryCodes'; 
-import { avatars } from '../components/ui/avatar-picker'; 
+import { avatars } from '../components/ui/avatar-picker';
+import { mw } from 'motionwind-react';
 
 export default function Settings() {
   const navigate = useNavigate();
@@ -550,18 +551,18 @@ export default function Settings() {
           <p className="text-zinc-500 font-medium mb-6 leading-relaxed text-sm md:text-base">Temporary, view-only access bundles for babysitters.</p>
 
           <div className="flex bg-zinc-100 p-1.5 rounded-2xl border border-zinc-200 mb-6">
-            <button
+            <mw.button
               onClick={() => setCareTab('active')}
               className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <Clock size={16} /> Active ({activeCareSessions.length})
-            </button>
-            <button
+            </mw.button>
+            <mw.button
               onClick={() => setCareTab('history')}
               className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <History size={16} /> History ({historyCareSessions.length})
-            </button>
+            </mw.button>
           </div>
 
           {careTab === 'active' && (
@@ -774,7 +775,7 @@ export default function Settings() {
               <p className="text-sm text-zinc-500 font-medium max-w-sm leading-relaxed">Need help with your account or tags? Contact the developer directly via WhatsApp or Telegram.</p>
             </div>
           </div>
-          <button 
+          <mw.button 
             onClick={openSupport} 
             disabled={supportTickets.length > 0}
             className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-colors shrink-0 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
@@ -784,7 +785,7 @@ export default function Settings() {
             }`}
           >
             {supportTickets.length > 0 ? 'Ticket Active (1/1)' : 'Contact Support'}
-          </button>
+          </mw.button>
         </div>
 
         {/* Active Support Tickets UI */}
@@ -795,8 +796,8 @@ export default function Settings() {
             </h3>
             <div className="space-y-4">
               {supportTickets.map((ticket) => (
-                <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm">
-                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-hover:scale-[1.01] animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
+                <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm overflow-hidden">
+                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 rounded-t-[1.5rem] flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-hover:scale-[1.01] animate-tap:scale-[0.99] animate-spring animate-stiffness-220 animate-damping-7">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
                       <span className="font-mono font-bold text-brandDark tracking-wider">{ticket.supportId}</span>
@@ -840,7 +841,7 @@ export default function Settings() {
                 <p className="text-sm text-zinc-500 font-medium max-w-sm leading-relaxed">Require Touch ID, or your device passcode to open the KinTag app.</p>
               </div>
             </div>
-            <button 
+            <mw.button 
               onClick={toggleAppLock}
               className={`w-full sm:w-auto px-8 py-4 rounded-full font-bold shadow-md transition-colors shrink-0 flex items-center justify-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${
                 isLockEnabled 
@@ -850,7 +851,7 @@ export default function Settings() {
             >
               {isLockEnabled ? <Unlock size={18}/> : <Lock size={18}/>}
               {isLockEnabled ? 'Disable Lock' : 'Enable Lock'}
-            </button>
+            </mw.button>
           </div>
         )}
 
@@ -980,7 +981,7 @@ export default function Settings() {
                 <button onClick={() => setShowSupportModal(false)} className="text-zinc-400 hover:text-brandDark bg-zinc-50 hover:bg-zinc-100 p-2.5 rounded-full transition-colors border border-zinc-200 shadow-sm animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"><X size={20} /></button>
               </div>
               {supportMessage ? (
-                <div className="bg-emerald-50 text-emerald-600 p-8 rounded-[2rem] text-center font-bold border border-emerald-100 flex flex-col items-center justify-center gap-4 shadow-inner"><CheckCircle2 size={48} className="text-emerald-500" /><p className="text-lg">{supportMessage}</p></div>
+                <div className="bg-emerald-50 text-emerald-600 p-8 rounded-[2rem] text-center font-bold border border-emerald-100 flex flex-col items-center justify-center gap-4 shadow-inner animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7"><CheckCircle2 size={48} className="text-emerald-500" /><p className="text-lg">{supportMessage}</p></div>
               ) : (
                 <form onSubmit={handleSupportSubmit} className="space-y-5">
                   {supportError && <div className="p-4 bg-red-50 text-red-600 text-sm font-bold rounded-2xl border border-red-100 animate-in fade-in">{supportError}</div>}
@@ -996,8 +997,8 @@ export default function Settings() {
                     <input type="email" placeholder="Your Email" required value={supportForm.email} onChange={e => setSupportForm({...supportForm, email: e.target.value})} className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium transition-all" />
                   </div>
                   <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
+                    <mw.button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</mw.button>
+                    <mw.button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</mw.button>
                   </div>
                   {supportForm.platform === 'whatsapp' ? (
                     <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
