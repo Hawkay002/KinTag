@@ -552,13 +552,13 @@ export default function Settings() {
           <div className="flex bg-zinc-100 p-1.5 rounded-2xl border border-zinc-200 mb-6">
             <button
               onClick={() => setCareTab('active')}
-              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
+              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'active' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <Clock size={16} /> Active ({activeCareSessions.length})
             </button>
             <button
               onClick={() => setCareTab('history')}
-              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
+              className={`flex-1 py-2 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${careTab === 'history' ? 'bg-white shadow-sm text-brandDark border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}
             >
               <History size={16} /> History ({historyCareSessions.length})
             </button>
@@ -610,9 +610,9 @@ export default function Settings() {
                 <div className="flex justify-between items-center mb-2 px-1">
                   <p className="text-xs font-bold text-zinc-400 uppercase tracking-widest">{historySelection.length} Selected</p>
                   <div className="flex gap-2">
-                    <button onClick={deleteSelectedHistory} disabled={historySelection.length === 0} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete</button>
+                    <button onClick={deleteSelectedHistory} disabled={historySelection.length === 0} className="text-xs font-bold text-red-500 hover:text-red-700 disabled:opacity-50 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete</button>
                     <span className="text-zinc-300">|</span>
-                    <button onClick={deleteAllHistory} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete All</button>
+                    <button onClick={deleteAllHistory} className="text-xs font-bold text-red-500 hover:text-red-700 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">Delete All</button>
                   </div>
                 </div>
               )}
@@ -795,8 +795,8 @@ export default function Settings() {
             </h3>
             <div className="space-y-4">
               {supportTickets.map((ticket) => (
-                <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm overflow-hidden transition-all duration-300">
-                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-tap:scale-[0.98] animate-spring animate-stiffness-220 animate-damping-7">
+                <div key={ticket.id} className="bg-white rounded-[1.5rem] border border-zinc-200 shadow-sm">
+                  <button onClick={() => setExpandedTicketId(expandedTicketId === ticket.id ? null : ticket.id)} className="w-full px-6 py-5 flex items-center justify-between hover:bg-zinc-50 transition-colors outline-none animate-hover:scale-[1.01] animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7">
                     <div className="flex items-center gap-3">
                       <div className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse shadow-[0_0_10px_rgba(245,158,11,0.5)]"></div>
                       <span className="font-mono font-bold text-brandDark tracking-wider">{ticket.supportId}</span>
@@ -996,8 +996,8 @@ export default function Settings() {
                     <input type="email" placeholder="Your Email" required value={supportForm.email} onChange={e => setSupportForm({...supportForm, email: e.target.value})} className="p-4 bg-zinc-50 border border-zinc-200 rounded-2xl outline-none focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 font-medium transition-all" />
                   </div>
                   <div className="flex bg-zinc-100 p-1.5 rounded-[1.25rem] border border-zinc-200">
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
-                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
+                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'whatsapp', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'whatsapp' ? 'bg-white shadow-sm text-emerald-600 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={WhatsappIcon} size={18} /> WhatsApp</button>
+                    <button type="button" onClick={() => setSupportForm({...supportForm, platform: 'telegram', contactValue: ''})} className={`flex-1 py-2.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${supportForm.platform === 'telegram' ? 'bg-white shadow-sm text-sky-500 border border-zinc-200/50' : 'text-zinc-500 hover:text-brandDark'}`}><HugeiconsIcon icon={TelegramIcon} size={18} /> Telegram</button>
                   </div>
                   {supportForm.platform === 'whatsapp' ? (
                     <div className="flex w-full border border-zinc-200 rounded-2xl focus-within:border-brandDark focus-within:ring-2 focus-within:ring-brandDark/10 bg-zinc-50 focus-within:bg-white overflow-hidden transition-all relative">
