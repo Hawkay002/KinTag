@@ -224,7 +224,7 @@ export default function Changelog() {
             //                     giving that satisfying "slightly late" delayed reveal feel
             <div
               key={update.version}
-              className="relative group pl-12 md:pl-16 animate-initial:opacity-0 animate-initial:y-24 animate-inview:opacity-100 animate-inview:y-0 animate-once animate-amount-30 animate-spring animate-stiffness-180 animate-damping-12"
+              className="relative group pl-12 md:pl-16 animate-initial:opacity-0 animate-initial:y-24 animate-inview:opacity-100 animate-inview:y-0 animate-once animate-amount-30 animate-spring animate-stiffness-220 animate-damping-7"
             >
 
               {/* TIMELINE DOT & ICON — spring hover only, no tap */}
