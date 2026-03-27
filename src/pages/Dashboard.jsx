@@ -543,10 +543,11 @@ export default function Dashboard() {
           </mw.div>
         </div>
 
+        {/* 🌟 FIXED: Removed 'pointer-events-none' so you can view cached notifications offline! */}
         <div 
           id="notif-wrapper" 
-          onClick={() => { if(isOnline) setIsFabHidden(true); }} 
-          className={`relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100 ${!isOnline ? 'opacity-50 pointer-events-none' : ''}`}
+          onClick={() => { setIsFabHidden(true); }} 
+          className={`relative z-[60] w-full mb-10 flex justify-between gap-4 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100`}
         >
           <NotificationCenter 
             scans={scans} 
@@ -646,24 +647,27 @@ export default function Dashboard() {
       >
         <div className="w-max bg-white/80 backdrop-blur-xl border border-zinc-200/80 rounded-[2.5rem] px-6 py-3 shadow-[0_8px_30px_rgb(0,0,0,0.08)] flex items-center justify-between gap-8 pointer-events-auto">
           
-          <Link to="/settings" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`w-12 h-12 group relative z-10 ${!isOnline ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-400 hover:text-brandDark'}`}>
+          {/* 🌟 FIXED: Removed 'e.preventDefault()' so you can click Settings offline! */}
+          <Link to="/settings" className={`w-12 h-12 group relative z-10 text-zinc-400 hover:text-brandDark`}>
             <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
-              <Settings size={28} className={isOnline ? "group-hover:rotate-45 transition-transform duration-500" : ""} />
+              <Settings size={28} className="group-hover:rotate-45 transition-transform duration-500" />
             </mw.div>
           </Link>
 
+          {/* The '+' button requires Firebase, so we still disable it offline */}
           <Link to="/create" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`shrink-0 relative z-10 group ${!isOnline ? 'opacity-50 cursor-not-allowed' : ''}`}>
             <mw.div className={`w-16 h-16 rounded-full flex items-center justify-center shadow-[0_8px_20px_rgba(24,24,27,0.4)] border-[6px] border-[#fafafa] -mt-12 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${isOnline ? 'bg-brandDark text-white group-hover:bg-brandAccent' : 'bg-zinc-400 text-zinc-200'}`}>
               <Plus size={32} strokeWidth={3} className={isOnline ? "group-hover:rotate-90 transition-transform duration-300" : ""} />
             </mw.div>
           </Link>
 
-          <Link to="/profile" onClick={(e) => { if(!isOnline) e.preventDefault(); }} className={`w-12 h-12 group relative z-10 ${!isOnline ? 'text-zinc-300 cursor-not-allowed' : 'text-zinc-400 hover:text-brandDark'}`}>
+          {/* 🌟 FIXED: Removed 'e.preventDefault()' so you can click Profile offline! */}
+          <Link to="/profile" className={`w-12 h-12 group relative z-10 text-zinc-400 hover:text-brandDark`}>
             <mw.div className="w-full h-full flex items-center justify-center transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7">
               {currentAvatar ? (
-                <div className={`w-7 h-7 transition-transform duration-300 ${isOnline ? 'group-hover:scale-110' : 'opacity-50'}`}>{currentAvatar.svg}</div>
+                <div className={`w-7 h-7 transition-transform duration-300 group-hover:scale-110`}>{currentAvatar.svg}</div>
               ) : (
-                <User size={28} className={`transition-transform duration-300 ${isOnline ? 'group-hover:scale-110' : ''}`} />
+                <User size={28} className={`transition-transform duration-300 group-hover:scale-110`} />
               )}
               {!userZipCode && isOnline && <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white rounded-full animate-pulse z-10" />}
             </mw.div>
