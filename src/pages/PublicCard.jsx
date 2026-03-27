@@ -5,6 +5,9 @@ import { doc, getDoc, collection, addDoc } from 'firebase/firestore';
 import { Turnstile } from '@marsidev/react-turnstile';
 import { Phone, MapPin, AlertTriangle, Droplet, Ruler, Users, Scale, User, PawPrint, Maximize2, X, Activity, Heart, BellRing, Loader2, CheckCircle2, Cake, ShieldAlert, Siren, FileText, Lock, Unlock } from 'lucide-react';
 
+// 🌟 FULL OFFLINE ARCHITECTURE: Import dynamic storage functions
+import { getFromCache } from '../utils/offlineStorage';
+
 const getComputedAge = (profile) => {
   if (profile.dob) {
     const dob = new Date(profile.dob);
@@ -49,6 +52,27 @@ export default function PublicCard() {
   const [viewingDocument, setViewingDocument] = useState(null);
   const vaultTimerRef = useRef(null);
 
+  // 🌟 NEW: Network Status Monitor
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 🌟 Auto-verify if offline (Bypass Turnstile)
+  useEffect(() => {
+    if (!isOnline && !isVerified) {
+      setIsVerified(true);
+    }
+  }, [isOnline, isVerified]);
+
   const playChime = () => {
     try {
       const audio = new Audio('/chime.mp3');
@@ -66,10 +90,24 @@ export default function PublicCard() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const docRef = doc(db, "profiles", profileId);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setProfile(docSnap.data());
+        // 🌟 FULL OFFLINE ARCHITECTURE: Intercept and load from IndexedDB
+        if (!isOnline) {
+          const cachedProfiles = await getFromCache('profiles');
+          const localProfile = cachedProfiles.find(p => p.id === profileId);
+          if (localProfile) {
+            setProfile(localProfile);
+          } else {
+            setProfile(null);
+          }
+        } else {
+          // ONLINE ENGINE: Fetch fresh from Firebase
+          const docRef = doc(db, "profiles", profileId);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            setProfile(docSnap.data());
+          } else {
+            setProfile(null);
+          }
         }
       } catch (error) {
         console.error("Error fetching profile");
@@ -84,11 +122,11 @@ export default function PublicCard() {
       if (logoTimeoutRef.current) clearTimeout(logoTimeoutRef.current);
       if (vaultTimerRef.current) clearTimeout(vaultTimerRef.current);
     };
-  }, [profileId]);
+  }, [profileId, isOnline]);
 
   useEffect(() => {
     const sendPassiveAlert = async () => {
-      if (!isVerified || !profile || profile.isActive === false || passiveAlertSent.current || isPreview) return; 
+      if (!isVerified || !profile || profile.isActive === false || passiveAlertSent.current || isPreview || !isOnline) return; 
       passiveAlertSent.current = true; 
       
       try {
@@ -125,14 +163,15 @@ export default function PublicCard() {
     };
 
     let timer;
-    if (isVerified && profile && profile.isActive !== false && !passiveAlertSent.current && !isPreview) {
+    // 🌟 Block passive alerts if offline
+    if (isVerified && profile && profile.isActive !== false && !passiveAlertSent.current && !isPreview && isOnline) {
       timer = setTimeout(() => {
         sendPassiveAlert();
       }, 1500);
     }
 
     return () => clearTimeout(timer);
-  }, [profile, profileId, isPreview, isVerified]);
+  }, [profile, profileId, isPreview, isVerified, isOnline]);
 
   const unlockVault = () => {
     if (isPreview) return;
@@ -145,7 +184,8 @@ export default function PublicCard() {
 
   const handleActiveAlert = (e) => {
     e.stopPropagation(); 
-    if (isPreview || profile?.isActive === false) return;
+    // 🌟 Block active alerts if offline
+    if (isPreview || profile?.isActive === false || !isOnline) return;
 
     setIsSendingAlert(true);
     setGpsError('');
@@ -216,7 +256,8 @@ export default function PublicCard() {
     startLogoTimer();
   };
 
-  if (!isVerified) {
+  // 🌟 Only render Turnstile if online
+  if (!isVerified && isOnline) {
     return (
       <div className="min-h-[100dvh] bg-[#fafafa] flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
         <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -287,10 +328,18 @@ export default function PublicCard() {
   return (
     <div className="min-h-[100dvh] bg-zinc-100 flex flex-col items-center font-sans relative selection:bg-brandGold selection:text-white pb-48 md:pb-52">
       
-      {/* 🌟 RESTORED ORIGINAL: Dynamic Island / Share Button */}
+      {/* 🌟 OFFLINE DANGER BANNER */}
+      {!isOnline && (
+        <div className="fixed top-0 left-0 right-0 z-[300] bg-amber-500 text-amber-950 py-3 px-4 font-bold text-sm shadow-md flex items-center justify-center gap-2 animate-in slide-in-from-top-4">
+          <AlertTriangle size={18} />
+          Offline Mode: Viewing Cached ID
+        </div>
+      )}
+
+      {/* Dynamic Island / Share Button */}
       <div 
         onClick={() => !isIslandExpanded && setIsIslandExpanded(true)}
-        className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
+        className={`fixed top-4 left-1/2 -translate-x-1/2 bg-black/85 backdrop-blur-xl text-white rounded-[2rem] shadow-2xl z-[100] transition-all duration-300 ease-[cubic-bezier(0.23,1,0.32,1)] overflow-hidden cursor-pointer ${!isOnline ? 'mt-8' : ''} ${isIslandExpanded ? 'w-11/12 max-w-sm p-6' : 'w-auto px-5 py-3 flex items-center justify-center gap-2 hover:bg-black'}`}
       >
         {!isIslandExpanded ? (
           <>
@@ -309,11 +358,11 @@ export default function PublicCard() {
                 <p className="text-sm text-white/80 font-medium mb-5 leading-relaxed">Tap below to securely send your exact GPS location directly to the owner's phone.</p>
                 <button 
                   onClick={handleActiveAlert} 
-                  disabled={isSendingAlert || isPreview}
-                  className={`w-full font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70 ${isPreview ? 'bg-zinc-500 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white'}`}
+                  disabled={isSendingAlert || isPreview || !isOnline}
+                  className={`w-full font-bold py-4 px-4 rounded-xl flex items-center justify-center gap-2 transition-all shadow-md disabled:opacity-70 ${isPreview || !isOnline ? 'bg-zinc-500 text-white cursor-not-allowed' : 'bg-red-600 hover:bg-red-500 text-white'}`}
                 >
                   {isSendingAlert ? <Loader2 className="animate-spin" size={20} /> : <MapPin size={20} />}
-                  <span>{isPreview ? "Disabled in Preview" : (isSendingAlert ? "Locating..." : `Share My Location`)}</span>
+                  <span>{isPreview ? "Disabled in Preview" : (!isOnline ? "Disabled Offline" : (isSendingAlert ? "Locating..." : `Share My Location`))}</span>
                 </button>
                 {gpsError && <p className="text-red-400 text-xs font-bold mt-3 text-center">{gpsError}</p>}
               </>
@@ -331,7 +380,7 @@ export default function PublicCard() {
       <div className="fixed inset-0 z-0 bg-[linear-gradient(to_right,#80808008_1px,transparent_1px),linear-gradient(to_bottom,#80808008_1px,transparent_1px)] bg-[size:32px_32px] pointer-events-none hidden md:block"></div>
       <div className="fixed top-1/4 left-1/2 -translate-x-1/2 w-[800px] h-[600px] bg-gradient-to-r from-brandGold/10 via-emerald-400/5 to-transparent rounded-full blur-[100px] pointer-events-none z-0 hidden md:block"></div>
 
-      <div className="w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] md:rounded-[3rem] md:my-10 md:overflow-hidden flex flex-col relative z-10 border border-zinc-200">
+      <div className={`w-full max-w-md bg-white shadow-[0_20px_60px_rgba(0,0,0,0.05)] md:rounded-[3rem] md:my-10 md:overflow-hidden flex flex-col relative z-10 border border-zinc-200 ${!isOnline ? 'mt-8 md:mt-16' : ''}`}>
         
         <div className="relative h-[45vh] md:h-[350px] w-full shrink-0 bg-zinc-100">
           <img 
@@ -344,7 +393,6 @@ export default function PublicCard() {
           <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-transparent to-transparent pointer-events-none"></div>
           <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent pointer-events-none"></div>
           
-          {/* 🌟 RESTORED ORIGINAL: Top-Left KinTag Logo */}
           <div 
             onClick={handleLogoClick}
             className={`absolute top-4 left-4 z-20 flex items-center h-10 bg-black/40 backdrop-blur-md rounded-full border border-white/20 shadow-sm transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] ${isPreview ? 'cursor-default opacity-80' : 'cursor-pointer'} ${isLogoExpanded ? 'px-3.5' : 'w-10 justify-center px-0'}`}
