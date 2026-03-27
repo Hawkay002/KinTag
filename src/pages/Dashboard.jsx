@@ -498,13 +498,14 @@ export default function Dashboard() {
           [&_button]:transition-transform [&_button]:duration-[400ms] [&_button]:ease-[cubic-bezier(0.34,1.56,0.64,1)] [&_button]:will-change-transform
           hover:[&_button]:scale-[1.05] active:[&_button]:scale-[0.95]"
         >
-          <NotificationCenter
-            scans={scans}
-            systemMessages={systemMessages}
-            pendingInvite={pendingInvite}
-            currentUser={currentUser}
-            showMessage={showMessage}
-          />
+          <NotificationCenter 
+  scans={scans} 
+  systemMessages={systemMessages} 
+  pendingInvite={pendingInvite} 
+  currentUser={currentUser} 
+  showMessage={showMessage}
+  profiles={profiles} // 🌟 ADD THIS LINE
+/>
         </div>
 
         {/* ── SECTION 3: Local alert marquee (conditional) ── delay-150 ──── */}
