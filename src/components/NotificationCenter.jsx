@@ -364,10 +364,12 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
                       </div>
                     ) : (
                       <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }} className="z-0">
-                        <TileLayer
-                          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
-                        />
+                        {/* 🌟 FIXED: Ultra-detailed Google Maps engine for street-level landmarks */}
+<TileLayer
+  url="https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}"
+  attribution="&copy; Google Maps"
+  maxZoom={20}
+/>
                         {geoScans.map(scan => (
                           <Marker key={scan.id} position={[scan.coords.lat, scan.coords.lng]} icon={customMarkerIcon}>
                             <Popup className="font-sans">
