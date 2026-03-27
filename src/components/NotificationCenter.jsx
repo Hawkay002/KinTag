@@ -1,11 +1,27 @@
 import { useState, useEffect } from 'react';
 import { db, messaging } from '../firebase';
 import { doc, setDoc, deleteDoc, addDoc, collection, getDoc, updateDoc } from 'firebase/firestore';
-import { getToken } from 'firebase/messaging'; 
+import { getToken } from 'firebase/messaging';
 import {
   Bell, BellRing, X, Trash2, Users, MapPin, Info,
-  Eye, CheckCircle2, Siren, AlertOctagon, Loader2
+  Eye, CheckCircle2, Siren, AlertOctagon, Loader2, List, Map as MapIcon
 } from 'lucide-react';
+
+// 🌟 NEW: Leaflet Map Imports
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+// 🌟 NEW: Fix Leaflet's default icon rendering bug natively via CDN
+const customMarkerIcon = new L.Icon({
+  iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
+  iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
+  shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+  popupAnchor: [1, -34],
+  shadowSize: [41, 41]
+});
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const getTime = (ts) => ts?.toDate ? ts.toDate().getTime() : new Date(ts || 0).getTime();
@@ -25,29 +41,28 @@ const renderFormattedTextDark = (text) => {
   });
 };
 
+// 🌟 NEW: Helper to extract Coordinates from old Google Maps Links
+const extractCoords = (scan) => {
+  if (scan.lat && scan.lng) return { lat: scan.lat, lng: scan.lng };
+  if (scan.googleMapsLink) {
+    const match = scan.googleMapsLink.match(/q=(-?\d+\.\d+),(-?\d+\.\d+)/);
+    if (match) return { lat: parseFloat(match[1]), lng: parseFloat(match[2]) };
+  }
+  return null;
+};
+
 // ─── Reusable animation class strings ───────────────────────────────────────
 const SPRING     = 'transition-colors animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7';
 const SPRING_SM  = 'transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7';
 const MODAL_CARD = 'animate-initial:opacity-0 animate-initial:scale-90 animate-enter:opacity-100 animate-enter:scale-100 animate-spring animate-stiffness-220 animate-damping-7';
 
 // ─── Component ───────────────────────────────────────────────────────────────
-/**
- * Self-contained notification component.
- * Renders: Enable Alerts button + Notifications bell button (both flex-1) +
- *          slide-out panel + all notification modals.
- *
- * Props:
- *   scans           – real-time array from Dashboard listener
- *   systemMessages  – real-time array from Dashboard listener
- *   pendingInvite   – object | null from Dashboard listener
- *   currentUser     – from useAuth()
- *   showMessage     – (title, message, type) => void  from Dashboard
- */
 export default function NotificationCenter({ scans, systemMessages, pendingInvite, currentUser, showMessage }) {
 
   // ── Panel / tab state ────────────────────────────────────────────────────
   const [showNotifCenter, setShowNotifCenter]   = useState(false);
   const [notifTab,        setNotifTab]          = useState('personal');
+  const [viewMode,        setViewMode]          = useState('list'); // 🌟 NEW: 'list' or 'map'
 
   // ── Push permission state ────────────────────────────────────────────────
   const [isEnablingPush,    setIsEnablingPush]   = useState(false);
@@ -112,7 +127,7 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     markAsRead();
   }, [showNotifCenter, notifTab, scans, systemMessages, currentUser, lastViewedPersonal, lastViewedSystem]);
 
-  // ── Derived counts ───────────────────────────────────────────────────────
+  // ── Derived counts & Map Data ────────────────────────────────────────────
   const unreadPersonalCount = lastViewedPersonal
     ? scans.filter(s => getTime(s.timestamp) > new Date(lastViewedPersonal).getTime()).length
     : scans.length;
@@ -120,6 +135,10 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
     ? systemMessages.filter(m => getTime(m.timestamp) > new Date(lastViewedSystem).getTime()).length
     : systemMessages.length;
   const hasAnyUnread = unreadPersonalCount > 0 || unreadSystemCount > 0 || pendingInvite;
+
+  // 🌟 NEW: Extract scans that have physical GPS coordinates for the map
+  const geoScans = scans.map(scan => ({ ...scan, coords: extractCoords(scan) })).filter(scan => scan.coords !== null);
+  const mapCenter = geoScans.length > 0 ? [geoScans[0].coords.lat, geoScans[0].coords.lng] : [39.8283, -98.5795]; // Default to USA if empty
 
   // ── Grouped scans for the panel ──────────────────────────────────────────
   const groupedScans = [];
@@ -276,35 +295,50 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
               </button>
             </div>
 
-            {/* Bulk select toolbar (personal tab) */}
+            {/* 🌟 NEW: Toolbar with Bulk Select & Map Toggle */}
             {notifTab === 'personal' && scans.length > 0 && (
               <div className="bg-white px-6 py-4 border-b border-zinc-100 flex justify-between items-center shrink-0">
-                <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
-                  <input
-                    type="checkbox"
-                    checked={selectedScans.length === scans.length && scans.length > 0}
-                    onChange={handleSelectAll}
-                    className="w-5 h-5 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer"
-                  />
-                  Select All
-                </label>
-                {selectedScans.length > 0 && (
-                  <button
-                    onClick={() => setShowBulkDeleteModal(true)}
-                    className={`bg-red-500 text-white px-4 py-2 rounded-xl text-xs font-bold shadow-sm flex items-center gap-2 ${SPRING}`}
-                  >
-                    <Trash2 size={14} /> Delete ({selectedScans.length})
-                  </button>
-                )}
+                <div className="flex items-center gap-4">
+                  <label className="flex items-center gap-3 cursor-pointer text-sm font-bold text-brandDark select-none">
+                    <input
+                      type="checkbox"
+                      checked={selectedScans.length === scans.length && scans.length > 0}
+                      onChange={handleSelectAll}
+                      disabled={viewMode === 'map'}
+                      className="w-5 h-5 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer disabled:opacity-50"
+                    />
+                    Select All
+                  </label>
+                  {selectedScans.length > 0 && viewMode === 'list' && (
+                    <button onClick={() => setShowBulkDeleteModal(true)} className={`bg-red-500 text-white px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm flex items-center gap-2 ${SPRING}`}>
+                      <Trash2 size={14} /> ({selectedScans.length})
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex bg-zinc-100 p-1 rounded-xl border border-zinc-200">
+                   <button 
+                     onClick={() => setViewMode('list')} 
+                     className={`flex items-center justify-center p-1.5 px-3 rounded-lg text-xs font-bold transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-brandDark' : 'text-zinc-400 hover:text-zinc-600'}`}
+                   >
+                     <List size={14} className="mr-1.5" /> List
+                   </button>
+                   <button 
+                     onClick={() => setViewMode('map')} 
+                     className={`flex items-center justify-center p-1.5 px-3 rounded-lg text-xs font-bold transition-all ${viewMode === 'map' ? 'bg-white shadow-sm text-brandDark' : 'text-zinc-400 hover:text-zinc-600'}`}
+                   >
+                     <MapIcon size={14} className="mr-1.5" /> Map
+                   </button>
+                </div>
               </div>
             )}
 
             {/* Panel body */}
-            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-zinc-50">
+            <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-zinc-50 flex flex-col">
 
-              {/* Pending invite card */}
+              {/* Pending invite card (Always visible at top if present) */}
               {pendingInvite && (
-                <div className="bg-brandGold/5 p-6 rounded-[2rem] border border-brandGold/20 mb-6 shadow-sm relative overflow-hidden group">
+                <div className="bg-brandGold/5 p-6 rounded-[2rem] border border-brandGold/20 mb-6 shadow-sm relative overflow-hidden group shrink-0">
                   <div className="absolute top-0 right-0 w-32 h-32 bg-brandGold/10 rounded-full blur-2xl pointer-events-none group-hover:bg-brandGold/20 transition-colors" />
                   <h3 className="font-extrabold text-brandDark flex items-center gap-2 mb-3 text-lg">
                     <Users size={20} className="text-brandGold" /> Co-Guardian Invite
@@ -319,93 +353,128 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
                 </div>
               )}
 
-              {/* Personal scans */}
-              {notifTab === 'personal' && (
+              {/* 🌟 NEW: Personal Scans Map View */}
+              {notifTab === 'personal' && viewMode === 'map' && (
+                 <div className="flex-1 w-full rounded-[2rem] overflow-hidden border border-zinc-200 shadow-inner relative z-0 min-h-[400px] animate-in fade-in zoom-in-95 duration-500">
+                    {geoScans.length === 0 ? (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-100 text-center p-6 z-10">
+                        <MapPin size={32} className="text-zinc-300 mb-4" />
+                        <h3 className="font-extrabold text-brandDark mb-2">No GPS Data</h3>
+                        <p className="text-xs text-zinc-500 font-medium">None of your recent scans included active GPS location sharing.</p>
+                      </div>
+                    ) : (
+                      <MapContainer center={mapCenter} zoom={13} style={{ height: '100%', width: '100%' }} className="z-0">
+                        <TileLayer
+                          url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                          attribution='&copy; <a href="https://carto.com/">CartoDB</a>'
+                        />
+                        {geoScans.map(scan => (
+                          <Marker key={scan.id} position={[scan.coords.lat, scan.coords.lng]} icon={customMarkerIcon}>
+                            <Popup className="font-sans">
+                               <div className="font-bold text-brandDark text-sm">{scan.profileName}</div>
+                               <div className="text-xs text-zinc-500">{new Date(getTime(scan.timestamp)).toLocaleString()}</div>
+                               {scan.googleMapsLink && (
+                                 <a href={scan.googleMapsLink} target="_blank" rel="noreferrer" className="block mt-2 text-[10px] text-blue-500 font-bold hover:underline">
+                                   Open in Maps
+                                 </a>
+                               )}
+                            </Popup>
+                          </Marker>
+                        ))}
+                      </MapContainer>
+                    )}
+                 </div>
+              )}
+
+              {/* Personal scans List View */}
+              {notifTab === 'personal' && viewMode === 'list' && (
                 groupedScans.length === 0 ? (
                   <div className="text-center mt-20">
                     <div className="w-16 h-16 bg-zinc-100 rounded-full flex items-center justify-center mx-auto mb-4 text-zinc-400"><Bell size={24} /></div>
                     <p className="text-zinc-500 font-medium text-lg tracking-tight">No scans recorded yet.</p>
                   </div>
                 ) : (
-                  groupedScans.map(group => (
-                    <div key={group.date} className="mb-8 last:mb-2">
-                      <div className="flex items-center mb-5">
-                        <div className="h-px bg-zinc-200 flex-1" />
-                        <span className="px-3 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest bg-zinc-50">{group.date}</span>
-                        <div className="h-px bg-zinc-200 flex-1" />
-                      </div>
-                      <div className="space-y-4">
-                        {group.items.map(scan => {
-                          if (scan.type === 'kinAlert') return (
-                            <div key={scan.id} className="bg-red-50 p-4 sm:p-5 rounded-[2rem] border border-red-200 shadow-sm relative overflow-hidden flex items-start gap-3">
-                              <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none z-0" />
-                              <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
-                              <div className="flex-1 min-w-0 relative z-10">
-                                <div className="flex items-center justify-between mb-3 pr-10">
-                                  <span className="font-extrabold text-red-800 text-lg flex items-center gap-2"><Siren size={18} /> KinAlert</span>
-                                  <span className="text-[10px] text-red-400 font-bold uppercase shrink-0 bg-red-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                <p className="text-sm text-red-900 font-bold mb-4 leading-relaxed">{scan.message}</p>
-                                {scan.publicLink && (
-                                  <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className={`bg-red-600 text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 w-full shadow-md ${SPRING}`}>
-                                    <Eye size={18} /> View Profile
-                                  </a>
-                                )}
-                              </div>
-                            </div>
-                          );
-
-                          if (scan.type === 'kinAlert_found') return (
-                            <div key={scan.id} className="bg-emerald-50 p-4 sm:p-5 rounded-[2rem] border border-emerald-200 shadow-sm relative overflow-hidden flex items-start gap-3">
-                              <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
-                              <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none z-0" />
-                              <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
-                              <div className="flex-1 min-w-0 relative z-10">
-                                <div className="flex items-center justify-between mb-3 pr-10">
-                                  <span className="font-extrabold text-emerald-800 text-lg flex items-center gap-2"><CheckCircle2 size={18} /> Found Alert</span>
-                                  <span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0 bg-emerald-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                                </div>
-                                <p className="text-sm text-emerald-900 font-bold leading-relaxed">{scan.message}</p>
-                              </div>
-                            </div>
-                          );
-
-                          // Default scan
-                          return (
-                            <div key={scan.id} className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md flex items-start gap-3">
-                              <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
-                              <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center justify-between mb-3 pr-8">
-                                  <span className="font-extrabold text-brandDark text-lg tracking-tight truncate">
-                                    {scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}
-                                  </span>
-                                  <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0 bg-zinc-50 border border-zinc-100 px-2 py-1 rounded-md">
-                                    {new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                  </span>
-                                </div>
-                                {scan.type === 'active' ? (
-                                  <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2">
-                                    <p className="text-xs text-red-800 font-bold mb-4 flex items-center gap-2"><MapPin size={16} className="text-red-500 shrink-0" /> A Good Samaritan pinpointed their exact location!</p>
-                                    <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className={`bg-red-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 w-full shadow-md ${SPRING}`}>Open in Google Maps</a>
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {groupedScans.map(group => (
+                      <div key={group.date} className="mb-8 last:mb-2">
+                        <div className="flex items-center mb-5">
+                          <div className="h-px bg-zinc-200 flex-1" />
+                          <span className="px-3 text-[10px] font-extrabold text-zinc-400 uppercase tracking-widest bg-zinc-50">{group.date}</span>
+                          <div className="h-px bg-zinc-200 flex-1" />
+                        </div>
+                        <div className="space-y-4">
+                          {group.items.map(scan => {
+                            if (scan.type === 'kinAlert') return (
+                              <div key={scan.id} className="bg-red-50 p-4 sm:p-5 rounded-[2rem] border border-red-200 shadow-sm relative overflow-hidden flex items-start gap-3">
+                                <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-red-500/10 rounded-full blur-2xl pointer-events-none z-0" />
+                                <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-red-300 hover:text-red-600 hover:bg-red-100 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
+                                <div className="flex-1 min-w-0 relative z-10">
+                                  <div className="flex items-center justify-between mb-3 pr-10">
+                                    <span className="font-extrabold text-red-800 text-lg flex items-center gap-2"><Siren size={18} /> KinAlert</span>
+                                    <span className="text-[10px] text-red-400 font-bold uppercase shrink-0 bg-red-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                                   </div>
-                                ) : scan.type === 'invite_response' ? (
-                                  <p className="text-sm text-emerald-700 font-bold flex items-start gap-2 mt-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 leading-relaxed">
-                                    <Users size={16} className="shrink-0 mt-0.5 text-emerald-500" /> {scan.message}
-                                  </p>
-                                ) : (
-                                  <p className="text-sm text-zinc-500 font-medium flex items-center gap-2 mt-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
-                                    <Info size={16} className="shrink-0 text-brandGold" /> Passive scan near <strong className="text-brandDark font-bold">{scan.city}, {scan.region}</strong>
-                                  </p>
-                                )}
+                                  <p className="text-sm text-red-900 font-bold mb-4 leading-relaxed">{scan.message}</p>
+                                  {scan.publicLink && (
+                                    <a href={scan.publicLink} target="_blank" rel="noopener noreferrer" className={`bg-red-600 text-white py-3.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 w-full shadow-md ${SPRING}`}>
+                                      <Eye size={18} /> View Profile
+                                    </a>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+
+                            if (scan.type === 'kinAlert_found') return (
+                              <div key={scan.id} className="bg-emerald-50 p-4 sm:p-5 rounded-[2rem] border border-emerald-200 shadow-sm relative overflow-hidden flex items-start gap-3">
+                                <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none z-0" />
+                                <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-emerald-300 hover:text-emerald-600 hover:bg-emerald-100 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
+                                <div className="flex-1 min-w-0 relative z-10">
+                                  <div className="flex items-center justify-between mb-3 pr-10">
+                                    <span className="font-extrabold text-emerald-800 text-lg flex items-center gap-2"><CheckCircle2 size={18} /> Found Alert</span>
+                                    <span className="text-[10px] text-emerald-400 font-bold uppercase shrink-0 bg-emerald-100 px-2 py-1 rounded-md">{new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                                  </div>
+                                  <p className="text-sm text-emerald-900 font-bold leading-relaxed">{scan.message}</p>
+                                </div>
+                              </div>
+                            );
+
+                            // Default scan
+                            return (
+                              <div key={scan.id} className="bg-white p-4 sm:p-5 rounded-[2rem] shadow-sm border border-zinc-200 relative group transition-shadow hover:shadow-md flex items-start gap-3">
+                                <input type="checkbox" checked={selectedScans.includes(scan.id)} onChange={() => toggleScanSelection(scan.id)} className="w-5 h-5 mt-1 rounded border-zinc-300 text-brandDark focus:ring-brandDark cursor-pointer shrink-0 z-20" />
+                                <button onClick={() => setScanToDelete(scan.id)} className={`absolute top-4 right-4 p-2 text-zinc-300 hover:text-red-500 hover:bg-red-50 rounded-full z-10 ${SPRING_SM}`}><Trash2 size={16} /></button>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center justify-between mb-3 pr-8">
+                                    <span className="font-extrabold text-brandDark text-lg tracking-tight truncate">
+                                      {scan.profileName} {scan.type === 'invite_response' ? 'Update' : 'Scanned'}
+                                    </span>
+                                    <span className="text-[10px] text-zinc-400 font-bold uppercase shrink-0 bg-zinc-50 border border-zinc-100 px-2 py-1 rounded-md">
+                                      {new Date(getTime(scan.timestamp)).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </span>
+                                  </div>
+                                  {scan.type === 'active' ? (
+                                    <div className="bg-red-50/50 p-4 rounded-2xl border border-red-100 mt-2">
+                                      <p className="text-xs text-red-800 font-bold mb-4 flex items-center gap-2"><MapPin size={16} className="text-red-500 shrink-0" /> A Good Samaritan pinpointed their exact location!</p>
+                                      <a href={scan.googleMapsLink} target="_blank" rel="noopener noreferrer" className={`bg-red-600 text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2 w-full shadow-md ${SPRING}`}>Open in Google Maps</a>
+                                    </div>
+                                  ) : scan.type === 'invite_response' ? (
+                                    <p className="text-sm text-emerald-700 font-bold flex items-start gap-2 mt-2 bg-emerald-50/50 p-4 rounded-2xl border border-emerald-100 leading-relaxed">
+                                      <Users size={16} className="shrink-0 mt-0.5 text-emerald-500" /> {scan.message}
+                                    </p>
+                                  ) : (
+                                    <p className="text-sm text-zinc-500 font-medium flex items-center gap-2 mt-2 bg-zinc-50 p-4 rounded-2xl border border-zinc-100">
+                                      <Info size={16} className="shrink-0 text-brandGold" /> Passive scan near <strong className="text-brandDark font-bold">{scan.city}, {scan.region}</strong>
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  ))
+                    ))}
+                  </div>
                 )
               )}
 
@@ -417,7 +486,7 @@ export default function NotificationCenter({ scans, systemMessages, pendingInvit
                     <p className="text-zinc-500 font-medium text-lg tracking-tight">No system updates yet.</p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
                     {systemMessages.map(msg => (
                       <div key={msg.id} className="bg-brandDark text-white p-6 rounded-[2rem] shadow-xl border border-zinc-800 relative overflow-hidden group">
                         <div className="absolute top-0 right-0 w-40 h-40 bg-brandGold/10 rounded-full blur-[40px] pointer-events-none group-hover:bg-brandGold/20 transition-colors" />
