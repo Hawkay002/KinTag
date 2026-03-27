@@ -60,6 +60,27 @@ export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [deviceTier] = useState(() => getDeviceTier());
 
+  // 🌟 NEW: Network Status Monitor
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // 🌟 Auto-verify if offline (Bypass Turnstile)
+  useEffect(() => {
+    if (!isOnline && !isVerified) {
+      setIsVerified(true);
+    }
+  }, [isOnline, isVerified]);
+
   // FIX: Wrap scroll handler in useCallback so it doesn't get re-created on
   // every render. The previous version captured `isScrolled` from closure,
   // causing a new listener reference on every render and unnecessary work.
@@ -136,7 +157,8 @@ export default function Home() {
     { q: "Can I self-host this application?", a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership.", meta: "Open Source" }
   ].map(item => ({ question: item.q, answer: item.a, meta: item.meta }));
 
-  if (!isVerified) {
+  // 🌟 Only render Turnstile if online
+  if (!isVerified && isOnline) {
     return (
       <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
         <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
