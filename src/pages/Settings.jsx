@@ -591,7 +591,7 @@ export default function Settings() {
         </div>
 
         {/* ── SECTION 2: Caretaker Mode ── delay-100 */}
-        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100 ${!isOnline ? 'opacity-70' : ''}`}>
+        <mw.div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-100 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-500 border border-indigo-100 shadow-sm shrink-0">
@@ -717,10 +717,10 @@ export default function Settings() {
               )}
             </div>
           )}
-        </div>
+        </mw.div>
 
         {/* ── SECTION 3: Family Sharing ── delay-200 */}
-        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-70' : ''}`}>
+        <mw.div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-200 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 bg-brandGold/10 rounded-2xl flex items-center justify-center text-brandGold border border-brandGold/20 shadow-sm">
               <Users size={24} />
@@ -802,11 +802,11 @@ export default function Settings() {
               </div>
             ))}
           </div>
-        </div>
+        </mw.div>
 
         {/* ── SECTION 4: PWA Install ── delay-300 (conditional) */}
         {deferredPrompt && (
-          <div className="bg-brandDark text-white rounded-[2.5rem] shadow-xl p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-2xl gap-6 relative overflow-hidden group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300">
+          <div className="bg-brandDark text-white rounded-[2.5rem] shadow-xl p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-colors hover:shadow-2xl gap-6 relative overflow-hidden group animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300">
             <div className="absolute top-0 right-0 w-64 h-64 bg-brandGold/10 rounded-full blur-[60px] pointer-events-none group-hover:bg-brandGold/20 transition-colors"></div>
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left relative z-10">
               <div className="w-16 h-16 bg-white/10 backdrop-blur-md text-brandGold rounded-2xl flex items-center justify-center shrink-0 border border-white/10 shadow-inner group-hover:scale-105 transition-transform">
@@ -825,7 +825,7 @@ export default function Settings() {
         )}
 
         {/* ── SECTION 5: Help & Support ── delay-300 */}
-        <div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300 ${!isOnline ? 'opacity-70' : ''}`}>
+        <mw.div className={`bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-colors hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-300 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
             <div className="w-16 h-16 bg-blue-50/80 border border-blue-100 text-blue-500 rounded-2xl flex items-center justify-center shrink-0 shadow-sm">
               <LifeBuoy size={32} />
@@ -846,7 +846,7 @@ export default function Settings() {
           >
             {!isOnline ? 'Offline' : (supportTickets.length > 0 ? 'Ticket Active (1/1)' : 'Contact Support')}
           </mw.button>
-        </div>
+        </mw.div>
 
         {/* Active Support Tickets UI */}
         {supportTickets.length > 0 && (
@@ -891,7 +891,7 @@ export default function Settings() {
 
         {/* ── SECTION 6: App Privacy Lock ── delay-400 (conditional) */}
         {isBiometricSupported && (
-          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-all hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
+          <div className="bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.06)] border border-zinc-200/80 p-8 md:p-10 mb-8 flex flex-col sm:flex-row items-center justify-between transition-colors hover:shadow-[0_8px_40px_rgb(0,0,0,0.1)] gap-6 animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-400">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
               <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 shadow-sm transition-colors ${isLockEnabled ? 'bg-brandGold/10 border border-brandGold/20 text-brandGold' : 'bg-zinc-100 border border-zinc-200 text-zinc-400'}`}>
                 <FingerprintPattern size={32} />
@@ -916,7 +916,7 @@ export default function Settings() {
         )}
 
         {/* ── SECTION 7: Danger Zone ── delay-500 */}
-        <div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-500 ${!isOnline ? 'opacity-70' : ''}`}>
+        <mw.div className={`animate-initial:opacity-0 animate-initial:y-16 animate-enter:opacity-100 animate-enter:y-0 animate-spring animate-stiffness-220 animate-damping-7 animate-delay-500 ${!isOnline ? 'opacity-70' : ''}`}>
           <div className="flex items-center justify-center mb-8 relative">
             <div className="w-full h-px bg-zinc-200"></div>
             <span className="absolute bg-[#fafafa] px-4 text-xs font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-2">Danger Zone</span>
