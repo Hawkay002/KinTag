@@ -937,7 +937,7 @@ export default function Settings() {
               {isOnline ? 'Delete Account' : 'Disabled Offline'}
             </button>
           </div>
-        </div>
+        </mw.div>
 
         {/* ── MODALS ── */}
 
