@@ -1,19 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { auth, db } from '../firebase';
 import { createUserWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, getAdditionalUserInfo } from 'firebase/auth';
 import { doc, getDoc, setDoc, deleteDoc, addDoc, collection } from 'firebase/firestore'; 
 import { useNavigate, Link, useLocation } from 'react-router-dom';
-import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft, ShieldCheck, User, KeyRound, Send, RefreshCw } from 'lucide-react';
+import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft, ShieldCheck, User, KeyRound, Send } from 'lucide-react';
 import ReCAPTCHA from "react-google-recaptcha";
 import { motion, AnimatePresence } from "motion/react";
-import { mw } from 'motionwind-react';
-
-// 🌟 HEROUI V3 IMPORT
-import { InputOTP } from '@heroui/react';
-
-// ─── Constants ────────────────────────────────────────────────────────────────
-const RESEND_COOLDOWN_SECS = 90; // 1 min 30 sec
-const MAX_RESENDS = 5;
 
 export default function Signup() {
   const navigate = useNavigate();
@@ -39,44 +31,14 @@ export default function Signup() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState(null);
 
-  // ── OTP state ──────────────────────────────────────────────────────────────
   const [isEmailVerified, setIsEmailVerified] = useState(false);
   const [showOtpInput, setShowOtpInput] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [otpCode, setOtpCode] = useState(''); 
+  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
+  const inputRefs = useRef([]);
 
-  // ── Resend state ───────────────────────────────────────────────────────────
-  const [resendCooldown, setResendCooldown] = useState(0);
-  const [resendCount, setResendCount] = useState(0);
-  const [resendError, setResendError] = useState('');
-  const cooldownRef = useRef(null);
-
-  // Cleanup cooldown timer on unmount
-  useEffect(() => {
-    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current); };
-  }, []);
-
-  // ── Helpers ────────────────────────────────────────────────────────────────
-  const formatCooldown = (secs) => {
-    const m = Math.floor(secs / 60);
-    const s = secs % 60;
-    return `${m}:${s.toString().padStart(2, '0')}`;
-  };
-
-  const startCooldown = () => {
-    setResendCooldown(RESEND_COOLDOWN_SECS);
-    if (cooldownRef.current) clearInterval(cooldownRef.current);
-    cooldownRef.current = setInterval(() => {
-      setResendCooldown(prev => {
-        if (prev <= 1) { clearInterval(cooldownRef.current); return 0; }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  // ── Navigation ─────────────────────────────────────────────────────────────
   const goToStep = (newStep) => {
     setDirection(newStep > activeStep ? 1 : -1);
     setActiveStep(newStep);
@@ -103,7 +65,6 @@ export default function Signup() {
     return false;
   };
 
-  // ── Database helpers ───────────────────────────────────────────────────────
   const processUserDatabase = async (user, displayName) => {
     const emailLower = user.email.toLowerCase();
     const inviteRef = doc(db, "invites", emailLower);
@@ -151,59 +112,22 @@ export default function Signup() {
     }).catch(err => console.log("Welcome email failed:", err));
   };
 
-  // ── OTP handlers ───────────────────────────────────────────────────────────
-
   const handleSendOtp = async () => {
     setError('');
-    setResendError('');
     setOtpLoading(true);
     try {
       const res = await fetch('/api/send-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), expiresInMins: 10 })
+        body: JSON.stringify({ email: email.toLowerCase() })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to send verification email.");
       
       setShowOtpInput(true);
       setOtpError('');
-      setOtpCode('');
-      setResendCount(0);
-      startCooldown();
     } catch (err) {
       setError(err.message);
-    } finally {
-      setOtpLoading(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (resendCooldown > 0 || resendCount >= MAX_RESENDS) return;
-    setOtpError('');
-    setResendError('');
-    setOtpLoading(true);
-    try {
-      const res = await fetch('/api/send-otp', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), resend: true, expiresInMins: 10 })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Failed to resend code.");
-
-      setOtpCode('');
-      setOtpError('');
-
-      const newCount = resendCount + 1;
-      setResendCount(newCount);
-      startCooldown();
-
-      if (newCount >= MAX_RESENDS) {
-        setResendError("You've used all resend attempts. If your email still isn't arriving, please use the Continue with Google option below.");
-      }
-    } catch (err) {
-      setResendError(err.message);
     } finally {
       setOtpLoading(false);
     }
@@ -212,17 +136,17 @@ export default function Signup() {
   const handleVerifyOtp = async () => {
     setOtpError('');
     setVerifyLoading(true);
+    const code = otpValues.join('');
     
     try {
       const res = await fetch('/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.toLowerCase(), otp: otpCode, deleteAfterVerify: true })
+        body: JSON.stringify({ email: email.toLowerCase(), otp: code })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Invalid Verification Code.");
 
-      if (cooldownRef.current) clearInterval(cooldownRef.current);
       setIsEmailVerified(true);
       setShowOtpInput(false);
     } catch (err) {
@@ -232,7 +156,37 @@ export default function Signup() {
     }
   };
 
-  // ── Google flow ────────────────────────────────────────────────────────────
+  const handleOtpChange = (index, value) => {
+    if (isNaN(value)) return;
+    const newOtp = [...otpValues];
+    newOtp[index] = value;
+    setOtpValues(newOtp);
+    if (value !== '' && index < 5) inputRefs.current[index + 1].focus();
+  };
+
+  const handleOtpKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
+      inputRefs.current[index - 1].focus();
+    }
+  };
+
+  const handleOtpPaste = (e) => {
+    e.preventDefault();
+    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (pastedData) {
+      const newOtp = [...otpValues];
+      for (let i = 0; i < pastedData.length; i++) {
+        newOtp[i] = pastedData[i];
+      }
+      setOtpValues(newOtp);
+      if (pastedData.length < 6) {
+        inputRefs.current[pastedData.length].focus();
+      } else {
+        inputRefs.current[5].focus();
+      }
+    }
+  };
+
   const handleGoogleIntent = () => {
     setSignupIntent('google');
     setDirection(1);
@@ -247,17 +201,20 @@ export default function Signup() {
 
     setLoading(true);
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
       const captchaRes = await fetch('/api/verify-recaptcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: captchaToken, action: 'signup' })
       });
       const captchaData = await captchaRes.json();
+      
       if (!captchaData.success) {
         setError("reCAPTCHA verification failed. Bots are not allowed.");
         setLoading(false);
         return; 
       }
+      // -----------------------------------------
 
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
@@ -282,17 +239,20 @@ export default function Signup() {
     
     setLoading(true);
     try {
+      // --- 1. VERIFY RECAPTCHA WITH BACKEND ---
       const captchaRes = await fetch('/api/verify-recaptcha', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ token: captchaToken, action: 'signup' })
       });
       const captchaData = await captchaRes.json();
+      
       if (!captchaData.success) {
         setError("reCAPTCHA verification failed. Bots are not allowed.");
         setLoading(false);
         return; 
       }
+      // -----------------------------------------
 
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       const fullName = [firstName.trim(), middleName.trim(), lastName.trim()].filter(Boolean).join(' ');
@@ -305,7 +265,6 @@ export default function Signup() {
     }
   };
 
-  // ── Password strength ──────────────────────────────────────────────────────
   const criteria = {
     length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
@@ -318,7 +277,7 @@ export default function Signup() {
   const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong', 'Very Strong'];
 
   const CriteriaItem = ({ met, text }) => (
-    <li className={`flex items-center gap-2 text-xs font-bold transition-colors duration-300 ${met ? 'text-zinc-400 line-through' : 'text-zinc-600'}`}>
+    <li className={`flex items-center gap-2 text-xs font-bold transition-all duration-300 ${met ? 'text-zinc-400 line-through' : 'text-zinc-600'}`}>
       {met ? <CheckCircle2 size={14} className="text-emerald-500 shrink-0" /> : <Circle size={14} className="text-zinc-300 shrink-0" />}
       <span>{text}</span>
     </li>
@@ -330,7 +289,6 @@ export default function Signup() {
     exit: (dir) => ({ x: dir < 0 ? 40 : -40, opacity: 0, filter: "blur(4px)", position: "absolute" })
   };
 
-  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
       
@@ -339,7 +297,6 @@ export default function Signup() {
 
       <div className="max-w-md w-full bg-white/80 backdrop-blur-xl rounded-[2.5rem] shadow-[0_8px_40px_rgb(0,0,0,0.08)] p-8 border border-zinc-200/80 relative z-10 flex flex-col min-h-[600px]">
         
-        {/* Logo */}
         <div className="text-center mb-8 shrink-0">
           <div className="flex items-center justify-center space-x-3 mb-4">
             <img src="/kintag-logo.png" alt="KinTag Logo" className="w-10 h-10 rounded-xl shadow-sm" />
@@ -348,71 +305,52 @@ export default function Signup() {
           <p className="text-zinc-500 font-medium">Create an account to secure your family.</p>
         </div>
 
-        {/* Step indicators */}
         <div className="flex w-full justify-between items-center mb-10 relative px-2 shrink-0">
-          <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-1.5 bg-zinc-100 rounded-full z-0"></div>
-          <div
-            className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 bg-brandDark rounded-full z-0 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]"
-            style={{ width: `calc(${((activeStep - 1) / 3) * 100}% - 16px)` }}
-          ></div>
-          {[
-            { id: 1, icon: <Mail size={16}/> },
-            { id: 2, icon: <KeyRound size={16}/> },
-            { id: 3, icon: <User size={16}/> },
-            { id: 4, icon: <ShieldCheck size={16}/> }
-          ].map((step) => {
-            const isPast = step.id < activeStep;
-            const isActive = step.id === activeStep;
-            return (
-              <button
-                key={step.id}
-                onClick={() => {
-                  if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
-                    if (signupIntent === 'google' && step.id !== 4) setSignupIntent('email');
-                    goToStep(step.id);
-                  }
-                }}
-                disabled={step.id > activeStep && isNextDisabled()}
-                className={`relative flex items-center justify-center w-10 h-10 rounded-full font-extrabold text-sm transition-colors duration-500 z-10 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7 ${
-                  isActive ? "bg-white border-[3px] border-brandDark text-brandDark shadow-md scale-110" 
-                  : isPast ? "bg-brandDark text-white border-2 border-brandDark shadow-sm" 
-                  : "bg-zinc-50 border-2 border-zinc-200 text-zinc-400"
-                }`}
-              >
-                {isPast ? <CheckCircle2 size={18} /> : step.icon}
-              </button>
-            );
-          })}
+           <div className="absolute left-2 right-2 top-1/2 -translate-y-1/2 h-1.5 bg-zinc-100 rounded-full z-0"></div>
+           <div className="absolute left-2 top-1/2 -translate-y-1/2 h-1.5 bg-brandDark rounded-full z-0 transition-all duration-500 ease-[cubic-bezier(0.25,1,0.5,1)]" style={{ width: `calc(${((activeStep - 1) / 3) * 100}% - 16px)` }}></div>
+           
+           {[
+             { id: 1, icon: <Mail size={16}/> },
+             { id: 2, icon: <KeyRound size={16}/> },
+             { id: 3, icon: <User size={16}/> },
+             { id: 4, icon: <ShieldCheck size={16}/> }
+           ].map((step) => {
+             const isPast = step.id < activeStep;
+             const isActive = step.id === activeStep;
+             return (
+               <button
+                 key={step.id}
+                 onClick={() => {
+                   if (step.id < activeStep || (step.id === activeStep + 1 && !isNextDisabled())) {
+                     if (signupIntent === 'google' && step.id !== 4) setSignupIntent('email');
+                     goToStep(step.id);
+                   }
+                 }}
+                 disabled={step.id > activeStep && isNextDisabled()}
+                 className={`relative flex items-center justify-center w-10 h-10 rounded-full font-extrabold text-sm transition-all duration-500 z-10 ${
+                   isActive ? "bg-white border-[3px] border-brandDark text-brandDark shadow-md scale-110" 
+                   : isPast ? "bg-brandDark text-white border-2 border-brandDark shadow-sm" 
+                   : "bg-zinc-50 border-2 border-zinc-200 text-zinc-400"
+                 }`}
+               >
+                 {isPast ? <CheckCircle2 size={18} /> : step.icon}
+               </button>
+             );
+           })}
         </div>
 
-        {error && (
-          <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold text-center border border-red-100 shrink-0 animate-in fade-in">
-            {error}
-          </div>
-        )}
+        {error && <div className="bg-red-50 text-red-600 p-3 rounded-xl mb-6 text-sm font-bold text-center border border-red-100 shrink-0 animate-in fade-in">{error}</div>}
 
-        {/* Step content */}
         <div className="flex-1 relative flex flex-col justify-center">
           <AnimatePresence mode="popLayout" custom={direction}>
             
-            {/* ── STEP 1: Email + OTP ── */}
             {activeStep === 1 && (
-              <motion.div
-                key="step1"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-                className="w-full space-y-5"
-              >
+              <motion.div key="step1" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-5">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-extrabold text-brandDark mb-2">Email Address</h2>
                   <p className="text-zinc-500 text-sm font-medium">We'll use this to send you emergency scan alerts.</p>
                 </div>
 
-                {/* Email input */}
                 <div className="relative">
                   <input 
                     type="email" 
@@ -422,12 +360,13 @@ export default function Signup() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (isEmailVerified) setIsEmailVerified(false);
-                      if (showOtpInput) { setShowOtpInput(false); setResendCount(0); setResendError(''); setOtpCode(''); }
+                      if (showOtpInput) setShowOtpInput(false);
                     }} 
                     disabled={isEmailVerified || showOtpInput}
-                    className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors disabled:opacity-70 disabled:bg-zinc-100 font-medium" 
+                    className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all disabled:opacity-70 disabled:bg-zinc-100 font-medium" 
                   />
                   <Mail size={20} className={`absolute left-4 top-1/2 -translate-y-1/2 transition-colors ${isEmailVerified ? 'text-emerald-500' : 'text-zinc-400'}`} />
+                  
                   {isEmailVerified && (
                     <div className="absolute right-4 top-1/2 -translate-y-1/2 text-emerald-500 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider bg-emerald-50 px-2 py-1 rounded-md border border-emerald-100">
                       <CheckCircle2 size={16} /> Verified
@@ -435,116 +374,46 @@ export default function Signup() {
                   )}
                 </div>
 
-                {/* Send code button — only before OTP is shown */}
                 {!isEmailVerified && !showOtpInput && (
-                  <button
-                    type="button"
-                    onClick={handleSendOtp}
-                    disabled={otpLoading || !email.includes('@')}
-                    className="w-full bg-brandDark text-white p-4 rounded-xl font-bold hover:bg-brandAccent transition-colors shadow-md disabled:opacity-50 flex justify-center items-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
-                  >
+                  <button type="button" onClick={handleSendOtp} disabled={otpLoading || !email.includes('@')} className="w-full bg-brandDark text-white p-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-md disabled:opacity-50 flex justify-center items-center gap-2">
                     {otpLoading ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
                     {otpLoading ? 'Sending...' : 'Send Verification Code'}
                   </button>
                 )}
 
-                {/* ── OTP section ── */}
                 {showOtpInput && !isEmailVerified && (
-                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 shadow-inner animate-in fade-in slide-in-from-top-4 space-y-4">
-
-                    <div className="text-center">
-                      <p className="text-sm font-bold text-brandDark mb-0.5">Enter verification code</p>
-                      <p className="text-xs text-zinc-500 font-medium">
-                        Sent to <span className="font-bold text-brandDark">{email}</span>
-                        {' '}· expires in 10 mins
-                      </p>
+                  <div className="bg-zinc-50 p-6 rounded-2xl border border-zinc-200 shadow-inner animate-in fade-in slide-in-from-top-4">
+                    <p className="text-sm font-medium text-zinc-500 text-center mb-4">Enter the 6-digit code sent to your email.</p>
+                    {otpError && <p className="text-xs text-red-600 font-bold text-center mb-4">{otpError}</p>}
+                    <div className="flex justify-center gap-2 mb-6">
+                      {otpValues.map((val, index) => (
+                        <input 
+                          key={index}
+                          ref={el => inputRefs.current[index] = el}
+                          type="text"
+                          maxLength={1}
+                          value={val}
+                          onChange={e => handleOtpChange(index, e.target.value)}
+                          onKeyDown={e => handleOtpKeyDown(index, e)}
+                          onPaste={handleOtpPaste}
+                          className="w-10 h-12 text-center text-xl font-black bg-white border-2 border-zinc-200 rounded-xl focus:border-brandDark outline-none transition-all shadow-sm"
+                        />
+                      ))}
                     </div>
-
-                    {otpError && (
-                      <p className="text-xs text-red-600 font-bold text-center bg-red-50 border border-red-100 rounded-xl p-2">
-                        {otpError}
-                      </p>
-                    )}
-
-                    {/* 🌟 HEROUI V3 OTP COMPONENT WITH GROUPS & SLOTS */}
-                    <div className="flex justify-center">
-                      <InputOTP
-                        maxLength={6}
-                        value={otpCode}
-                        onValueChange={setOtpCode}
-                        size="lg"
-                      >
-                        <InputOTP.Group>
-                          <InputOTP.Slot index={0} />
-                          <InputOTP.Slot index={1} />
-                          <InputOTP.Slot index={2} />
-                        </InputOTP.Group>
-                        <InputOTP.Separator />
-                        <InputOTP.Group>
-                          <InputOTP.Slot index={3} />
-                          <InputOTP.Slot index={4} />
-                          <InputOTP.Slot index={5} />
-                        </InputOTP.Group>
-                      </InputOTP>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={handleVerifyOtp}
-                      disabled={verifyLoading || otpCode.length !== 6}
-                      className="w-full bg-emerald-500 text-white p-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-md disabled:opacity-50 flex justify-center items-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
-                    >
-                      {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-                      {verifyLoading ? 'Verifying...' : 'Verify Code'}
+                    <button type="button" onClick={handleVerifyOtp} disabled={verifyLoading || otpValues.join('').length !== 6} className="w-full bg-emerald-500 text-white p-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-all shadow-md disabled:opacity-50 flex justify-center items-center gap-2">
+                      {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : 'Verify Code'}
                     </button>
-
-                    {/* Resend section */}
-                    {resendCount < MAX_RESENDS ? (
-                      <div className="flex items-center justify-center gap-2 pt-1">
-                        <p className="text-xs text-zinc-500 font-medium">Didn't receive a code?</p>
-                        {resendCooldown > 0 ? (
-                          <span className="text-xs font-extrabold text-zinc-400 tabular-nums">
-                            Resend in {formatCooldown(resendCooldown)}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={handleResendOtp}
-                            disabled={otpLoading}
-                            className="text-xs font-extrabold text-brandDark hover:text-brandGold flex items-center gap-1 transition-colors disabled:opacity-50 animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
-                          >
-                            <RefreshCw size={12} className={otpLoading ? 'animate-spin' : ''} />
-                            Resend{resendCount > 0 ? ` (${MAX_RESENDS - resendCount} left)` : ''}
-                          </button>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-center">
-                        <p className="text-xs text-amber-700 font-bold leading-relaxed">
-                          No more resend attempts. Use <span className="text-brandDark">Continue with Google</span> below or check your spam folder.
-                        </p>
-                      </div>
-                    )}
-
-                    {resendError && resendCount < MAX_RESENDS && (
-                      <p className="text-xs text-red-600 font-bold text-center">{resendError}</p>
-                    )}
                   </div>
                 )}
 
-                {/* ── Google button ── */}
-                {!isEmailVerified && (
-                  <div className="animate-in fade-in duration-300">
-                    <div className="relative flex items-center justify-center w-full my-2">
+                {!isEmailVerified && !showOtpInput && (
+                  <div className="animate-in fade-in duration-500">
+                    <div className="relative flex items-center justify-center w-full my-6">
                       <hr className="w-full border-zinc-200" />
                       <span className="absolute bg-[#fafafa] px-4 text-[10px] font-extrabold text-zinc-400 tracking-widest uppercase">OR</span>
                     </div>
-                    <button
-                      type="button"
-                      onClick={handleGoogleIntent}
-                      disabled={loading}
-                      className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-colors shadow-sm disabled:opacity-50 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
-                    >
+
+                    <button type="button" onClick={handleGoogleIntent} disabled={loading} className="w-full flex items-center justify-center space-x-3 bg-white border border-zinc-200 text-brandDark py-3.5 rounded-xl font-bold hover:bg-zinc-50 hover:border-zinc-300 transition-all shadow-sm disabled:opacity-50 active:scale-95">
                       <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
                       <span>Continue with Google</span>
                     </button>
@@ -553,18 +422,8 @@ export default function Signup() {
               </motion.div>
             )}
 
-            {/* ── STEP 2: Password ── */}
             {activeStep === 2 && (
-              <motion.div
-                key="step2"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-                className="w-full space-y-4"
-              >
+              <motion.div key="step2" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-extrabold text-brandDark mb-2">Secure Account</h2>
                   <p className="text-zinc-500 text-sm font-medium">Create a strong password to protect your data.</p>
@@ -580,14 +439,9 @@ export default function Signup() {
                     onChange={(e) => setPassword(e.target.value)} 
                     onFocus={() => setIsPasswordFocused(true)}
                     onBlur={() => setTimeout(() => setIsPasswordFocused(false), 200)}
-                    className="w-full p-4 pr-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors font-medium" 
+                    className="w-full p-4 pr-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" 
                   />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
-                  >
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
                     {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
@@ -600,14 +454,9 @@ export default function Signup() {
                     maxLength={16}
                     value={confirmPassword} 
                     onChange={(e) => setConfirmPassword(e.target.value)} 
-                    className={`w-full p-4 pr-12 bg-zinc-50 border rounded-xl focus:bg-white focus:outline-none transition-colors font-medium ${confirmPassword && password !== confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-zinc-200 focus:border-brandDark focus:ring-2 focus:ring-brandDark/10'}`} 
+                    className={`w-full p-4 pr-12 bg-zinc-50 border rounded-xl focus:bg-white focus:outline-none transition-all font-medium ${confirmPassword && password !== confirmPassword ? 'border-red-300 focus:border-red-500 focus:ring-2 focus:ring-red-500/20' : 'border-zinc-200 focus:border-brandDark focus:ring-2 focus:ring-brandDark/10'}`} 
                   />
-                  <button
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors animate-hover:scale-110 animate-tap:scale-90 animate-spring animate-stiffness-220 animate-damping-7"
-                  >
+                  <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => setShowConfirmPassword(!showConfirmPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-brandDark transition-colors">
                     {showConfirmPassword ? <EyeOff size={20} /> : <Eye size={20} />}
                   </button>
                 </div>
@@ -637,40 +486,20 @@ export default function Signup() {
               </motion.div>
             )}
 
-            {/* ── STEP 3: Name ── */}
             {activeStep === 3 && (
-              <motion.div
-                key="step3"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-                className="w-full space-y-4"
-              >
+              <motion.div key="step3" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-4">
                 <div className="text-center mb-6">
                   <h2 className="text-2xl font-extrabold text-brandDark mb-2">Personal Details</h2>
                   <p className="text-zinc-500 text-sm font-medium">What should we call you on the dashboard?</p>
                 </div>
-                <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors font-medium" />
-                <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors font-medium" />
-                <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors font-medium" />
+                <input type="text" placeholder="First Name" required value={firstName} onChange={(e) => setFirstName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
+                <input type="text" placeholder="Middle Name (Optional)" value={middleName} onChange={(e) => setMiddleName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
+                <input type="text" placeholder="Last Name" required value={lastName} onChange={(e) => setLastName(e.target.value)} className="w-full p-4 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-all font-medium" />
               </motion.div>
             )}
 
-            {/* ── STEP 4: CAPTCHA + Submit ── */}
             {activeStep === 4 && (
-              <motion.div
-                key="step4"
-                custom={direction}
-                variants={slideVariants}
-                initial="enter"
-                animate="center"
-                exit="exit"
-                transition={{ duration: 0.4, type: "spring", bounce: 0.2 }}
-                className="w-full space-y-6 flex flex-col items-center"
-              >
+              <motion.div key="step4" custom={direction} variants={slideVariants} initial="enter" animate="center" exit="exit" transition={{ duration: 0.4, type: "spring", bounce: 0.2 }} className="w-full space-y-6 flex flex-col items-center">
                 <div className="text-center mb-2">
                   <div className="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-100 shadow-sm">
                     <ShieldCheck size={32} />
@@ -694,7 +523,7 @@ export default function Signup() {
                   type="button" 
                   onClick={signupIntent === 'google' ? handleGoogleSignup : handleEmailSignup} 
                   disabled={loading || !captchaToken} 
-                  className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-colors shadow-lg disabled:opacity-50 flex justify-center items-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
+                  className="w-full bg-brandDark text-white py-4 rounded-xl font-bold hover:bg-brandAccent transition-all shadow-lg hover:-translate-y-0.5 active:scale-95 disabled:opacity-50 disabled:hover:translate-y-0 flex justify-center items-center gap-2"
                 >
                   {loading ? <Loader2 size={18} className="animate-spin" /> : (signupIntent === 'google' ? 'Authenticate with Google' : 'Create Account')}
                 </button>
@@ -704,36 +533,35 @@ export default function Signup() {
           </AnimatePresence>
         </div>
 
-        {/* Back / Next navigation */}
         {activeStep < 4 && (
           <div className="flex justify-between w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
             <button 
               type="button" 
               onClick={prevStep} 
-              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-colors text-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${activeStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-brandDark'}`}
+              className={`flex items-center gap-2 px-6 py-3 rounded-full font-bold transition-all text-sm ${activeStep === 1 ? 'opacity-0 pointer-events-none' : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-brandDark'}`}
             >
               <ArrowLeft size={16} /> Back
             </button>
-            <mw.button 
+            <button 
               type="button" 
               onClick={nextStep} 
               disabled={isNextDisabled()} 
-              className={`flex items-center gap-2 bg-brandDark text-white px-8 py-3 rounded-full font-bold text-sm shadow-md hover:bg-brandAccent hover:shadow-lg transition-colors disabled:opacity-50 disabled:hover:shadow-md group animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7 ${isNextDisabled() ? 'pointer-events-none' : ''}`}
+              className="flex items-center gap-2 bg-brandDark text-white px-8 py-3 rounded-full font-bold text-sm shadow-md hover:bg-brandAccent hover:shadow-lg transition-all disabled:opacity-50 disabled:hover:shadow-md active:scale-95 group"
             >
               Next Step <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </mw.button>
+            </button>
           </div>
         )}
         
         {activeStep === 4 && signupIntent === 'google' && (
           <div className="flex justify-start w-full mt-10 pt-6 border-t border-zinc-100 shrink-0">
-            <button 
-              type="button" 
-              onClick={prevStep} 
-              className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-brandDark rounded-full font-bold transition-colors text-sm animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
-            >
-              <ArrowLeft size={16} /> Back to Method
-            </button>
+             <button 
+               type="button" 
+               onClick={prevStep} 
+               className="flex items-center gap-2 px-6 py-3 bg-zinc-100 text-zinc-600 hover:bg-zinc-200 hover:text-brandDark rounded-full font-bold transition-all text-sm"
+             >
+               <ArrowLeft size={16} /> Back to Method
+             </button>
           </div>
         )}
 
@@ -742,6 +570,7 @@ export default function Signup() {
             Already have an account? <Link to="/login" className="text-brandDark font-bold hover:text-brandGold transition-colors">Log In</Link>
           </p>
         )}
+
       </div>
     </div>
   );
