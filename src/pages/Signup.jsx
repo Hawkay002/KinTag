@@ -7,6 +7,7 @@ import { Eye, EyeOff, CheckCircle2, Circle, Loader2, Mail, ArrowRight, ArrowLeft
 import ReCAPTCHA from "react-google-recaptcha";
 import { motion, AnimatePresence } from "motion/react";
 import { mw } from 'motionwind-react';
+import { InputOTP } from '@heroui/react';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 const RESEND_COOLDOWN_SECS = 90; // 1 min 30 sec
@@ -42,8 +43,7 @@ export default function Signup() {
   const [otpLoading, setOtpLoading] = useState(false);
   const [verifyLoading, setVerifyLoading] = useState(false);
   const [otpError, setOtpError] = useState('');
-  const [otpValues, setOtpValues] = useState(['', '', '', '', '', '']);
-  const inputRefs = useRef([]);
+  const [otpCode, setOtpCode] = useState(''); // single string, managed by HeroUI InputOTP
 
   // ── Resend state ───────────────────────────────────────────────────────────
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -168,6 +168,7 @@ export default function Signup() {
       
       setShowOtpInput(true);
       setOtpError('');
+      setOtpCode('');
       setResendCount(0);
       startCooldown();
     } catch (err) {
@@ -194,9 +195,8 @@ export default function Signup() {
       if (!res.ok) throw new Error(data.error || "Failed to resend code.");
 
       // Clear previous entries
-      setOtpValues(['', '', '', '', '', '']);
+      setOtpCode('');
       setOtpError('');
-      inputRefs.current[0]?.focus();
 
       const newCount = resendCount + 1;
       setResendCount(newCount);
@@ -212,18 +212,15 @@ export default function Signup() {
     }
   };
 
-  // Verify — backend should also delete the OTP doc after successful verification
   const handleVerifyOtp = async () => {
     setOtpError('');
     setVerifyLoading(true);
-    const code = otpValues.join('');
     
     try {
       const res = await fetch('/api/verify-otp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // deleteAfterVerify:true tells the backend to clean up the OTP doc on success
-        body: JSON.stringify({ email: email.toLowerCase(), otp: code, deleteAfterVerify: true })
+        body: JSON.stringify({ email: email.toLowerCase(), otp: otpCode, deleteAfterVerify: true })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Invalid Verification Code.");
@@ -235,33 +232,6 @@ export default function Signup() {
       setOtpError(err.message);
     } finally {
       setVerifyLoading(false);
-    }
-  };
-
-  // ── OTP input interaction ──────────────────────────────────────────────────
-  const handleOtpChange = (index, value) => {
-    if (isNaN(value)) return;
-    const newOtp = [...otpValues];
-    newOtp[index] = value;
-    setOtpValues(newOtp);
-    if (value !== '' && index < 5) inputRefs.current[index + 1].focus();
-  };
-
-  const handleOtpKeyDown = (index, e) => {
-    if (e.key === 'Backspace' && !otpValues[index] && index > 0) {
-      inputRefs.current[index - 1].focus();
-    }
-  };
-
-  const handleOtpPaste = (e) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
-    if (pastedData) {
-      const newOtp = [...otpValues];
-      for (let i = 0; i < pastedData.length; i++) newOtp[i] = pastedData[i];
-      setOtpValues(newOtp);
-      const focusIdx = pastedData.length < 6 ? pastedData.length : 5;
-      inputRefs.current[focusIdx]?.focus();
     }
   };
 
@@ -363,23 +333,6 @@ export default function Signup() {
     exit: (dir) => ({ x: dir < 0 ? 40 : -40, opacity: 0, filter: "blur(4px)", position: "absolute" })
   };
 
-  // ── OTP slot component — styled to match HeroUI's grouped design ──────────
-  const OtpSlot = ({ index }) => (
-    <input
-      key={index}
-      ref={el => inputRefs.current[index] = el}
-      type="text"
-      inputMode="numeric"
-      maxLength={1}
-      value={otpValues[index]}
-      onChange={e => handleOtpChange(index, e.target.value)}
-      onKeyDown={e => handleOtpKeyDown(index, e)}
-      onPaste={handleOtpPaste}
-      className="w-11 h-13 text-center text-xl font-black bg-white border-2 border-zinc-200 rounded-xl focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors shadow-sm caret-brandDark"
-      style={{ height: '3.25rem' }}
-    />
-  );
-
   // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-[100dvh] flex items-center justify-center bg-[#fafafa] p-4 py-12 relative overflow-hidden selection:bg-brandGold selection:text-white">
@@ -472,7 +425,7 @@ export default function Signup() {
                     onChange={(e) => {
                       setEmail(e.target.value);
                       if (isEmailVerified) setIsEmailVerified(false);
-                      if (showOtpInput) { setShowOtpInput(false); setResendCount(0); setResendError(''); }
+                      if (showOtpInput) { setShowOtpInput(false); setResendCount(0); setResendError(''); setOtpCode(''); }
                     }} 
                     disabled={isEmailVerified || showOtpInput}
                     className="w-full p-4 pl-12 bg-zinc-50 border border-zinc-200 rounded-xl focus:bg-white focus:border-brandDark focus:ring-2 focus:ring-brandDark/10 outline-none transition-colors disabled:opacity-70 disabled:bg-zinc-100 font-medium" 
@@ -517,31 +470,33 @@ export default function Signup() {
                       </p>
                     )}
 
-                    {/* OTP slots — HeroUI style: two groups of 3 with separator */}
-                    <div className="flex justify-center items-center gap-3">
-                      {/* Group 1 */}
-                      <div className="flex gap-2">
-                        <OtpSlot index={0} />
-                        <OtpSlot index={1} />
-                        <OtpSlot index={2} />
-                      </div>
-                      {/* Separator */}
-                      <div className="flex items-center">
-                        <div className="w-4 h-[2px] bg-zinc-300 rounded-full" />
-                      </div>
-                      {/* Group 2 */}
-                      <div className="flex gap-2">
-                        <OtpSlot index={3} />
-                        <OtpSlot index={4} />
-                        <OtpSlot index={5} />
-                      </div>
+                    {/* OTP slots — HeroUI grouped design */}
+                    <div className="flex justify-center">
+                      <InputOTP
+                        maxLength={6}
+                        value={otpCode}
+                        onValueChange={setOtpCode}
+                        size="lg"
+                      >
+                        <InputOTP.Group>
+                          <InputOTP.Slot index={0} />
+                          <InputOTP.Slot index={1} />
+                          <InputOTP.Slot index={2} />
+                        </InputOTP.Group>
+                        <InputOTP.Separator />
+                        <InputOTP.Group>
+                          <InputOTP.Slot index={3} />
+                          <InputOTP.Slot index={4} />
+                          <InputOTP.Slot index={5} />
+                        </InputOTP.Group>
+                      </InputOTP>
                     </div>
 
                     {/* Verify button */}
                     <button
                       type="button"
                       onClick={handleVerifyOtp}
-                      disabled={verifyLoading || otpValues.join('').length !== 6}
+                      disabled={verifyLoading || otpCode.length !== 6}
                       className="w-full bg-emerald-500 text-white p-3.5 rounded-xl font-bold hover:bg-emerald-600 transition-colors shadow-md disabled:opacity-50 flex justify-center items-center gap-2 animate-hover:scale-105 animate-tap:scale-95 animate-spring animate-stiffness-220 animate-damping-7"
                     >
                       {verifyLoading ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
