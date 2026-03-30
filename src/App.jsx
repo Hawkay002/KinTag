@@ -7,7 +7,7 @@ import Dashboard from './pages/Dashboard';
 import CreateCard from './pages/CreateCard';
 import EditCard from './pages/EditCard';
 import PublicCard from './pages/PublicCard';
-import Login from './pages/Login';
+import Login from './pages/Login'; 
 import Signup from './pages/Signup'; 
 import Admin from './pages/Admin'; 
 import Profile from './pages/Profile'; 
