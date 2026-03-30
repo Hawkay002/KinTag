@@ -1,15 +1,30 @@
 /* Import a clean, modern font for maximum readability */
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Tailwind Core Directives */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* Tailwind v4 Core */
+@import "tailwindcss";
+
+/* Inject HeroUI v3 */
+@plugin './hero.js';
+@source '../node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}';
+@custom-variant dark (&:is(.dark *));
+
+/* Your custom KinTag Theme (replaces tailwind.config.js) */
+@theme {
+  --color-brandDark: #18181b;
+  --color-brandAccent: #27272a;
+  --color-brandMuted: #f4f4f5;
+  --color-brandGold: #cda434;
+
+  --shadow-premium: 0 10px 40px -10px rgba(0,0,0,0.08);
+  --shadow-floating: 0 -10px 40px rgba(0,0,0,0.05);
+
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+}
 
 /* Custom Global Styles */
 @layer base {
   html {
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
@@ -18,7 +33,7 @@
     @apply bg-gray-50 text-gray-900 m-0 p-0;
   }
 
-  /* Optional: Make custom scrollbars for a more polished look */
+  /* Custom scrollbars for a more polished look */
   ::-webkit-scrollbar {
     width: 8px;
   }
