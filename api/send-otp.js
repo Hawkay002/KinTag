@@ -62,25 +62,37 @@ export default async function handler(req, res) {
   const email = sanitizeEmail(req.body.email);
   if (!email) return res.status(400).json({ error: "Email is required" });
 
+  // resend:true means the user is requesting a new code — delete the old one first
+  const isResend = req.body.resend === true;
+  // expiresInMins defaults to 10 if not provided
+  const expiresInMins = typeof req.body.expiresInMins === 'number' ? req.body.expiresInMins : 10;
+
   try {
     const db = admin.firestore();
-    
+    const otpRef = db.collection('otps').doc(email.toLowerCase());
+
+    // On resend, delete the existing OTP doc so stale codes can't be used
+    if (isResend) {
+      await otpRef.delete();
+    }
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     
-    await db.collection('otps').doc(email.toLowerCase()).set({
+    await otpRef.set({
       code: otp,
-      expiresAt: Date.now() + 15 * 60 * 1000 
+      expiresAt: Date.now() + expiresInMins * 60 * 1000,
+      createdAt: Date.now(),
     });
 
     const htmlTemplate = `
-      <div style="font-family: sans-serif; max-w-md; margin: auto; padding: 30px; text-align: center; background: #fafafa; border-radius: 16px; border: 1px solid #e4e4e7;">
+      <div style="font-family: sans-serif; max-width: 480px; margin: auto; padding: 30px; text-align: center; background: #fafafa; border-radius: 16px; border: 1px solid #e4e4e7;">
         <img src="https://kintag.vercel.app/kintag-logo.png" width="60" style="border-radius: 12px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" />
-        <h2 style="color: #18181b; font-size: 24px; margin-bottom: 10px;">Verify your Email</h2>
+        <h2 style="color: #18181b; font-size: 24px; margin-bottom: 10px;">${isResend ? 'New Verification Code' : 'Verify your Email'}</h2>
         <p style="color: #52525b; font-size: 16px; line-height: 1.5;">Here is your secure verification code for KinTag:</p>
         <div style="font-size: 36px; font-weight: 900; letter-spacing: 8px; color: #18181b; margin: 30px 0; padding: 20px; background: #ffffff; border-radius: 12px; border: 2px dashed #e4e4e7;">
           ${otp}
         </div>
-        <p style="color: #a1a1aa; font-size: 12px;">This code expires in 15 minutes. Do not share it with anyone.</p>
+        <p style="color: #a1a1aa; font-size: 12px;">This code expires in ${expiresInMins} minutes. Do not share it with anyone.</p>
       </div>
     `;
 
