@@ -39,9 +39,7 @@ export default async function handler(req, res) {
 
     // ─── 2. ON-DEMAND AUDIO REQUESTS (Gemini 2.5 TTS) ───
     if (isAudioRequest) {
-      if (!textToSpeak) {
-        return res.status(400).json({ error: 'No text provided for audio generation.' });
-      }
+      if (!textToSpeak) return res.status(400).json({ error: 'No text provided for audio generation.' });
 
       const voiceName = voicePreference === 'male' ? 'Puck' : 'Kore';
       const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${process.env.GEMINI_API_KEY}`;
@@ -53,51 +51,57 @@ export default async function handler(req, res) {
           contents: [{ parts: [{ text: textToSpeak }] }],
           generationConfig: {
             responseModalities: ["AUDIO"],
-            speechConfig: { 
-              voiceConfig: { 
-                prebuiltVoiceConfig: { voiceName: voiceName } 
-              } 
-            }
+            speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } } }
           }
         })
       });
 
       const ttsData = await ttsResponse.json();
-      
-      if (!ttsResponse.ok) {
-        throw new Error(ttsData.error?.message || "Voice Generation Failed due to API limits.");
-      }
-      
-      return res.status(200).json({ 
-        audioBase64: ttsData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data 
-      });
+      if (!ttsResponse.ok) throw new Error(ttsData.error?.message || "Voice Generation Failed");
+      return res.status(200).json({ audioBase64: ttsData.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data });
     }
 
-    // ─── 3. TEXT CHAT REQUESTS (Gemini 2.5 Flash) ───
+    // ─── 3. TEXT CHAT REQUESTS (Gemma 3 27B) ───
     let kintagKnowledge = "You are KinBot, a helpful assistant for KinTag.";
     try {
       const brainPath = path.join(process.cwd(), 'kintag-brain.md');
       kintagKnowledge = fs.readFileSync(brainPath, 'utf8');
-    } catch (err) { 
-      console.warn("Knowledge base file not found, using default instructions."); 
-    }
+    } catch (err) { }
 
+    // 🌟 THE FIX: Initialize model WITHOUT systemInstruction
     const model = genAI.getGenerativeModel({ 
-      model: 'gemma-3-27b-it', 
-      systemInstruction: kintagKnowledge 
+      model: 'gemma-3-27b-it' 
     });
 
-    // Format history and strip the hardcoded welcome message to prevent Gemini crashes
+    let systemContextAdded = false;
+
+    // Format history and strip the hardcoded welcome message
     const formattedHistory = messages.slice(0, -1)
       .filter(msg => msg.id !== 'welcome') 
-      .map(msg => ({
-        role: msg.role === 'ai' ? 'model' : 'user',
-        parts: [{ text: msg.content }]
-      }));
+      .map(msg => {
+        let text = msg.content;
+        
+        // 🌟 THE FIX: Inject the knowledge base into the very first user message
+        if (msg.role === 'user' && !systemContextAdded) {
+          text = `[System Context: ${kintagKnowledge}]\n\n${text}`;
+          systemContextAdded = true;
+        }
+
+        return {
+          role: msg.role === 'ai' ? 'model' : 'user',
+          parts: [{ text }]
+        };
+      });
+
+    let latestMessageText = messages[messages.length - 1].content;
+    
+    // 🌟 THE FIX: If there is no history, inject the knowledge into the current message
+    if (!systemContextAdded) {
+      latestMessageText = `[System Context: ${kintagKnowledge}]\n\n${latestMessageText}`;
+    }
 
     const chat = model.startChat({ history: formattedHistory });
-    const latestMessage = messages[messages.length - 1].content;
-    const result = await chat.sendMessage(latestMessage);
+    const result = await chat.sendMessage(latestMessageText);
     
     return res.status(200).json({ reply: result.response.text() });
 
