@@ -54,6 +54,17 @@ function getDeviceTier() {
 export default function Home() {
   const { currentUser } = useAuth();
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
+
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://api.landinghero.ai/public/assistant-widget.js';
+    script.setAttribute('data-project-id', 'doDD9hHSjRELFtHZAkka');
+    script.async = true;
+    document.body.appendChild(script);
+    return () => {
+      document.body.removeChild(script);
+    };
+  }, []);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [deviceTier] = useState(() => getDeviceTier());
