@@ -17,13 +17,11 @@ export default async function handler(req, res) {
 
   try {
     // ─── STEP 1: RATE LIMITING LOGIC ───
-    // Get the user's IP address from Vercel's headers
     const ip = req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown_ip';
     const currentTime = Date.now();
 
     if (rateLimitMap.has(ip)) {
       const userRequests = rateLimitMap.get(ip);
-      // Filter out requests that happened longer than 1 minute ago
       const recentRequests = userRequests.filter(timestamp => currentTime - timestamp < LIMIT_WINDOW_MS);
       
       if (recentRequests.length >= MAX_REQUESTS) {
@@ -60,10 +58,16 @@ export default async function handler(req, res) {
 
     // ─── STEP 4: CHAT GENERATION ───
     // Format the chat history for Gemini
-    const formattedHistory = messages.slice(0, -1).map(msg => ({
+    let formattedHistory = messages.slice(0, -1).map(msg => ({
       role: msg.role === 'ai' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
+
+    // 🔥 THE FIX: Gemini API strictly requires the history to start with a 'user' message.
+    // We remove the initial KinBot welcome message from the array before sending it.
+    while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
+      formattedHistory.shift();
+    }
 
     const latestMessage = messages[messages.length - 1].content;
 
