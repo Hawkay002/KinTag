@@ -5,7 +5,7 @@ export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" }
+    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot. How can I help you today?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -27,6 +27,10 @@ export default function AIWidget() {
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
+    
+    // Pre-load local browser voices so they are ready for the fallback
+    window.speechSynthesis.getVoices();
+
     return () => {
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
@@ -40,16 +44,20 @@ export default function AIWidget() {
     }
   }, [messages, isOpen, speakingMessageId]);
 
-  // ─── AUDIO ENGINE ───
+  // ─── AUDIO ENGINE (STOP ALL AUDIO) ───
   const stopAudio = () => {
+    // Stop Cloud Audio
     if (audioContextRef.current) { 
       audioContextRef.current.close(); 
       audioContextRef.current = null; 
     }
+    // Stop Local Browser Audio
+    window.speechSynthesis.cancel();
     setSpeakingMessageId(null);
   };
 
-  const playAudio = async (base64, id) => {
+  // ─── PREMIUM CLOUD AUDIO (GEMINI TTS) ───
+  const playCloudAudio = async (base64, id) => {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
       audioContextRef.current = ctx;
@@ -68,9 +76,33 @@ export default function AIWidget() {
       source.onended = () => setSpeakingMessageId(null);
       source.start();
     } catch (e) { 
-      console.error("Playback error:", e);
+      console.error("Cloud Playback error:", e);
       setSpeakingMessageId(null); 
     }
+  };
+
+  // ─── FREE LOCAL AUDIO (BROWSER FALLBACK) ───
+  const playBrowserTTS = (text, id) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Try to match the gender preference using local OS voices
+    let selectedVoice = null;
+    if (voicePreference === 'female') {
+      selectedVoice = voices.find(v => v.name.toLowerCase().includes('female') || v.name.toLowerCase().includes('samantha') || v.name.toLowerCase().includes('zira'));
+    } else {
+      selectedVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('david') || v.name.toLowerCase().includes('mark'));
+    }
+    
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+
+    utterance.onend = () => setSpeakingMessageId(null);
+    utterance.onerror = () => setSpeakingMessageId(null);
+
+    setSpeakingMessageId(id);
+    window.speechSynthesis.speak(utterance);
   };
 
   // ─── ON-DEMAND AUDIO FETCH ───
@@ -79,7 +111,9 @@ export default function AIWidget() {
     stopAudio(); 
     setAudioLoadingId(id); 
     setAudioErrorId(null);
+    
     try {
+      // Step 1: Try the Premium Cloud Voice
       const res = await fetch('/api/chat', { 
         method: 'POST', 
         headers: { 'Content-Type': 'application/json' }, 
@@ -90,9 +124,17 @@ export default function AIWidget() {
         }) 
       });
       const data = await res.json();
-      if (!res.ok) throw new Error();
-      playAudio(data.audioBase64, id);
+      
+      if (!res.ok) throw new Error("Cloud TTS Limit Reached");
+      
+      playCloudAudio(data.audioBase64, id);
+      
     } catch (e) { 
+      console.warn("Cloud voice failed, falling back to free local browser voice.", e);
+      // Step 2: If Premium fails, instantly fallback to Free Local Voice
+      playBrowserTTS(text, id);
+      
+      // Optional: Flash a quick tooltip to let them know it's the backup voice
       setAudioErrorId(id); 
       setTimeout(() => setAudioErrorId(null), 3000); 
     } finally { 
@@ -161,7 +203,6 @@ export default function AIWidget() {
     
     recognitionRef.current.onend = () => {
       setIsListening(false);
-      // Clean transcript and submit
       const cleanedText = finalTranscript.trim().replace(/king\s?tag/gi, 'KinTag').replace(/can\s?tag/gi, 'KinTag');
       if (cleanedText) executeSend(cleanedText);
     };
@@ -220,9 +261,11 @@ export default function AIWidget() {
                           <Volume2 size={12} />
                         )}
                       </button>
+                      
+                      {/* Subtly show when using the backup voice */}
                       {audioErrorId === msg.id && (
-                        <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20">
-                          Voice limit reached
+                        <span className="text-[10px] text-zinc-400 font-medium bg-zinc-800 px-2 py-0.5 rounded border border-zinc-700">
+                          Local Voice
                         </span>
                       )}
                     </div>
@@ -244,7 +287,7 @@ export default function AIWidget() {
           </div>
           
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 text-center shrink-0">
-             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
+             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot.AI</strong></p>
           </div>
         </div>
       )}
