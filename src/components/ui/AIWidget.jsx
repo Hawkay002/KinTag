@@ -5,7 +5,7 @@ export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot. How can I help you today?" }
+    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -244,7 +244,7 @@ export default function AIWidget() {
           </div>
           
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 text-center shrink-0">
-             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot.AI</strong></p>
+             <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
           </div>
         </div>
       )}
