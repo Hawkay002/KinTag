@@ -6,10 +6,9 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 // ─── RATE LIMITER CONFIGURATION ───
 const rateLimitMap = new Map();
-const LIMIT_WINDOW_MS = 60 * 1000; // 1 minute window
-const MAX_REQUESTS = 7; // Max 7 messages per minute per IP
+const LIMIT_WINDOW_MS = 60 * 1000; 
+const MAX_REQUESTS = 7; 
 
-// Clean up the memory map every 10 minutes so Vercel doesn't run out of RAM
 setInterval(() => rateLimitMap.clear(), 10 * 60 * 1000);
 
 export default async function handler(req, res) {
@@ -37,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     // ─── STEP 2: MESSAGE VALIDATION ───
-    const { messages } = req.body;
+    const { messages, voicePreference } = req.body; // 🌟 NEW: We receive the voice preference
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Valid messages array is required' });
     }
@@ -51,32 +50,61 @@ export default async function handler(req, res) {
       console.warn("Could not find kintag-brain.md, using fallback knowledge.");
     }
 
-    // 🔥 UPDATED TO GEMINI-2.5-FLASH
     const model = genAI.getGenerativeModel({ 
       model: 'gemini-2.5-flash', 
       systemInstruction: kintagKnowledge 
     });
 
-    // ─── STEP 4: CHAT GENERATION ───
-    // Format the chat history for Gemini
+    // ─── STEP 4: GENERATE TEXT CHAT ───
     let formattedHistory = messages.slice(0, -1).map(msg => ({
       role: msg.role === 'ai' ? 'model' : 'user',
       parts: [{ text: msg.content }]
     }));
 
-    // Gemini API strictly requires the history to start with a 'user' message.
-    // We remove the initial KinBot welcome message from the array before sending it.
     while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
       formattedHistory.shift();
     }
 
     const latestMessage = messages[messages.length - 1].content;
-
     const chat = model.startChat({ history: formattedHistory });
     const result = await chat.sendMessage(latestMessage);
     const aiReply = result.response.text();
 
-    return res.status(200).json({ reply: aiReply });
+    // ─── STEP 5: GENERATE HYPER-REALISTIC AUDIO (GEMINI TTS) ───
+    let audioBase64 = null;
+    try {
+      // 'Puck' is Gemini's male voice. 'Kore' is the female voice.
+      const voiceName = voicePreference === 'male' ? 'Puck' : 'Kore';
+      
+      // We use the REST API here to ensure we hit the dedicated TTS model
+      const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${process.env.GEMINI_API_KEY}`;
+      
+      const ttsResponse = await fetch(ttsUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: aiReply }] }],
+          generationConfig: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: voiceName }
+              }
+            }
+          }
+        })
+      });
+
+      const ttsData = await ttsResponse.json();
+      if (ttsData.candidates && ttsData.candidates[0].content?.parts?.[0]?.inlineData?.data) {
+        audioBase64 = ttsData.candidates[0].content.parts[0].inlineData.data;
+      }
+    } catch (ttsError) {
+      console.error("TTS Generation Error:", ttsError);
+      // If audio fails for any reason, the text chat will still work perfectly!
+    }
+
+    return res.status(200).json({ reply: aiReply, audioBase64: audioBase64 });
 
   } catch (error) {
     console.error("Gemini API Error:", error);
