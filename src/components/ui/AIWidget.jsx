@@ -5,7 +5,7 @@ export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTab. How can I help you today?" }
+    { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
