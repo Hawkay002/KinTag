@@ -7,7 +7,7 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 // ─── RATE LIMITER CONFIGURATION ───
 const rateLimitMap = new Map();
 const LIMIT_WINDOW_MS = 60 * 1000; 
-const MAX_REQUESTS = 7; 
+const MAX_REQUESTS = 4; // Keeps Vercel from spamming Google
 
 setInterval(() => rateLimitMap.clear(), 10 * 60 * 1000);
 
@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       
       if (recentRequests.length >= MAX_REQUESTS) {
         return res.status(429).json({ 
-          error: "You're sending messages too fast! Please wait a minute and try again." 
+          error: "I'm receiving too many messages right now! Please give me a minute to catch my breath." 
         });
       }
       
@@ -36,7 +36,7 @@ export default async function handler(req, res) {
     }
 
     // ─── STEP 2: MESSAGE VALIDATION ───
-    const { messages, voicePreference } = req.body; // 🌟 NEW: We receive the voice preference
+    const { messages, voicePreference } = req.body; 
     if (!messages || !Array.isArray(messages)) {
       return res.status(400).json({ error: 'Valid messages array is required' });
     }
@@ -73,10 +73,7 @@ export default async function handler(req, res) {
     // ─── STEP 5: GENERATE HYPER-REALISTIC AUDIO (GEMINI TTS) ───
     let audioBase64 = null;
     try {
-      // 'Puck' is Gemini's male voice. 'Kore' is the female voice.
       const voiceName = voicePreference === 'male' ? 'Puck' : 'Kore';
-      
-      // We use the REST API here to ensure we hit the dedicated TTS model
       const ttsUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=${process.env.GEMINI_API_KEY}`;
       
       const ttsResponse = await fetch(ttsUrl, {
@@ -87,9 +84,7 @@ export default async function handler(req, res) {
           generationConfig: {
             responseModalities: ["AUDIO"],
             speechConfig: {
-              voiceConfig: {
-                prebuiltVoiceConfig: { voiceName: voiceName }
-              }
+              voiceConfig: { prebuiltVoiceConfig: { voiceName: voiceName } }
             }
           }
         })
@@ -101,13 +96,20 @@ export default async function handler(req, res) {
       }
     } catch (ttsError) {
       console.error("TTS Generation Error:", ttsError);
-      // If audio fails for any reason, the text chat will still work perfectly!
     }
 
     return res.status(200).json({ reply: aiReply, audioBase64: audioBase64 });
 
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return res.status(500).json({ error: 'Failed to generate response.' });
+    
+    // 🌟 THE FIX: Catch the Google 429 error and return a friendly message
+    if (error.status === 429) {
+      return res.status(429).json({ 
+        error: "Google's AI servers are a little overwhelmed right now! Please wait about 60 seconds and try asking me again." 
+      });
+    }
+    
+    return res.status(500).json({ error: 'Sorry, I am having trouble connecting right now.' });
   }
 }
