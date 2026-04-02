@@ -51,8 +51,9 @@ export default async function handler(req, res) {
       console.warn("Could not find kintag-brain.md, using fallback knowledge.");
     }
 
+    // 🔥 UPDATED TO GEMINI-2.5-FLASH
     const model = genAI.getGenerativeModel({ 
-      model: 'gemini-1.5-flash',
+      model: 'gemini-2.5-flash', 
       systemInstruction: kintagKnowledge 
     });
 
@@ -63,7 +64,7 @@ export default async function handler(req, res) {
       parts: [{ text: msg.content }]
     }));
 
-    // 🔥 THE FIX: Gemini API strictly requires the history to start with a 'user' message.
+    // Gemini API strictly requires the history to start with a 'user' message.
     // We remove the initial KinBot welcome message from the array before sending it.
     while (formattedHistory.length > 0 && formattedHistory[0].role === 'model') {
       formattedHistory.shift();
