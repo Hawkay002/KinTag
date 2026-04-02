@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'; 
 import { Link } from 'react-router-dom'; 
-import { Turnstile } from '@marsidev/react-turnstile';
 import { FAQMonochrome } from '../components/ui/faq-monochrome'; 
 import { useAuth } from '../context/AuthContext';
 import Globe from '../components/ui/Globe'; 
@@ -55,31 +54,9 @@ function getDeviceTier() {
 export default function Home() {
   const { currentUser } = useAuth();
   const [showGithubTooltip, setShowGithubTooltip] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [deviceTier] = useState(() => getDeviceTier());
-
-  // 🌟 NEW: Network Status Monitor
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  // 🌟 Auto-verify if offline (Bypass Turnstile)
-  useEffect(() => {
-    if (!isOnline && !isVerified) {
-      setIsVerified(true);
-    }
-  }, [isOnline, isVerified]);
 
   // FIX: Wrap scroll handler in useCallback so it doesn't get re-created on
   // every render. The previous version captured `isScrolled` from closure,
@@ -156,26 +133,6 @@ export default function Home() {
     { q: "How do I delete my data if I stop using KinTag?", a: "You have total ownership of your data. We built a 'Danger Zone' in your profile settings where you can permanently wipe your account, all created profiles, and all scan histories from our servers instantly.", meta: "Privacy" },
     { q: "Can I self-host this application?", a: "Yes. KinTag was built to be open and transparent. Developers can clone the repository and hook it up to their own private database for ultimate ownership.", meta: "Open Source" }
   ].map(item => ({ question: item.q, answer: item.a, meta: item.meta }));
-
-  // 🌟 Only render Turnstile if online
-  if (!isVerified && isOnline) {
-    return (
-      <div className="min-h-screen bg-[#fafafa] flex flex-col items-center justify-center p-4 selection:bg-brandGold selection:text-white">
-        <div className="text-center mb-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-          <div className="w-20 h-20 bg-white rounded-3xl shadow-xl flex items-center justify-center mx-auto mb-6 border border-zinc-100">
-            <img src="/kintag-logo.png" alt="KinTag Logo" className="w-12 h-12 rounded-xl animate-pulse" />
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-brandDark tracking-tight mb-2">Checking your browser...</h1>
-          <p className="text-zinc-500 font-medium max-w-sm mx-auto leading-relaxed">
-            Please wait a moment to ensure you are a real person before accessing KinTag.
-          </p>
-        </div>
-        <div className="animate-in fade-in zoom-in-95 duration-500 delay-300 min-h-[65px]">
-          <Turnstile siteKey={import.meta.env.VITE_CLOUDFLARE_SITE_KEY || '1x00000000000000000000AA'} onSuccess={() => setIsVerified(true)} />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-[#fafafa] font-sans selection:bg-brandGold selection:text-white relative w-full">
