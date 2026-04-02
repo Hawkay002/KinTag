@@ -6,26 +6,24 @@ export default function AIWidget() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   
   const [messages, setMessages] = useState([
-    { id: 'welcome', role: 'ai', content: "Hi there! I'm KinBot, Welcome to KinTag. I'm here to help you get started with our digital safety platform for your family, pets, or loved ones.\n\nAre you looking to learn more about how it works, or would you like help getting set up?" }
+    { id: 'welcome', role: 'ai', content: "Hi there! Welcome to KinTag. I'm here to help you get started with our digital safety platform for your family, pets, or loved ones.\n\nAre you looking to learn more about how it works, or would you like help getting set up?" }
   ]);
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
   const [isListening, setIsListening] = useState(false);
-  const [audioEnabled, setAudioEnabled] = useState(true);
   const [voicePreference, setVoicePreference] = useState('female'); 
-  const [speakingMessageId, setSpeakingMessageId] = useState(null);
-  const audioContextRef = useRef(null);
   
-  const [hasAgreedToAudio, setHasAgreedToAudio] = useState(false);
-  const [showAudioPopup, setShowAudioPopup] = useState(false);
-  const [pendingText, setPendingText] = useState('');
+  // Audio Playback State
+  const [speakingMessageId, setSpeakingMessageId] = useState(null);
+  const [audioLoadingId, setAudioLoadingId] = useState(null);
+  const [audioErrorId, setAudioErrorId] = useState(null);
+  const audioContextRef = useRef(null);
 
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
 
   useEffect(() => {
-    setHasAgreedToAudio(localStorage.getItem('kintag_audio_agreed') === 'true');
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
     window.addEventListener('online', handleOnline);
@@ -40,7 +38,7 @@ export default function AIWidget() {
     if (messagesEndRef.current && isOpen) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
-  }, [messages, isOpen, speakingMessageId]);
+  }, [messages, isOpen, speakingMessageId, audioErrorId]);
 
   const sanitizeTranscript = (text) => {
     let clean = text;
@@ -59,7 +57,7 @@ export default function AIWidget() {
   };
 
   const playGeminiAudio = async (base64Audio, messageId) => {
-    if (!audioEnabled || !base64Audio) return;
+    if (!base64Audio) return;
     stopAudio();
 
     try {
@@ -93,6 +91,40 @@ export default function AIWidget() {
     } catch (err) {
       console.error("Audio playback error:", err);
       setSpeakingMessageId(null);
+    }
+  };
+
+  // 🌟 NEW: Fetch audio on demand only when the button is clicked
+  const fetchAndPlayAudio = async (text, messageId) => {
+    if (!isOnline) return;
+    stopAudio(); 
+    setAudioLoadingId(messageId);
+    setAudioErrorId(null);
+
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          isAudioRequest: true, 
+          textToSpeak: text,
+          voicePreference: voicePreference 
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) throw new Error(data.error || "Failed to load audio");
+
+      if (data.audioBase64) {
+        playGeminiAudio(data.audioBase64, messageId);
+      }
+    } catch (err) {
+      console.error(err);
+      setAudioErrorId(messageId);
+      setTimeout(() => setAudioErrorId(null), 3000); // Clear error after 3s
+    } finally {
+      setAudioLoadingId(null);
     }
   };
 
@@ -132,7 +164,7 @@ export default function AIWidget() {
       if (finalTranscript.trim()) {
         const cleanText = sanitizeTranscript(finalTranscript);
         setInputText('');
-        handleSendMessage(cleanText, true); 
+        executeSend(cleanText); 
       }
     };
 
@@ -147,20 +179,10 @@ export default function AIWidget() {
     }
   };
 
-  const handleSendMessage = async (textOverride = null, fromVoice = false) => {
-    const textToSend = textOverride || sanitizeTranscript(inputText);
-    if (!textToSend.trim() || !isOnline) return;
+  const executeSend = async (textToSend) => {
+    const text = textToSend || sanitizeTranscript(inputText);
+    if (!text.trim() || !isOnline) return;
 
-    if (!fromVoice && !hasAgreedToAudio) {
-      setPendingText(textToSend);
-      setShowAudioPopup(true);
-      return;
-    }
-
-    executeSend(textToSend);
-  };
-
-  const executeSend = async (text) => {
     stopAudio(); 
     setIsOpen(true);
 
@@ -175,64 +197,29 @@ export default function AIWidget() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           messages: [...messages, userMsg],
-          voicePreference: voicePreference 
+          isAudioRequest: false // Explicitly state we only want text
         }),
       });
 
       const data = await response.json();
-      
-      // 🌟 THE FIX: If there is an error, throw the exact message we wrote in the backend
       if (!response.ok) throw new Error(data.error || "Connection error");
 
       const aiMsgId = (Date.now() + 1).toString();
       setMessages(prev => [...prev, { id: aiMsgId, role: 'ai', content: data.reply }]);
       
-      if (data.audioBase64) {
-        playGeminiAudio(data.audioBase64, aiMsgId);
-      }
+      // Note: We no longer auto-play audio here!
 
     } catch (error) {
-      // 🌟 THE FIX: Display the graceful error message in the chat bubble
-      setMessages(prev => [...prev, { 
-        id: Date.now().toString(), 
-        role: 'ai', 
-        content: error.message 
-      }]);
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'ai', content: error.message }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const acceptAudioWarning = () => {
-    localStorage.setItem('kintag_audio_agreed', 'true');
-    setHasAgreedToAudio(true);
-    setShowAudioPopup(false);
-    executeSend(pendingText);
-  };
-
   return (
     <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none">
       
-      {showAudioPopup && (
-        <div className="absolute bottom-[80px] w-full bg-[#1c1c1e] border border-zinc-700 shadow-2xl rounded-3xl p-5 pointer-events-auto animate-in fade-in zoom-in-95 duration-200 z-50">
-          <div className="flex gap-3 mb-4">
-            <Volume2 className="text-brandGold shrink-0" size={24} />
-            <div>
-              <h3 className="text-white font-bold mb-1">Voice Replies Enabled</h3>
-              <p className="text-zinc-400 text-sm leading-relaxed">
-                To give you the best experience, KinBot speaks its replies out loud. Please lower your volume manually if you are in a quiet place.
-              </p>
-            </div>
-          </div>
-          <button 
-            onClick={acceptAudioWarning}
-            className="w-full bg-white text-black font-bold py-3 rounded-xl hover:bg-zinc-200 transition-colors"
-          >
-            Got it
-          </button>
-        </div>
-      )}
-
+      {/* ── THE CHAT BOX ── */}
       {isOpen && (
         <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-[0_20px_60px_rgba(0,0,0,0.4)] border border-zinc-800/80 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 fade-in duration-300 pointer-events-auto relative">
           
@@ -252,9 +239,6 @@ export default function AIWidget() {
                 <option value="female">Female Voice</option>
                 <option value="male">Male Voice</option>
               </select>
-              <button onClick={() => { setAudioEnabled(!audioEnabled); stopAudio(); }} className="mr-8 text-zinc-400 hover:text-white transition-colors">
-                {audioEnabled ? <Volume2 size={18} /> : <VolumeX size={18} />}
-              </button>
           </div>
 
           <div className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[50vh]">
@@ -266,8 +250,42 @@ export default function AIWidget() {
             
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`p-4 rounded-2xl max-w-[85%] text-[15px] leading-relaxed font-medium transition-all duration-500 ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white' : 'bg-[#2c2c2e] text-zinc-300'} ${msg.id === speakingMessageId ? 'ring-1 ring-brandGold/50 shadow-[0_0_15px_rgba(205,164,52,0.15)] bg-[#353538] text-white' : ''}`}>
-                  {msg.content}
+                {/* 🌟 NEW: Added bottom margin to AI bubbles to make room for the absolute button */}
+                <div className={`relative group/bubble max-w-[85%] ${msg.role === 'ai' ? 'mb-5' : ''}`}>
+                  
+                  <div className={`p-4 rounded-2xl text-[15px] leading-relaxed font-medium transition-all duration-500 relative z-10 whitespace-pre-wrap
+                    ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} 
+                    ${msg.id === speakingMessageId ? 'ring-1 ring-brandGold/50 shadow-[0_0_15px_rgba(205,164,52,0.15)] bg-[#353538] text-white' : ''}`}>
+                    {msg.content}
+                  </div>
+
+                  {/* 🌟 NEW: The Hover Speaker Button */}
+                  {msg.role === 'ai' && msg.id !== 'welcome' && ( // Optional: Don't show on the hardcoded welcome message if you prefer
+                    <div className="absolute -bottom-6 left-2 flex items-center gap-2 opacity-0 group-hover/bubble:opacity-100 transition-opacity duration-200 z-20">
+                      <button 
+                        onClick={() => msg.id === speakingMessageId ? stopAudio() : fetchAndPlayAudio(msg.content, msg.id)}
+                        disabled={audioLoadingId === msg.id}
+                        className={`p-1.5 rounded-full bg-[#1c1c1e] border border-zinc-800 text-zinc-400 hover:text-white transition-colors flex items-center justify-center 
+                          ${msg.id === speakingMessageId ? 'text-brandGold border-brandGold/30' : ''}`}
+                      >
+                        {audioLoadingId === msg.id ? (
+                          <Loader2 size={12} className="animate-spin text-brandGold" />
+                        ) : msg.id === speakingMessageId ? (
+                          <VolumeX size={12} />
+                        ) : (
+                          <Volume2 size={12} />
+                        )}
+                      </button>
+
+                      {/* Error Tooltip */}
+                      {audioErrorId === msg.id && (
+                        <span className="text-[10px] text-red-400 font-bold bg-red-500/10 px-2 py-0.5 rounded border border-red-500/20 animate-in fade-in slide-in-from-left-1">
+                          Voice limit reached
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                 </div>
               </div>
             ))}
@@ -281,7 +299,7 @@ export default function AIWidget() {
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} className="h-6" /> 
+            <div ref={messagesEndRef} className="h-4" /> 
           </div>
 
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 text-center shrink-0">
@@ -328,12 +346,12 @@ export default function AIWidget() {
                 value={inputText}
                 onChange={(e) => setInputText(e.target.value)}
                 onFocus={() => setIsOpen(true)}
-                onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                onKeyDown={(e) => e.key === 'Enter' && executeSend()}
                 placeholder={isOnline ? "Ask me anything..." : "AI offline..."}
                 className="flex-1 bg-transparent outline-none text-zinc-900 font-medium placeholder:text-zinc-400 min-w-0"
               />
               <button 
-                onClick={() => handleSendMessage()} 
+                onClick={() => executeSend()} 
                 disabled={!isOnline || !inputText.trim()} 
                 className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white hover:bg-black transition-transform active:scale-95 disabled:opacity-50 disabled:active:scale-100 shrink-0"
               >
