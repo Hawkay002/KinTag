@@ -18,23 +18,21 @@ export default function AIWidget() {
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   
-  // Voice & Audio States
+  // Voice, Audio & UI States
   const [isListening, setIsListening] = useState(false);
   const [voicePreference, setVoicePreference] = useState('female'); 
   const [speakingMessageId, setSpeakingMessageId] = useState(null);
   const [audioLoadingId, setAudioLoadingId] = useState(null);
   const [audioErrorId, setAudioErrorId] = useState(null);
+  const [copiedId, setCopiedId] = useState(null); // Tracks which message was copied
   
-  // UI States
-  const [copiedId, setCopiedId] = useState(null);
-
   const audioContextRef = useRef(null);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const inactivityTimerRef = useRef(null);
   const hasExportedRef = useRef(false);
 
-  // ─── COPY TO CLIPBOARD ───
+  // ─── UTILITIES ───
   const handleCopy = (text, id) => {
     navigator.clipboard.writeText(text);
     setCopiedId(id);
@@ -48,7 +46,7 @@ export default function AIWidget() {
     try {
       await fetch('/api/log', {
         method: 'POST',
-        keepalive: true, // Ensures it sends even if the browser tab is closed
+        keepalive: true, 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: currentMessages, reason })
       });
@@ -78,7 +76,7 @@ export default function AIWidget() {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     window.addEventListener('beforeunload', handleBeforeUnload);
-    window.speechSynthesis.getVoices(); // Pre-load local fallback voices
+    window.speechSynthesis.getVoices(); 
 
     return () => {
       window.removeEventListener('online', handleOnline);
@@ -87,7 +85,6 @@ export default function AIWidget() {
     };
   }, [messages]);
 
-  // 2-Minute Inactivity Timer
   useEffect(() => {
     if (messages.length > 1) {
       hasExportedRef.current = false; 
@@ -95,7 +92,7 @@ export default function AIWidget() {
       
       inactivityTimerRef.current = setTimeout(() => {
         exportChatToTelegram("2-Minute Inactivity", messages);
-      }, 120000); // 2 minutes
+      }, 120000); 
     }
 
     if (isOpen) messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -213,11 +210,11 @@ export default function AIWidget() {
   };
 
   return (
-    // 🌟 WIDGET ENTRY ANIMATION: Glides up from the bottom when the page loads
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none animate-in slide-in-from-bottom-[150%] fade-in duration-[800ms] ease-out fill-mode-both">
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none">
       
+      {/* ── CHAT WINDOW (Added smooth fade-in and slide-up animation) ── */}
       {isOpen && (
-        <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-2xl border border-zinc-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
+        <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-2xl border border-zinc-800 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-24 duration-500 ease-out pointer-events-auto">
           
           <div className="p-4 flex justify-between items-center border-b border-zinc-800">
             <select value={voicePreference} onChange={(e) => { setVoicePreference(e.target.value); stopAudio(); }} className="bg-zinc-800 text-[10px] uppercase font-bold text-zinc-300 rounded-lg px-2 py-1 outline-none cursor-pointer">
@@ -235,8 +232,7 @@ export default function AIWidget() {
             </div>
           </div>
 
-          {/* Increased space-y-4 to space-y-6 to allow room for floating copy buttons */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-6 max-h-[50vh]">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[50vh]">
             {!isOnline && (
               <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs p-3 rounded-2xl font-bold text-center">
                 KinBot is offline. Please check your connection.
@@ -252,18 +248,18 @@ export default function AIWidget() {
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`relative group max-w-[85%] w-full ${msg.role === 'ai' ? 'mb-5' : ''}`}>
                     
-                    {/* 🌟 ALWAYS-VISIBLE COPY BUTTON */}
-                    {msg.id !== 'welcome' && msg.id !== 'err' && (
-                      <button
+                    {/* Added pt-8 so text doesn't overlap with the top-corner copy buttons */}
+                    <div className={`relative p-4 pt-8 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
+                      
+                      {/* 🌟 ALWAYS VISIBLE COPY BUTTONS */}
+                      <button 
                         onClick={() => handleCopy(msg.content, msg.id)}
+                        className={`absolute top-2 ${msg.role === 'ai' ? 'right-2' : 'left-2'} p-1 rounded-md hover:bg-zinc-700/50 text-zinc-500 hover:text-zinc-300 transition-colors flex items-center justify-center`}
                         title="Copy message"
-                        className={`absolute -top-3 ${msg.role === 'ai' ? '-right-3' : '-left-3'} p-1.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all z-30 shadow-lg`}
                       >
-                        {copiedId === msg.id ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                        {copiedId === msg.id ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
                       </button>
-                    )}
 
-                    <div className={`p-4 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''} relative z-10`}>
                       {msg.content}
                       
                       {/* HUGEICONS SMART BUTTONS */}
@@ -311,7 +307,6 @@ export default function AIWidget() {
             <div ref={messagesEndRef} className="h-4" />
           </div>
           
-          {/* PRIVACY CONSENT FOOTER */}
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 px-4 flex flex-col gap-1 text-center shrink-0">
              <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
              <p className="text-[9px] text-zinc-600 leading-tight">By using this bot you're consenting to let us use your chat data to improve this AI.</p>
@@ -319,44 +314,44 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── 🌟 SMOOTH TOGGLE INPUT PILL ── */}
-      <div className="h-16 w-full bg-zinc-900 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto relative overflow-hidden">
+      {/* ── INPUT PILL (Added smooth inner transitions) ── */}
+      <div className="h-16 w-full bg-zinc-900 rounded-full flex items-center p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto relative overflow-hidden transition-all duration-300">
         
-        {/* VOICE LISTENING UI */}
-        <div className={`absolute inset-0 p-1.5 flex items-center transition-all duration-300 ease-in-out ${isListening ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 translate-y-full pointer-events-none z-0'}`}>
-          <div className="flex-1 h-full bg-white rounded-full flex items-center pl-2 pr-5 justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center relative shrink-0">
-                <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-20"></div>
-                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+        {/* Voice Mode Wrapper */}
+        <div className={`absolute inset-1.5 right-1.5 flex transition-all duration-300 ease-in-out ${isListening ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 translate-x-4 pointer-events-none'}`}>
+            <div className="flex-1 h-full bg-white rounded-full flex items-center pl-2 pr-5 justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center relative shrink-0">
+                  <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-20"></div>
+                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
+                </div>
+                <span className="text-sm font-extrabold tracking-widest text-zinc-800 uppercase truncate max-w-[120px] sm:max-w-[180px]">
+                  {inputText || "Listening..."}
+                </span>
               </div>
-              <span className="text-sm font-extrabold tracking-widest text-zinc-800 uppercase truncate max-w-[120px] sm:max-w-[180px]">
-                {inputText || "Listening..."}
-              </span>
+              <div className="flex items-center gap-1 shrink-0">
+                <div className="w-1 h-3 bg-zinc-400 rounded-full animate-[bounce_1s_infinite]"></div>
+                <div className="w-1 h-5 bg-zinc-600 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
+                <div className="w-1 h-4 bg-zinc-500 rounded-full animate-[bounce_1s_infinite_0.4s]"></div>
+                <div className="w-1 h-2 bg-zinc-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
+              </div>
             </div>
-            <div className="flex items-center gap-1 shrink-0">
-              <div className="w-1 h-3 bg-zinc-400 rounded-full animate-[bounce_1s_infinite]"></div>
-              <div className="w-1 h-5 bg-zinc-600 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
-              <div className="w-1 h-4 bg-zinc-500 rounded-full animate-[bounce_1s_infinite_0.4s]"></div>
-              <div className="w-1 h-2 bg-zinc-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
-            </div>
-          </div>
-          <button onClick={() => { if(recognitionRef.current) recognitionRef.current.stop(); setIsListening(false); setInputText(''); }} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
-            <X size={20} />
-          </button>
+            <button onClick={() => { if(recognitionRef.current) recognitionRef.current.stop(); setIsListening(false); setInputText(''); }} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
+              <X size={20} />
+            </button>
         </div>
 
-        {/* TEXT INPUT UI */}
-        <div className={`absolute inset-0 p-1.5 flex items-center transition-all duration-300 ease-in-out ${!isListening ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 -translate-y-full pointer-events-none z-0'}`}>
-          <button onClick={startListening} disabled={!isOnline} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50 shrink-0">
-            <Mic size={20} />
-          </button>
-          <div className="flex-1 h-full bg-white rounded-full flex items-center pl-4 pr-1.5">
-            <input disabled={!isOnline || isLoading} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={(e) => e.key === 'Enter' && executeSend()} placeholder={isOnline ? "Ask me anything..." : "AI offline..."} className="flex-1 bg-transparent outline-none text-zinc-900 font-medium placeholder:text-zinc-400 min-w-0" />
-            <button onClick={() => executeSend()} disabled={!isOnline || !inputText.trim() || isLoading} className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white hover:bg-black transition-transform active:scale-95 disabled:opacity-50 shrink-0">
-              <ArrowRight size={18} />
+        {/* Text Mode Wrapper */}
+        <div className={`w-full h-full flex items-center transition-all duration-300 ease-in-out ${!isListening ? 'opacity-100 translate-x-0 pointer-events-auto' : 'opacity-0 -translate-x-4 pointer-events-none'}`}>
+            <button onClick={startListening} disabled={!isOnline} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50 shrink-0">
+              <Mic size={20} />
             </button>
-          </div>
+            <div className="flex-1 h-full bg-white rounded-full flex items-center pl-4 pr-1.5 transition-all">
+              <input disabled={!isOnline || isLoading} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={(e) => e.key === 'Enter' && executeSend()} placeholder={isOnline ? "Ask me anything..." : "AI offline..."} className="flex-1 bg-transparent outline-none text-zinc-900 font-medium placeholder:text-zinc-400 min-w-0" />
+              <button onClick={() => executeSend()} disabled={!isOnline || !inputText.trim() || isLoading} className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white hover:bg-black transition-transform active:scale-95 disabled:opacity-50 shrink-0">
+                <ArrowRight size={18} />
+              </button>
+            </div>
         </div>
 
       </div>
