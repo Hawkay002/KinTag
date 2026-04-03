@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, ArrowRight, X, Volume2, VolumeX, Loader2, Power, MessageCircle, Send } from 'lucide-react';
+import { Mic, ArrowRight, X, Volume2, VolumeX, Loader2, Power } from 'lucide-react';
+
+// 🌟 YOUR EXACT HUGEICONS IMPORTS
+import { HugeiconsIcon } from "@hugeicons/react";
+import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 
 // 🛑 REPLACE THESE WITH YOUR ACTUAL PROFILE LINKS
 const MY_WHATSAPP_LINK = "https://wa.me/918777845713"; 
 const MY_TELEGRAM_LINK = "https://t.me/X_o_x_o_002";
 
-const WELCOME_MESSAGE = { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" };
+const WELCOME_MESSAGE = { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot. How can I help you today?" };
 
 export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
@@ -234,21 +238,23 @@ export default function AIWidget() {
 
               return (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                  <div className={`relative group max-w-[85%] ${msg.role === 'ai' ? 'mb-5' : ''}`}>
-                    <div className={`p-4 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
+                  <div className={`relative group max-w-[85%] w-full ${msg.role === 'ai' ? 'mb-5' : ''}`}>
+                    <div className={`p-4 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
                       {msg.content}
                       
-                      {/* SMART BUTTONS INJECTION */}
+                      {/* 🌟 HUGEICONS SMART BUTTONS (Single Line Layout) */}
                       {msg.role === 'ai' && (mentionsWhatsApp || mentionsTelegram) && (
-                        <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-zinc-700/50">
+                        <div className="flex flex-row gap-2 mt-4 pt-4 border-t border-zinc-700/50 w-full">
                           {mentionsWhatsApp && (
-                            <a href={MY_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 py-2 rounded-xl text-xs font-bold transition-colors">
-                              <MessageCircle size={14} /> Message on WhatsApp
+                            <a href={MY_WHATSAPP_LINK} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 bg-[#25D366]/10 text-[#25D366] hover:bg-[#25D366]/20 border border-[#25D366]/30 py-2 px-2 rounded-xl text-[11px] font-bold transition-colors min-w-0">
+                              <HugeiconsIcon icon={WhatsappIcon} size={16} className="shrink-0" />
+                              <span className="truncate">WhatsApp</span>
                             </a>
                           )}
                           {mentionsTelegram && (
-                            <a href={MY_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 w-full bg-[#2AABEE]/10 text-[#2AABEE] hover:bg-[#2AABEE]/20 border border-[#2AABEE]/30 py-2 rounded-xl text-xs font-bold transition-colors">
-                              <Send size={14} /> Message on Telegram
+                            <a href={MY_TELEGRAM_LINK} target="_blank" rel="noopener noreferrer" className="flex-1 flex items-center justify-center gap-1.5 bg-[#2AABEE]/10 text-[#2AABEE] hover:bg-[#2AABEE]/20 border border-[#2AABEE]/30 py-2 px-2 rounded-xl text-[11px] font-bold transition-colors min-w-0">
+                              <HugeiconsIcon icon={TelegramIcon} size={16} className="shrink-0" />
+                              <span className="truncate">Telegram</span>
                             </a>
                           )}
                         </div>
@@ -281,6 +287,7 @@ export default function AIWidget() {
             <div ref={messagesEndRef} className="h-4" />
           </div>
           
+          {/* PRIVACY CONSENT FOOTER */}
           <div className="bg-[#1c1c1e] border-t border-zinc-800/80 py-2.5 px-4 flex flex-col gap-1 text-center shrink-0">
              <p className="text-[11px] text-zinc-500 font-medium tracking-wide">Powered by <strong className="text-zinc-300 font-bold">KinBot AI</strong></p>
              <p className="text-[9px] text-zinc-600 leading-tight">By using this bot you're consenting to let us use your chat data to improve this AI.</p>
