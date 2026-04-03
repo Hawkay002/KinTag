@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, ArrowRight, X, Volume2, VolumeX, Loader2, Power } from 'lucide-react';
+import { Mic, ArrowRight, X, Volume2, VolumeX, Loader2, Power, Copy, Check } from 'lucide-react';
 
 // 🌟 YOUR EXACT HUGEICONS IMPORTS
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -25,11 +25,21 @@ export default function AIWidget() {
   const [audioLoadingId, setAudioLoadingId] = useState(null);
   const [audioErrorId, setAudioErrorId] = useState(null);
   
+  // UI States
+  const [copiedId, setCopiedId] = useState(null);
+
   const audioContextRef = useRef(null);
   const messagesEndRef = useRef(null);
   const recognitionRef = useRef(null);
   const inactivityTimerRef = useRef(null);
   const hasExportedRef = useRef(false);
+
+  // ─── COPY TO CLIPBOARD ───
+  const handleCopy = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000); // Reset checkmark after 2s
+  };
 
   // ─── CHAT LOGGING ENGINE ───
   const exportChatToTelegram = async (reason, currentMessages) => {
@@ -203,7 +213,8 @@ export default function AIWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none">
+    // 🌟 WIDGET ENTRY ANIMATION: Glides up from the bottom when the page loads
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[100] flex flex-col items-center pointer-events-none animate-in slide-in-from-bottom-[150%] fade-in duration-[800ms] ease-out fill-mode-both">
       
       {isOpen && (
         <div className="bg-[#1c1c1e] rounded-[2rem] w-full mb-4 shadow-2xl border border-zinc-800 flex flex-col overflow-hidden animate-in slide-in-from-bottom-5 pointer-events-auto">
@@ -224,7 +235,8 @@ export default function AIWidget() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 max-h-[50vh]">
+          {/* Increased space-y-4 to space-y-6 to allow room for floating copy buttons */}
+          <div className="flex-1 overflow-y-auto p-5 space-y-6 max-h-[50vh]">
             {!isOnline && (
               <div className="bg-amber-500/10 border border-amber-500/20 text-amber-500 text-xs p-3 rounded-2xl font-bold text-center">
                 KinBot is offline. Please check your connection.
@@ -239,10 +251,22 @@ export default function AIWidget() {
               return (
                 <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                   <div className={`relative group max-w-[85%] w-full ${msg.role === 'ai' ? 'mb-5' : ''}`}>
-                    <div className={`p-4 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''}`}>
+                    
+                    {/* 🌟 ALWAYS-VISIBLE COPY BUTTON */}
+                    {msg.id !== 'welcome' && msg.id !== 'err' && (
+                      <button
+                        onClick={() => handleCopy(msg.content, msg.id)}
+                        title="Copy message"
+                        className={`absolute -top-3 ${msg.role === 'ai' ? '-right-3' : '-left-3'} p-1.5 bg-zinc-800 border border-zinc-700 rounded-full text-zinc-400 hover:text-white hover:bg-zinc-700 transition-all z-30 shadow-lg`}
+                      >
+                        {copiedId === msg.id ? <Check size={12} className="text-green-400" /> : <Copy size={12} />}
+                      </button>
+                    )}
+
+                    <div className={`p-4 rounded-2xl text-[15px] leading-relaxed transition-all whitespace-pre-wrap ${msg.role === 'user' ? 'bg-[#2c2c2e] text-white rounded-br-sm ml-auto w-fit' : 'bg-[#2c2c2e] text-zinc-300 rounded-bl-sm'} ${msg.id === speakingMessageId ? 'ring-2 ring-brandGold shadow-[0_0_15px_rgba(205,164,52,0.15)] text-white bg-[#353538]' : ''} relative z-10`}>
                       {msg.content}
                       
-                      {/* 🌟 HUGEICONS SMART BUTTONS (Single Line Layout) */}
+                      {/* HUGEICONS SMART BUTTONS */}
                       {msg.role === 'ai' && (mentionsWhatsApp || mentionsTelegram) && (
                         <div className="flex flex-row gap-2 mt-4 pt-4 border-t border-zinc-700/50 w-full">
                           {mentionsWhatsApp && (
@@ -295,44 +319,46 @@ export default function AIWidget() {
         </div>
       )}
 
-      {/* ── INPUT PILL ── */}
-      <div className="h-16 w-full bg-zinc-900 rounded-full flex items-center p-1.5 shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto transition-all">
-        {isListening ? (
-          <>
-            <div className="flex-1 h-full bg-white rounded-full flex items-center pl-2 pr-5 justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center relative shrink-0">
-                  <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-20"></div>
-                  <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                </div>
-                <span className="text-sm font-extrabold tracking-widest text-zinc-800 uppercase truncate max-w-[120px] sm:max-w-[180px]">
-                  {inputText || "Listening..."}
-                </span>
+      {/* ── 🌟 SMOOTH TOGGLE INPUT PILL ── */}
+      <div className="h-16 w-full bg-zinc-900 rounded-full shadow-[0_10px_40px_rgba(0,0,0,0.3)] border border-zinc-800 pointer-events-auto relative overflow-hidden">
+        
+        {/* VOICE LISTENING UI */}
+        <div className={`absolute inset-0 p-1.5 flex items-center transition-all duration-300 ease-in-out ${isListening ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 translate-y-full pointer-events-none z-0'}`}>
+          <div className="flex-1 h-full bg-white rounded-full flex items-center pl-2 pr-5 justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center relative shrink-0">
+                <div className="absolute inset-0 bg-red-400 rounded-full animate-ping opacity-20"></div>
+                <div className="w-3 h-3 bg-red-500 rounded-full"></div>
               </div>
-              <div className="flex items-center gap-1 shrink-0">
-                <div className="w-1 h-3 bg-zinc-400 rounded-full animate-[bounce_1s_infinite]"></div>
-                <div className="w-1 h-5 bg-zinc-600 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
-                <div className="w-1 h-4 bg-zinc-500 rounded-full animate-[bounce_1s_infinite_0.4s]"></div>
-                <div className="w-1 h-2 bg-zinc-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
-              </div>
+              <span className="text-sm font-extrabold tracking-widest text-zinc-800 uppercase truncate max-w-[120px] sm:max-w-[180px]">
+                {inputText || "Listening..."}
+              </span>
             </div>
-            <button onClick={() => { if(recognitionRef.current) recognitionRef.current.stop(); setIsListening(false); setInputText(''); }} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
-              <X size={20} />
-            </button>
-          </>
-        ) : (
-          <>
-            <button onClick={startListening} disabled={!isOnline} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50 shrink-0">
-              <Mic size={20} />
-            </button>
-            <div className="flex-1 h-full bg-white rounded-full flex items-center pl-4 pr-1.5 transition-all">
-              <input disabled={!isOnline || isLoading} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={(e) => e.key === 'Enter' && executeSend()} placeholder={isOnline ? "Ask me anything..." : "AI offline..."} className="flex-1 bg-transparent outline-none text-zinc-900 font-medium placeholder:text-zinc-400 min-w-0" />
-              <button onClick={() => executeSend()} disabled={!isOnline || !inputText.trim() || isLoading} className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white hover:bg-black transition-transform active:scale-95 disabled:opacity-50 shrink-0">
-                <ArrowRight size={18} />
-              </button>
+            <div className="flex items-center gap-1 shrink-0">
+              <div className="w-1 h-3 bg-zinc-400 rounded-full animate-[bounce_1s_infinite]"></div>
+              <div className="w-1 h-5 bg-zinc-600 rounded-full animate-[bounce_1s_infinite_0.2s]"></div>
+              <div className="w-1 h-4 bg-zinc-500 rounded-full animate-[bounce_1s_infinite_0.4s]"></div>
+              <div className="w-1 h-2 bg-zinc-400 rounded-full animate-[bounce_1s_infinite_0.1s]"></div>
             </div>
-          </>
-        )}
+          </div>
+          <button onClick={() => { if(recognitionRef.current) recognitionRef.current.stop(); setIsListening(false); setInputText(''); }} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors shrink-0">
+            <X size={20} />
+          </button>
+        </div>
+
+        {/* TEXT INPUT UI */}
+        <div className={`absolute inset-0 p-1.5 flex items-center transition-all duration-300 ease-in-out ${!isListening ? 'opacity-100 translate-y-0 z-10' : 'opacity-0 -translate-y-full pointer-events-none z-0'}`}>
+          <button onClick={startListening} disabled={!isOnline} className="w-14 h-full flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50 shrink-0">
+            <Mic size={20} />
+          </button>
+          <div className="flex-1 h-full bg-white rounded-full flex items-center pl-4 pr-1.5">
+            <input disabled={!isOnline || isLoading} type="text" value={inputText} onChange={(e) => setInputText(e.target.value)} onFocus={() => setIsOpen(true)} onKeyDown={(e) => e.key === 'Enter' && executeSend()} placeholder={isOnline ? "Ask me anything..." : "AI offline..."} className="flex-1 bg-transparent outline-none text-zinc-900 font-medium placeholder:text-zinc-400 min-w-0" />
+            <button onClick={() => executeSend()} disabled={!isOnline || !inputText.trim() || isLoading} className="w-10 h-10 bg-zinc-900 rounded-full flex items-center justify-center text-white hover:bg-black transition-transform active:scale-95 disabled:opacity-50 shrink-0">
+              <ArrowRight size={18} />
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   );
