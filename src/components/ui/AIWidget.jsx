@@ -9,7 +9,7 @@ import { WhatsappIcon, TelegramIcon } from "@hugeicons/core-free-icons";
 const MY_WHATSAPP_LINK = "https://wa.me/918777845713"; 
 const MY_TELEGRAM_LINK = "https://t.me/X_o_x_o_002";
 
-const WELCOME_MESSAGE = { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot. How can I help you today?" };
+const WELCOME_MESSAGE = { id: 'welcome', role: 'ai', content: "Hi! I'm KinBot, welcome to KinTag. How can I help you today?" };
 
 export default function AIWidget() {
   const [isOpen, setIsOpen] = useState(false);
