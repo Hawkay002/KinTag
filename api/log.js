@@ -8,7 +8,7 @@ export default async function handler(req, res) {
   const chatId = process.env.TELEGRAM_CHAT_ID_AI;
 
   if (!messages || messages.length <= 1 || !botToken || !chatId) {
-    return res.status(200).json({ success: false, reason: 'Skipped' }); 
+    return res.status(200).json({ success: false, reason: 'Skipped' });
   }
 
   let formattedText = `🚨 *New KinBot Chat Log*\n_Trigger: ${reason}_\n\n`;
